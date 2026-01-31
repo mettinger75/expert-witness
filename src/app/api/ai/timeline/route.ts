@@ -109,12 +109,21 @@ export async function POST(request: NextRequest) {
     if (!response.ok) {
       const errorText = await response.text()
       return NextResponse.json(
-        { error: `AI generation failed: ${response.status}` },
+        { error: `AI generation failed: ${response.status} - ${errorText.substring(0, 200)}` },
         { status: response.status }
       )
     }
 
-    const result = await response.json()
+    let result
+    try {
+      result = await response.json()
+    } catch {
+      const text = await response.text().catch(() => '')
+      return NextResponse.json(
+        { error: `Failed to parse AI response: ${text.substring(0, 200)}` },
+        { status: 502 }
+      )
+    }
     const responseText = result.content?.[0]?.text || ''
 
     // Parse JSON from AI response - try to extract JSON array

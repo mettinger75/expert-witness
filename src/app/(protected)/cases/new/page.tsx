@@ -115,8 +115,9 @@ export default function NewCasePage() {
       })
 
       if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error || 'Failed to extract case info')
+        let errorMsg = `Failed to extract case info (${res.status})`
+        try { const err = await res.json(); errorMsg = err.error || errorMsg } catch { /* non-JSON error */ }
+        throw new Error(errorMsg)
       }
 
       const result = await res.json()

@@ -162,11 +162,17 @@ export async function POST(request: NextRequest) {
 
       if (!response.ok) {
         const errorText = await response.text()
-        generatedSections[sectionKey] = `[Error generating section: ${response.status} - ${errorText}]`
+        generatedSections[sectionKey] = `[Error generating section: ${response.status} - ${errorText.substring(0, 200)}]`
         continue
       }
 
-      const result = await response.json()
+      let result
+      try {
+        result = await response.json()
+      } catch {
+        generatedSections[sectionKey] = '[Error: Failed to parse AI response]'
+        continue
+      }
       generatedSections[sectionKey] = result.content?.[0]?.text || '[No content generated]'
     }
 

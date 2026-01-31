@@ -121,12 +121,20 @@ export async function POST(request: NextRequest) {
     if (!response.ok) {
       const errorText = await response.text()
       return NextResponse.json(
-        { error: `Anthropic API error: ${response.status} - ${errorText}` },
+        { error: `Anthropic API error: ${response.status} - ${errorText.substring(0, 200)}` },
         { status: response.status }
       )
     }
 
-    const result = await response.json()
+    let result
+    try {
+      result = await response.json()
+    } catch {
+      return NextResponse.json(
+        { error: 'Failed to parse AI response' },
+        { status: 502 }
+      )
+    }
     const summaryText = result.content?.[0]?.text || ''
 
     return NextResponse.json({

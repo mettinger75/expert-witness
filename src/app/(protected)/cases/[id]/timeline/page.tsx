@@ -90,8 +90,9 @@ export default function CaseTimelinePage() {
         body: JSON.stringify({ caseId }),
       })
       if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error || 'Failed to generate timeline')
+        let errorMsg = `Failed to generate timeline (${res.status})`
+        try { const err = await res.json(); errorMsg = err.error || errorMsg } catch { /* non-JSON error */ }
+        throw new Error(errorMsg)
       }
       const result = await res.json()
       toast.success(`Generated ${result.count} timeline entries from records`)
