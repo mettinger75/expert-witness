@@ -23,12 +23,14 @@ import {
   ChevronLeft,
   ChevronRight,
   Timer,
+  Inbox,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
 const navItems = [
   { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { title: 'Cases', href: '/cases', icon: Briefcase },
+  { title: 'Inbox', href: '/inbox', icon: Inbox },
   { title: 'Contacts', href: '/contacts', icon: Users },
   { title: 'Documents', href: '/documents', icon: FileText },
   { title: 'Billing', href: '/billing', icon: DollarSign },

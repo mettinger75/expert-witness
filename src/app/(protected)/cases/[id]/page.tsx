@@ -2,28 +2,37 @@
 
 import { useParams } from 'next/navigation'
 import { useCase, useUpdateCase } from '@/hooks/useCases'
+import { useCaseContacts } from '@/hooks/useCaseContacts'
+import { useMilestones } from '@/hooks/useMilestones'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import { CASE_STATUSES, CASE_TYPES, CASE_PRIORITIES, SPECIALTY_AREAS, getLabelForValue, getColorForValue } from '@/lib/constants'
+import { Checkbox } from '@/components/ui/checkbox'
+import { CASE_STATUSES, CASE_TYPES, CASE_PRIORITIES, SPECIALTY_AREAS, CASE_CONTACT_ROLES, getLabelForValue, getColorForValue } from '@/lib/constants'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { formatDate, formatCurrency, formatDuration } from '@/lib/formatters'
-import { Calendar, DollarSign, Clock, Scale, User, MapPin, FileText, Edit } from 'lucide-react'
-import type { CaseStatus } from '@/types/database.types'
+import { Calendar, DollarSign, Clock, Scale, User, MapPin, Edit, Users, CheckSquare, Mail, Phone, Building } from 'lucide-react'
+import type { CaseStatus } from '@/types/enums'
 import { useState } from 'react'
 import Link from 'next/link'
+import { useToggleMilestone } from '@/hooks/useMilestones'
 
 export default function CaseOverviewPage() {
   const params = useParams()
   const caseId = params.id as string
   const { data: caseData, isLoading } = useCase(caseId)
+  const { data: caseContacts = [] } = useCaseContacts(caseId)
+  const { data: milestones = [] } = useMilestones(caseId)
   const updateCase = useUpdateCase()
+  const toggleMilestone = useToggleMilestone()
   const [editingStatus, setEditingStatus] = useState(false)
 
   if (isLoading || !caseData) return <LoadingSpinner className="py-12" />
+
+  const outstandingMilestones = milestones.filter((m) => !m.is_completed)
 
   function handleStatusChange(newStatus: string) {
     updateCase.mutate({ id: caseId, data: { status: newStatus as CaseStatus } })
@@ -123,6 +132,73 @@ export default function CaseOverviewPage() {
           </CardContent>
         </Card>
 
+        {/* Contacts Section */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Contacts
+            </CardTitle>
+            <Link href={`/cases/${caseId}/contacts`}>
+              <Button variant="outline" size="sm">Manage</Button>
+            </Link>
+          </CardHeader>
+          <CardContent>
+            {caseContacts.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No contacts linked to this case yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {caseContacts.map((cc) => {
+                  const contact = cc.contacts
+                  return (
+                    <div key={cc.id} className="flex items-start justify-between border rounded-lg p-3">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm">
+                            {contact.first_name} {contact.last_name}
+                          </span>
+                          <Badge variant="secondary" className="text-xs">
+                            {getLabelForValue(CASE_CONTACT_ROLES, cc.role)}
+                          </Badge>
+                          {cc.is_primary && (
+                            <Badge variant="default" className="text-xs">Primary</Badge>
+                          )}
+                        </div>
+                        {contact.organization && (
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Building className="h-3 w-3" />
+                            {contact.organization}
+                          </div>
+                        )}
+                        <div className="flex items-center gap-4">
+                          {contact.email && (
+                            <a
+                              href={`mailto:${contact.email}`}
+                              className="flex items-center gap-1 text-xs text-primary hover:underline"
+                            >
+                              <Mail className="h-3 w-3" />
+                              {contact.email}
+                            </a>
+                          )}
+                          {contact.phone && (
+                            <a
+                              href={`tel:${contact.phone}`}
+                              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary"
+                            >
+                              <Phone className="h-3 w-3" />
+                              {contact.phone}
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Opinion */}
         {(caseData.preliminary_opinion || caseData.opinion_summary) && (
           <Card>
@@ -176,6 +252,53 @@ export default function CaseOverviewPage() {
                 <Button variant="ghost" size="sm" onClick={() => setEditingStatus(true)}>
                   Change
                 </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Outstanding Tasks / Milestones */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <CheckSquare className="h-5 w-5" />
+              Tasks
+            </CardTitle>
+            {milestones.length > 0 && (
+              <Badge variant="secondary" className="text-xs">
+                {outstandingMilestones.length} remaining
+              </Badge>
+            )}
+          </CardHeader>
+          <CardContent>
+            {milestones.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No milestones set for this case.</p>
+            ) : outstandingMilestones.length === 0 ? (
+              <p className="text-sm text-emerald-600">All milestones completed!</p>
+            ) : (
+              <div className="space-y-2">
+                {outstandingMilestones.slice(0, 5).map((milestone) => (
+                  <div key={milestone.id} className="flex items-start gap-2">
+                    <Checkbox
+                      checked={milestone.is_completed}
+                      onCheckedChange={() => toggleMilestone.mutate({ id: milestone.id, caseId })}
+                      className="mt-0.5"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium leading-tight">{milestone.title}</p>
+                      {milestone.due_date && (
+                        <p className={`text-xs mt-0.5 ${milestone.is_overdue ? 'text-red-500 font-medium' : 'text-muted-foreground'}`}>
+                          {milestone.is_overdue ? 'Overdue: ' : 'Due: '}{formatDate(milestone.due_date)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {outstandingMilestones.length > 5 && (
+                  <p className="text-xs text-muted-foreground">
+                    +{outstandingMilestones.length - 5} more
+                  </p>
+                )}
               </div>
             )}
           </CardContent>

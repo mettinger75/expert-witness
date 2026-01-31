@@ -1,0 +1,342 @@
+'use client'
+
+import { useState } from 'react'
+import { useParams } from 'next/navigation'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Switch } from '@/components/ui/switch'
+import { EmptyState } from '@/components/shared/EmptyState'
+import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
+import { TIMELINE_EVENT_TYPES, getLabelForValue } from '@/lib/constants'
+import { formatDateTime } from '@/lib/formatters'
+import { useTimeline, useCreateTimelineEntry } from '@/hooks/useTimeline'
+import type { TimelineEventType } from '@/types/enums'
+import { Plus, Clock, Filter, AlertCircle, FileText, Loader2, Sparkles } from 'lucide-react'
+import { toast } from 'sonner'
+
+function getDotColor(eventType: string, isSignificant: boolean): string {
+  if (isSignificant) return 'bg-red-500'
+  if (['complication', 'code_event', 'death'].includes(eventType)) return 'bg-red-500'
+  if (['vital_signs', 'medication_given'].includes(eventType)) return 'bg-amber-500'
+  return 'bg-blue-500'
+}
+
+export default function CaseTimelinePage() {
+  const params = useParams()
+  const caseId = params.id as string
+  const [eventTypeFilter, setEventTypeFilter] = useState<string>('all')
+  const [addOpen, setAddOpen] = useState(false)
+
+  // Form state
+  const [formTitle, setFormTitle] = useState('')
+  const [formDatetime, setFormDatetime] = useState('')
+  const [formEventType, setFormEventType] = useState<string>('other')
+  const [formProvider, setFormProvider] = useState('')
+  const [formDescription, setFormDescription] = useState('')
+  const [formSignificant, setFormSignificant] = useState(false)
+  const [formFacility, setFormFacility] = useState('')
+
+  // AI generation state
+  const [generating, setGenerating] = useState(false)
+
+  // Real data
+  const filters = eventTypeFilter !== 'all' ? { event_type: eventTypeFilter } : undefined
+  const { data: entries = [], isLoading } = useTimeline(caseId, filters)
+  const createMutation = useCreateTimelineEntry()
+
+  function resetForm() {
+    setFormTitle('')
+    setFormDatetime('')
+    setFormEventType('other')
+    setFormProvider('')
+    setFormDescription('')
+    setFormSignificant(false)
+    setFormFacility('')
+  }
+
+  async function handleAddEntry() {
+    if (!formTitle || !formDatetime || !formEventType) {
+      toast.error('Title, date/time, and event type are required')
+      return
+    }
+
+    await createMutation.mutateAsync({
+      case_id: caseId,
+      title: formTitle,
+      event_datetime: new Date(formDatetime).toISOString(),
+      event_type: formEventType as TimelineEventType,
+      provider_name: formProvider || null,
+      description: formDescription || null,
+      is_significant: formSignificant,
+      facility: formFacility || null,
+    })
+
+    resetForm()
+    setAddOpen(false)
+  }
+
+  async function handleGenerateFromRecords() {
+    setGenerating(true)
+    try {
+      const res = await fetch('/api/ai/timeline', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ caseId }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || 'Failed to generate timeline')
+      }
+      const result = await res.json()
+      toast.success(`Generated ${result.count} timeline entries from records`)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Generation failed'
+      toast.error(message)
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-lg font-semibold">Medical Timeline</h2>
+          <p className="text-sm text-muted-foreground">
+            Chronological record of medical events
+            {!isLoading && ` (${entries.length} entries)`}
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            onClick={handleGenerateFromRecords}
+            disabled={generating}
+          >
+            {generating ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4 mr-2" />
+            )}
+            Generate from Records
+          </Button>
+          <Select value={eventTypeFilter} onValueChange={setEventTypeFilter}>
+            <SelectTrigger className="w-[200px]">
+              <Filter className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="Event Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Events</SelectItem>
+              {TIMELINE_EVENT_TYPES.map((t) => (
+                <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Dialog open={addOpen} onOpenChange={(open) => {
+            setAddOpen(open)
+            if (!open) resetForm()
+          }}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Entry
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Add Timeline Entry</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="entry-title">Title *</Label>
+                  <Input
+                    id="entry-title"
+                    placeholder="Event title"
+                    value={formTitle}
+                    onChange={(e) => setFormTitle(e.target.value)}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="entry-date">Date/Time *</Label>
+                    <Input
+                      id="entry-date"
+                      type="datetime-local"
+                      value={formDatetime}
+                      onChange={(e) => setFormDatetime(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="entry-type">Event Type *</Label>
+                    <Select value={formEventType} onValueChange={setFormEventType}>
+                      <SelectTrigger id="entry-type">
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TIMELINE_EVENT_TYPES.map((t) => (
+                          <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="entry-provider">Provider</Label>
+                    <Input
+                      id="entry-provider"
+                      placeholder="Provider name"
+                      value={formProvider}
+                      onChange={(e) => setFormProvider(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="entry-facility">Facility</Label>
+                    <Input
+                      id="entry-facility"
+                      placeholder="Facility name"
+                      value={formFacility}
+                      onChange={(e) => setFormFacility(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="entry-desc">Description</Label>
+                  <Textarea
+                    id="entry-desc"
+                    placeholder="Describe the event..."
+                    rows={3}
+                    value={formDescription}
+                    onChange={(e) => setFormDescription(e.target.value)}
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="entry-significant"
+                    checked={formSignificant}
+                    onCheckedChange={setFormSignificant}
+                  />
+                  <Label htmlFor="entry-significant">Mark as significant/critical event</Label>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => { resetForm(); setAddOpen(false) }}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleAddEntry}
+                  disabled={createMutation.isPending}
+                >
+                  {createMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Plus className="h-4 w-4 mr-2" />
+                  )}
+                  Add Entry
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center py-12">
+          <LoadingSpinner size="lg" />
+        </div>
+      ) : entries.length === 0 ? (
+        <EmptyState
+          icon={Clock}
+          title="No timeline entries"
+          description="Add events manually or generate a timeline from uploaded medical records."
+          action={
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handleGenerateFromRecords} disabled={generating}>
+                <Sparkles className="h-4 w-4 mr-2" />
+                Generate from Records
+              </Button>
+              <Button onClick={() => setAddOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Entry
+              </Button>
+            </div>
+          }
+        />
+      ) : (
+        <div className="relative">
+          {/* Vertical timeline line */}
+          <div className="absolute left-[19px] top-0 bottom-0 w-0.5 bg-border" />
+
+          <div className="space-y-4">
+            {entries.map((entry) => (
+              <div key={entry.id} className="relative flex gap-4">
+                {/* Timeline dot */}
+                <div
+                  className={`relative z-10 mt-5 w-[10px] h-[10px] rounded-full shrink-0 ring-2 ring-background ${getDotColor(entry.event_type, entry.is_significant)}`}
+                  style={{ marginLeft: '15px' }}
+                />
+
+                {/* Card */}
+                <Card className={`flex-1 ${entry.is_significant ? 'border-red-300' : ''}`}>
+                  <CardContent className="py-3 px-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-mono text-muted-foreground">
+                            {formatDateTime(entry.event_datetime)}
+                          </span>
+                          <Badge variant="secondary" className="text-xs">
+                            {getLabelForValue(TIMELINE_EVENT_TYPES, entry.event_type)}
+                          </Badge>
+                          {entry.is_significant && (
+                            <Badge variant="destructive" className="text-xs">
+                              <AlertCircle className="h-3 w-3 mr-1" />
+                              Critical
+                            </Badge>
+                          )}
+                          {entry.ai_generated && (
+                            <Badge variant="outline" className="text-xs">
+                              <Sparkles className="h-3 w-3 mr-1" />
+                              AI
+                            </Badge>
+                          )}
+                        </div>
+                        <h4 className="font-medium text-sm mt-1">{entry.title}</h4>
+                        {entry.description && (
+                          <p className="text-sm text-muted-foreground mt-1">{entry.description}</p>
+                        )}
+                        <div className="flex items-center gap-3 mt-1.5">
+                          {entry.provider_name && (
+                            <p className="text-xs text-muted-foreground">
+                              Provider: {entry.provider_name}
+                            </p>
+                          )}
+                          {entry.facility && (
+                            <p className="text-xs text-muted-foreground">
+                              Facility: {entry.facility}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      {entry.document_id && (
+                        <Button variant="ghost" size="sm" className="shrink-0 text-muted-foreground">
+                          <FileText className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

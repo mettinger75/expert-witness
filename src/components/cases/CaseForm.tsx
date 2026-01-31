@@ -43,34 +43,37 @@ type CaseFormValues = z.infer<typeof caseSchema>
 
 interface CaseFormProps {
   initialData?: CaseRow
+  defaultValues?: Partial<CaseInsert>
   onSubmit: (data: CaseInsert) => Promise<void>
   isSubmitting: boolean
 }
 
-export function CaseForm({ initialData, onSubmit, isSubmitting }: CaseFormProps) {
+export function CaseForm({ initialData, defaultValues, onSubmit, isSubmitting }: CaseFormProps) {
+  // Merge initialData and defaultValues (initialData takes precedence for editing existing cases)
+  const d = initialData ?? defaultValues
   const form = useForm<CaseFormValues>({
     resolver: zodResolver(caseSchema) as any,
     defaultValues: {
-      case_name: initialData?.case_name ?? '',
-      case_type: initialData?.case_type ?? 'medical_malpractice',
-      specialty_area: initialData?.specialty_area ?? 'general_anesthesia',
-      side: (initialData?.side as 'plaintiff' | 'defense' | 'neutral') ?? 'defense',
-      priority: (initialData?.priority as 'urgent' | 'high' | 'normal' | 'low') ?? 'normal',
-      date_of_incident: initialData?.date_of_incident ?? '',
-      date_of_referral: initialData?.date_of_referral ?? new Date().toISOString().split('T')[0],
-      deadline_next: initialData?.deadline_next ?? '',
-      deadline_description: initialData?.deadline_description ?? '',
-      jurisdiction_state: initialData?.jurisdiction_state ?? '',
-      court_name: initialData?.court_name ?? '',
-      court_case_number: initialData?.court_case_number ?? '',
-      patient_name: initialData?.patient_name ?? '',
-      patient_dob: initialData?.patient_dob ?? '',
-      patient_age_at_incident: initialData?.patient_age_at_incident ?? '',
-      patient_outcome: initialData?.patient_outcome ?? '',
-      brief_summary: initialData?.brief_summary ?? '',
-      preliminary_opinion: initialData?.preliminary_opinion ?? '',
-      opinion_summary: initialData?.opinion_summary ?? '',
-      retainer_received: initialData?.retainer_received ?? true,
+      case_name: d?.case_name ?? '',
+      case_type: d?.case_type ?? 'medical_malpractice',
+      specialty_area: d?.specialty_area ?? 'general_anesthesia',
+      side: (d?.side as 'plaintiff' | 'defense' | 'neutral') ?? 'defense',
+      priority: (d?.priority as 'urgent' | 'high' | 'normal' | 'low') ?? 'normal',
+      date_of_incident: d?.date_of_incident ?? '',
+      date_of_referral: d?.date_of_referral ?? new Date().toISOString().split('T')[0],
+      deadline_next: d?.deadline_next ?? '',
+      deadline_description: d?.deadline_description ?? '',
+      jurisdiction_state: d?.jurisdiction_state ?? '',
+      court_name: d?.court_name ?? '',
+      court_case_number: d?.court_case_number ?? '',
+      patient_name: d?.patient_name ?? '',
+      patient_dob: d?.patient_dob ?? '',
+      patient_age_at_incident: d?.patient_age_at_incident ?? '',
+      patient_outcome: d?.patient_outcome ?? '',
+      brief_summary: d?.brief_summary ?? '',
+      preliminary_opinion: d?.preliminary_opinion ?? '',
+      opinion_summary: d?.opinion_summary ?? '',
+      retainer_received: d?.retainer_received ?? true,
       retainer_amount: initialData?.retainer_amount ?? '',
       estimated_hours: initialData?.estimated_hours ?? '',
     },

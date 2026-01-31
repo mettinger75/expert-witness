@@ -19,6 +19,7 @@ import {
   FileCheck,
   Brain,
   ArrowLeft,
+  Mail,
 } from 'lucide-react'
 
 const tabs = [
@@ -28,6 +29,7 @@ const tabs = [
   { label: 'Timeline', href: '/timeline', icon: Clock },
   { label: 'Depositions', href: '/depositions', icon: Gavel },
   { label: 'Notes', href: '/notes', icon: StickyNote },
+  { label: 'Emails', href: '/emails', icon: Mail },
   { label: 'Billing', href: '/billing', icon: DollarSign },
   { label: 'Reports', href: '/reports', icon: FileCheck },
   { label: 'AI', href: '/ai', icon: Brain },

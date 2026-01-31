@@ -7,7 +7,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { AppSidebar } from '@/components/layout/AppSidebar'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 
-export default function DashboardLayout({
+export default function ProtectedLayout({
   children,
 }: {
   children: React.ReactNode
