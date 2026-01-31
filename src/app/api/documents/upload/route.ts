@@ -81,28 +81,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get public URL for the uploaded file
-    const { data: urlData } = supabase.storage
-      .from('case-documents')
-      .getPublicUrl(storagePath)
-
     // Create document record in the database
     const { data: documentRecord, error: dbError } = await supabase
       .from('documents')
       .insert({
         case_id: caseId,
-        name: filename,
-        filename: sanitizedFilename,
+        file_name: sanitizedFilename,
+        original_file_name: filename,
+        file_path: storagePath,
+        file_size: file.size,
+        mime_type: file.type || 'application/octet-stream',
         category,
         description: description || null,
         folder_id: folderId || null,
-        storage_path: storagePath,
-        file_url: urlData?.publicUrl || null,
-        file_size: file.size,
-        file_type: file.type || null,
-        extension,
-        status: 'uploaded',
-        uploaded_at: new Date().toISOString(),
+        ocr_status: file.type === 'application/pdf' ? 'pending' : 'not_needed',
       })
       .select()
       .single()

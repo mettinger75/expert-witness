@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -14,12 +14,12 @@ import { EmptyState } from '@/components/shared/EmptyState'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { DOCUMENT_CATEGORIES, getLabelForValue } from '@/lib/constants'
 import { formatDate } from '@/lib/formatters'
-import { useDocuments, useUploadDocument, useCreateDocument } from '@/hooks/useDocuments'
+import { useDocuments, useUploadDocument, useCreateDocument, useProcessDocument } from '@/hooks/useDocuments'
 import { useFolders } from '@/hooks/useFolders'
 import type { DocumentCategory } from '@/types/enums'
 import {
   Upload, FileText, Search, Star, Filter,
-  Folder, FolderOpen, Loader2, X,
+  Folder, FolderOpen, Loader2, X, RefreshCw, Brain,
 } from 'lucide-react'
 
 export default function CaseDocumentsPage() {
@@ -43,11 +43,19 @@ export default function CaseDocumentsPage() {
     folder_id: selectedFolder ?? undefined,
     search: search || undefined,
   }
-  const { data: documents = [], isLoading: docsLoading } = useDocuments(caseId, filters)
+  const [isPolling, setIsPolling] = useState(false)
+  const { data: documents = [], isLoading: docsLoading } = useDocuments(caseId, filters, {
+    refetchInterval: isPolling ? 3000 : undefined,
+  })
   const { data: folders = [], isLoading: foldersLoading } = useFolders(caseId)
+
+  // Track if any documents are processing to enable polling
+  const hasProcessing = documents.some(d => d.ocr_status === 'processing')
+  useEffect(() => { setIsPolling(hasProcessing) }, [hasProcessing])
 
   const uploadMutation = useUploadDocument()
   const createMutation = useCreateDocument()
+  const processDocument = useProcessDocument()
 
   const isUploading = uploadMutation.isPending || createMutation.isPending
 
@@ -81,7 +89,7 @@ export default function CaseDocumentsPage() {
         const filePath = await uploadMutation.mutateAsync({ caseId, file })
 
         // Create document record
-        await createMutation.mutateAsync({
+        const newDoc = await createMutation.mutateAsync({
           case_id: caseId,
           file_name: file.name,
           original_file_name: file.name,
@@ -92,6 +100,11 @@ export default function CaseDocumentsPage() {
           description: docDescription || null,
           date_of_document: docDate || null,
         })
+
+        // Auto-process PDF files with AI
+        if (file.type === 'application/pdf' && newDoc?.id) {
+          processDocument.mutate(newDoc.id)
+        }
       } catch {
         // Error toasts are handled by the mutation hooks
         return
@@ -329,7 +342,7 @@ export default function CaseDocumentsPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {documents.map((doc) => (
-                <Card key={doc.id} className="hover:bg-muted/50 transition-colors cursor-pointer">
+                <Card key={doc.id} className="hover:bg-muted/50 transition-colors">
                   <CardContent className="flex items-start gap-3 py-4">
                     <div className="p-2 rounded-md bg-muted">
                       <FileText className="h-5 w-5 text-muted-foreground" />
@@ -340,11 +353,50 @@ export default function CaseDocumentsPage() {
                         {doc.is_exhibit && (
                           <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-500 shrink-0" />
                         )}
+                        {/* Reprocess button */}
+                        {doc.mime_type === 'application/pdf' && doc.ocr_status !== 'processing' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 ml-auto shrink-0"
+                            onClick={() => processDocument.mutate(doc.id)}
+                            disabled={processDocument.isPending}
+                            title={doc.ocr_status === 'completed' ? 'Reprocess with AI' : 'Process with AI'}
+                          >
+                            {doc.ocr_status === 'completed' ? (
+                              <RefreshCw className="h-3.5 w-3.5" />
+                            ) : (
+                              <Brain className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
                         <Badge variant="secondary" className="text-xs">
                           {getLabelForValue(DOCUMENT_CATEGORIES, doc.category)}
                         </Badge>
+                        {/* AI Processing Status Badge */}
+                        {doc.ocr_status === 'pending' && doc.mime_type === 'application/pdf' && (
+                          <Badge variant="outline" className="text-xs text-amber-600 border-amber-200 bg-amber-50">
+                            Pending AI
+                          </Badge>
+                        )}
+                        {doc.ocr_status === 'processing' && (
+                          <Badge variant="outline" className="text-xs text-blue-600 border-blue-200 bg-blue-50">
+                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                            Analyzing...
+                          </Badge>
+                        )}
+                        {doc.ocr_status === 'completed' && (
+                          <Badge variant="outline" className="text-xs text-emerald-600 border-emerald-200 bg-emerald-50">
+                            AI Complete
+                          </Badge>
+                        )}
+                        {doc.ocr_status === 'failed' && (
+                          <Badge variant="outline" className="text-xs text-red-600 border-red-200 bg-red-50">
+                            AI Failed
+                          </Badge>
+                        )}
                         {doc.date_of_document && (
                           <span className="text-xs text-muted-foreground">
                             {formatDate(doc.date_of_document)}
@@ -359,10 +411,31 @@ export default function CaseDocumentsPage() {
                           {formatFileSize(doc.file_size)}
                         </span>
                       </div>
-                      {doc.description && (
+                      {/* AI Summary Preview */}
+                      {doc.ai_summary && (
+                        <p className="text-xs text-muted-foreground mt-2 line-clamp-2 italic">
+                          {doc.ai_summary}
+                        </p>
+                      )}
+                      {!doc.ai_summary && doc.description && (
                         <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
                           {doc.description}
                         </p>
+                      )}
+                      {/* Key Findings Preview */}
+                      {doc.ai_key_findings && doc.ai_key_findings.length > 0 && (
+                        <div className="mt-1 flex gap-1 flex-wrap">
+                          {doc.ai_key_findings.slice(0, 3).map((finding: string, i: number) => (
+                            <Badge key={i} variant="outline" className="text-[10px] py-0">
+                              {finding.length > 40 ? finding.substring(0, 40) + '...' : finding}
+                            </Badge>
+                          ))}
+                          {doc.ai_key_findings.length > 3 && (
+                            <span className="text-[10px] text-muted-foreground">
+                              +{doc.ai_key_findings.length - 3} more
+                            </span>
+                          )}
+                        </div>
                       )}
                     </div>
                   </CardContent>

@@ -68,3 +68,28 @@ export function useArchiveCase() {
     },
   })
 }
+
+export function useSynthesizeCase() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (caseId: string) => {
+      const response = await fetch(`/api/cases/${caseId}/synthesize`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      })
+      if (!response.ok) {
+        let errorMsg = `Synthesis failed (${response.status})`
+        try { const err = await response.json(); errorMsg = err.error || errorMsg } catch { /* non-JSON */ }
+        throw new Error(errorMsg)
+      }
+      return response.json()
+    },
+    onSuccess: (_, caseId) => {
+      queryClient.invalidateQueries({ queryKey: ['cases', caseId] })
+      toast.success('Case analysis updated')
+    },
+    onError: (error: Error) => {
+      toast.error(`Case synthesis failed: ${error.message}`)
+    },
+  })
+}

@@ -1,7 +1,7 @@
 'use client'
 
 import { useParams } from 'next/navigation'
-import { useCase, useUpdateCase } from '@/hooks/useCases'
+import { useCase, useUpdateCase, useSynthesizeCase } from '@/hooks/useCases'
 import { useCaseContacts } from '@/hooks/useCaseContacts'
 import { useMilestones } from '@/hooks/useMilestones'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
@@ -14,7 +14,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { CASE_STATUSES, CASE_TYPES, CASE_PRIORITIES, SPECIALTY_AREAS, CASE_CONTACT_ROLES, getLabelForValue, getColorForValue } from '@/lib/constants'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { formatDate, formatCurrency, formatDuration } from '@/lib/formatters'
-import { Calendar, DollarSign, Clock, Scale, User, MapPin, Edit, Users, CheckSquare, Mail, Phone, Building } from 'lucide-react'
+import { Calendar, DollarSign, Clock, Scale, User, MapPin, Edit, Users, CheckSquare, Mail, Phone, Building, Brain, RefreshCw, Loader2, AlertTriangle } from 'lucide-react'
 import type { CaseStatus } from '@/types/enums'
 import { useState } from 'react'
 import Link from 'next/link'
@@ -27,6 +27,7 @@ export default function CaseOverviewPage() {
   const { data: caseContacts = [] } = useCaseContacts(caseId)
   const { data: milestones = [] } = useMilestones(caseId)
   const updateCase = useUpdateCase()
+  const synthesizeCase = useSynthesizeCase()
   const toggleMilestone = useToggleMilestone()
   const [editingStatus, setEditingStatus] = useState(false)
 
@@ -222,6 +223,72 @@ export default function CaseOverviewPage() {
             </CardContent>
           </Card>
         )}
+
+        {/* AI Case Analysis */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Brain className="h-5 w-5" />
+              AI Case Analysis
+            </CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => synthesizeCase.mutate(caseId)}
+              disabled={synthesizeCase.isPending}
+            >
+              {synthesizeCase.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  Analyzing...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-1" />
+                  {caseData.standard_of_care_issues || caseData.causation_notes || caseData.damages_summary
+                    ? 'Re-analyze Case'
+                    : 'Analyze Case'}
+                </>
+              )}
+            </Button>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {!caseData.standard_of_care_issues && !caseData.causation_notes && !caseData.damages_summary ? (
+              <div className="text-center py-6 text-muted-foreground">
+                <Brain className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No AI analysis yet.</p>
+                <p className="text-xs mt-1">Upload and process documents, then click &quot;Analyze Case&quot; to generate AI insights.</p>
+              </div>
+            ) : (
+              <>
+                {caseData.standard_of_care_issues && (
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Standard of Care Issues</label>
+                    <p className="mt-1 text-sm whitespace-pre-wrap">{caseData.standard_of_care_issues}</p>
+                  </div>
+                )}
+                {caseData.causation_notes && (
+                  <>
+                    <Separator />
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Causation Notes</label>
+                      <p className="mt-1 text-sm whitespace-pre-wrap">{caseData.causation_notes}</p>
+                    </div>
+                  </>
+                )}
+                {caseData.damages_summary && (
+                  <>
+                    <Separator />
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Damages Summary</label>
+                      <p className="mt-1 text-sm whitespace-pre-wrap">{caseData.damages_summary}</p>
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Sidebar - Right column */}

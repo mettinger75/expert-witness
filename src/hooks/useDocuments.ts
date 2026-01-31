@@ -3,11 +3,12 @@ import { documentsService, type DocumentFilters } from '@/services/documents.ser
 import type { DocumentInsert, DocumentUpdate } from '@/types/database.types'
 import { toast } from 'sonner'
 
-export function useDocuments(caseId: string, filters?: DocumentFilters) {
+export function useDocuments(caseId: string, filters?: DocumentFilters, options?: { refetchInterval?: number }) {
   return useQuery({
     queryKey: ['documents', 'case', caseId, filters],
     queryFn: () => documentsService.getByCaseId(caseId, filters),
     enabled: !!caseId,
+    refetchInterval: options?.refetchInterval,
   })
 }
 
@@ -73,6 +74,33 @@ export function useUploadDocument() {
     },
     onError: (error: Error) => {
       toast.error(`Failed to upload file: ${error.message}`)
+    },
+  })
+}
+
+export function useProcessDocument() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (documentId: string) => {
+      const response = await fetch('/api/documents/process', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentId }),
+      })
+      if (!response.ok) {
+        let errorMsg = `Processing failed (${response.status})`
+        try { const err = await response.json(); errorMsg = err.error || errorMsg } catch { /* non-JSON */ }
+        throw new Error(errorMsg)
+      }
+      return response.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['documents'] })
+      toast.success('Document analyzed successfully')
+    },
+    onError: (error: Error) => {
+      queryClient.invalidateQueries({ queryKey: ['documents'] })
+      toast.error(`AI processing failed: ${error.message}`)
     },
   })
 }

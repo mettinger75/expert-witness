@@ -15,11 +15,16 @@ export const MODEL_BY_TASK = {
   document_ocr: 'fast' as const,
   document_classify: 'fast' as const,
   document_summarize: 'standard' as const,
+  document_process: 'standard' as const,
   timeline_extract: 'standard' as const,
   case_analysis: 'advanced' as const,
+  case_synthesize: 'advanced' as const,
   report_generation: 'advanced' as const,
   research: 'advanced' as const,
 }
+
+// Anthropic API version with PDF document support
+export const ANTHROPIC_API_VERSION_PDF = '2024-10-22'
 
 // System prompts for different AI tasks
 export const SYSTEM_PROMPTS = {
@@ -36,6 +41,10 @@ export const SYSTEM_PROMPTS = {
   case_summary: `You are summarizing a medical malpractice case involving anesthesiology care. Include: patient demographics, date of incident, clinical setting, procedures performed, alleged negligence, injuries/outcomes, and key issues. Be concise but comprehensive.`,
 
   deposition_prep: `You are preparing an expert witness for deposition testimony. Identify key topics likely to be addressed, potential challenging questions, important exhibits, and areas requiring careful preparation. Organize by topic with suggested testimony approaches.`,
+
+  document_processing: `You are an expert medical-legal document analyst specializing in anesthesiology cases. Extract comprehensive structured data from this medical document. Be precise with medical terminology, medication names, dosages, dates, and provider names. Flag any information relevant to standard of care, adverse events, or clinical decision-making. Extract the full text content of the document.`,
+
+  case_synthesis: `You are a board-certified anesthesiologist serving as an expert witness in medical malpractice litigation. Based on all analyzed documents for this case, provide a comprehensive case analysis. Identify standard of care deviations with specificity, analyze causation factors, and assess damages. Form a preliminary opinion based on the evidence. Be thorough but maintain objectivity. Use specific findings from the documents to support your analysis.`,
 }
 
 // Context assembly helper
