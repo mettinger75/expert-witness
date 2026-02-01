@@ -1153,8 +1153,10 @@ export type PaymentUpdate = Partial<PaymentInsert>;
 // =============================================================================
 export interface CommunicationLogRow {
   id: string;
-  case_id: string;
+  case_id: string | null;
   contact_id: string | null;
+  from_email: string | null;
+  from_name: string | null;
   communication_type: CommunicationType;
   direction: string;
   subject: string | null;
@@ -1173,8 +1175,10 @@ export interface CommunicationLogRow {
 
 export interface CommunicationLogInsert {
   id?: string;
-  case_id: string;
+  case_id?: string | null;
   contact_id?: string | null;
+  from_email?: string | null;
+  from_name?: string | null;
   communication_type: CommunicationType;
   direction?: string;
   subject?: string | null;

@@ -2,96 +2,97 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 
 // Resend inbound webhook handler
-// Receives forwarded emails and stores them as communication logs
+// Receives forwarded emails and stores them as communication logs.
+// Emails without a matching case go into the inbox for manual assignment.
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
 
-    // Resend inbound webhook payload
-    const {
-      from,
-      to,
-      subject,
-      text,
-      html,
-    } = body
+    const { from, to, subject, text, html } = body
 
-    if (!from || !subject) {
+    if (!from && !subject) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
     const supabase = getSupabaseAdmin()
 
-    // For now, log the email. Since communication_logs requires a case_id,
-    // we'll need to match the email to a case by searching contacts or
-    // using a case-specific email address pattern.
-    //
-    // Future: When case_id is made nullable, store as unassigned.
-    // For now, try to find a matching case by searching contacts with the sender email.
-    const fromEmail = typeof from === 'string'
-      ? from.match(/<(.+?)>/)?.[1] || from
-      : from.address || from
+    // Extract email address and name from various formats
+    let fromEmail = ''
+    let fromName = ''
+    if (typeof from === 'string') {
+      const match = from.match(/^(.+?)\s*<(.+?)>$/)
+      if (match) {
+        fromName = match[1].trim().replace(/^["']|["']$/g, '')
+        fromEmail = match[2].trim()
+      } else {
+        fromEmail = from.trim()
+      }
+    } else if (from?.address) {
+      fromEmail = from.address
+      fromName = from.name || ''
+    }
 
-    // Search for a contact with this email
-    const { data: contacts } = await supabase
-      .from('contacts')
-      .select('id')
-      .eq('email', fromEmail)
-      .limit(1)
-
+    // Try to match sender to a known contact and case
     let caseId: string | null = null
     let contactId: string | null = null
 
-    if (contacts && contacts.length > 0) {
-      contactId = contacts[0].id
-
-      // Find the most recent case this contact is linked to
-      const { data: caseContacts } = await supabase
-        .from('case_contacts')
-        .select('case_id')
-        .eq('contact_id', contactId)
-        .order('created_at', { ascending: false })
+    if (fromEmail) {
+      const { data: contacts } = await supabase
+        .from('contacts')
+        .select('id')
+        .eq('email', fromEmail)
         .limit(1)
 
-      if (caseContacts && caseContacts.length > 0) {
-        caseId = caseContacts[0].case_id
+      if (contacts && contacts.length > 0) {
+        contactId = contacts[0].id
+
+        // Find the most recent active case this contact is linked to
+        const { data: caseContacts } = await supabase
+          .from('case_contacts')
+          .select('case_id')
+          .eq('contact_id', contactId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+
+        if (caseContacts && caseContacts.length > 0) {
+          caseId = caseContacts[0].case_id
+        }
       }
     }
 
-    // If we found a matching case, create the communication log
-    if (caseId) {
-      await supabase.from('communication_logs').insert({
+    // Always store the email — if no case match, it goes to the inbox (case_id = null)
+    const { data: log, error: insertError } = await supabase
+      .from('communication_logs')
+      .insert({
         case_id: caseId,
         contact_id: contactId,
+        from_email: fromEmail || null,
+        from_name: fromName || null,
         communication_type: 'email_inbound',
         direction: 'inbound',
         subject: subject || '(no subject)',
-        summary: text?.substring(0, 500) || html?.substring(0, 500) || 'Email received',
-        details: text || null,
+        summary: text?.substring(0, 1000) || '(no text content)',
+        details: text || html || null,
         communication_date: new Date().toISOString(),
       })
+      .select('id')
+      .single()
 
-      return NextResponse.json({ status: 'logged', caseId })
+    if (insertError) {
+      console.error('Failed to store inbound email:', insertError)
+      return NextResponse.json({ error: 'Failed to store email' }, { status: 500 })
     }
 
-    // No matching case found - log for manual assignment later
-    // Note: This will fail if case_id is NOT NULL in the schema.
-    // In that case, consider creating a default "unassigned" case or
-    // making case_id nullable in the schema.
-    console.log('Inbound email received but no matching case found:', {
-      from: fromEmail,
-      subject,
-    })
-
     return NextResponse.json({
-      status: 'received',
-      message: 'Email received but no matching case found. Manual assignment needed.',
+      status: caseId ? 'assigned' : 'inbox',
+      emailId: log?.id,
+      caseId,
+      message: caseId
+        ? `Email assigned to case ${caseId}`
+        : 'Email stored in inbox for manual assignment',
     })
   } catch (error) {
     console.error('Inbound email webhook error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

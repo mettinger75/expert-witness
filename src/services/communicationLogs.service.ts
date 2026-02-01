@@ -16,6 +16,17 @@ export const communicationLogsService = {
     return (data ?? []) as CommunicationLogRow[]
   },
 
+  /** Get all unassigned emails (inbox) */
+  async getUnassigned() {
+    const { data, error } = await supabase
+      .from('communication_logs')
+      .select('*')
+      .is('case_id', null)
+      .order('communication_date', { ascending: false })
+    if (error) throw error
+    return (data ?? []) as CommunicationLogRow[]
+  },
+
   async create(input: CommunicationLogInsert) {
     const { data, error } = await supabase
       .from('communication_logs')
@@ -35,5 +46,26 @@ export const communicationLogsService = {
       .single()
     if (error) throw error
     return data as CommunicationLogRow
+  },
+
+  /** Assign an inbox email to a case */
+  async assignToCase(emailId: string, caseId: string) {
+    const { data, error } = await supabase
+      .from('communication_logs')
+      .update({ case_id: caseId })
+      .eq('id', emailId)
+      .select()
+      .single()
+    if (error) throw error
+    return data as CommunicationLogRow
+  },
+
+  /** Delete an inbox email */
+  async delete(id: string) {
+    const { error } = await supabase
+      .from('communication_logs')
+      .delete()
+      .eq('id', id)
+    if (error) throw error
   },
 }
