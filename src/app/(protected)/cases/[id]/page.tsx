@@ -1,7 +1,7 @@
 'use client'
 
 import { useParams } from 'next/navigation'
-import { useCase, useUpdateCase, useSynthesizeCase } from '@/hooks/useCases'
+import { useCase, useUpdateCase, useSynthesizeCase, useNotionPull, useNotionPush } from '@/hooks/useCases'
 import { useCaseContacts } from '@/hooks/useCaseContacts'
 import { useMilestones } from '@/hooks/useMilestones'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
@@ -14,7 +14,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { CASE_STATUSES, CASE_TYPES, CASE_PRIORITIES, SPECIALTY_AREAS, CASE_CONTACT_ROLES, getLabelForValue, getColorForValue } from '@/lib/constants'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { formatDate, formatCurrency, formatDuration } from '@/lib/formatters'
-import { Calendar, DollarSign, Clock, Scale, User, MapPin, Edit, Users, CheckSquare, Mail, Phone, Building, Brain, RefreshCw, Loader2, AlertTriangle } from 'lucide-react'
+import { Calendar, DollarSign, Clock, Scale, User, MapPin, Edit, Users, CheckSquare, Mail, Phone, Building, Brain, RefreshCw, Loader2, AlertTriangle, ExternalLink, ArrowDownToLine, ArrowUpFromLine } from 'lucide-react'
 import type { CaseStatus } from '@/types/enums'
 import { useState } from 'react'
 import Link from 'next/link'
@@ -28,6 +28,8 @@ export default function CaseOverviewPage() {
   const { data: milestones = [] } = useMilestones(caseId)
   const updateCase = useUpdateCase()
   const synthesizeCase = useSynthesizeCase()
+  const notionPull = useNotionPull()
+  const notionPush = useNotionPush()
   const toggleMilestone = useToggleMilestone()
   const [editingStatus, setEditingStatus] = useState(false)
 
@@ -319,6 +321,75 @@ export default function CaseOverviewPage() {
                 <Button variant="ghost" size="sm" onClick={() => setEditingStatus(true)}>
                   Change
                 </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Notion Integration */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M4.459 4.208c.746.606 1.026.56 2.428.466l13.215-.793c.28 0 .047-.28-.046-.326L18.56 2.35c-.42-.326-.98-.7-2.055-.607L3.62 2.863c-.467.047-.56.28-.374.466l1.213.88zm.793 3.08v13.904c0 .747.373 1.027 1.214.98l14.523-.84c.84-.046.933-.56.933-1.167V6.354c0-.606-.233-.933-.746-.886l-15.177.887c-.56.047-.747.327-.747.933zm14.337.745c.093.42 0 .84-.42.887l-.7.14v10.264c-.608.327-1.168.514-1.635.514-.746 0-.933-.234-1.495-.933l-4.577-7.186v6.952l1.448.327s0 .84-1.168.84l-3.222.186c-.093-.186 0-.653.327-.746l.84-.233V9.854L7.822 9.76c-.094-.42.14-1.026.793-1.073l3.456-.233 4.764 7.279v-6.44l-1.215-.14c-.093-.513.28-.886.747-.933l3.222-.186z"/></svg>
+              Notion
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {caseData.notion_page_url ? (
+              <div className="space-y-3">
+                <a
+                  href={caseData.notion_page_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-sm text-primary hover:underline truncate"
+                >
+                  <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                  Open in Notion
+                </a>
+                {caseData.notion_last_synced && (
+                  <p className="text-xs text-muted-foreground">
+                    Last synced: {formatDate(caseData.notion_last_synced)}
+                  </p>
+                )}
+                <div className="flex flex-col gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => notionPull.mutate(caseId)}
+                    disabled={notionPull.isPending}
+                  >
+                    {notionPull.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    ) : (
+                      <ArrowDownToLine className="h-4 w-4 mr-1" />
+                    )}
+                    Pull from Notion
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => notionPush.mutate(caseId)}
+                    disabled={notionPush.isPending}
+                  >
+                    {notionPush.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    ) : (
+                      <ArrowUpFromLine className="h-4 w-4 mr-1" />
+                    )}
+                    Push Analysis to Notion
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-2">
+                <p className="text-xs text-muted-foreground">No Notion page linked.</p>
+                <Link href={`/cases/${caseId}/edit`}>
+                  <Button variant="link" size="sm" className="text-xs mt-1">
+                    Link a Notion page
+                  </Button>
+                </Link>
               </div>
             )}
           </CardContent>

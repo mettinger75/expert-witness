@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { AI_CONFIG, MODEL_BY_TASK, SYSTEM_PROMPTS } from '@/lib/ai'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { fetchPageContent } from '@/lib/notion'
 
 export async function POST(
   request: NextRequest,
@@ -43,9 +44,24 @@ export async function POST(
       return NextResponse.json({ error: 'Failed to fetch documents' }, { status: 500 })
     }
 
-    if (!documents || documents.length === 0) {
+    // Fetch Notion page content if linked
+    let notionContent = ''
+    if (caseData.notion_page_id || caseData.notion_page_url) {
+      try {
+        const pageId = caseData.notion_page_id ||
+          (await import('@/lib/notion')).extractPageId(caseData.notion_page_url!)
+        if (process.env.NOTION_API_KEY) {
+          notionContent = await fetchPageContent(pageId)
+        }
+      } catch (err) {
+        console.warn('Failed to fetch Notion content for synthesis:', err)
+        // Continue without Notion content - not a fatal error
+      }
+    }
+
+    if ((!documents || documents.length === 0) && !notionContent) {
       return NextResponse.json(
-        { error: 'No processed documents found. Upload and process documents first.' },
+        { error: 'No processed documents or linked Notion page found. Upload documents or link a Notion page first.' },
         { status: 400 }
       )
     }
@@ -83,9 +99,10 @@ export async function POST(
       '',
       caseContext,
       '',
-      `## Analyzed Documents (${documents.length} total)`,
+      documents && documents.length > 0 ? `## Analyzed Documents (${documents.length} total)` : '',
       '',
-      documentContext,
+      documents && documents.length > 0 ? documentContext : '',
+      notionContent ? '\n\n## Additional Case Notes (from Notion)\n\n' + notionContent : '',
       '',
       'Return ONLY a valid JSON object with these fields:',
       '{',

@@ -98,6 +98,9 @@ export interface CaseRow {
   actual_hours: number;
   deadline_next: string | null;
   deadline_description: string | null;
+  notion_page_url: string | null;
+  notion_page_id: string | null;
+  notion_last_synced: string | null;
   tags: string[] | null;
   is_archived: boolean;
   created_at: string;
@@ -141,6 +144,9 @@ export interface CaseInsert {
   actual_hours?: number;
   deadline_next?: string | null;
   deadline_description?: string | null;
+  notion_page_url?: string | null;
+  notion_page_id?: string | null;
+  notion_last_synced?: string | null;
   tags?: string[] | null;
   is_archived?: boolean;
   created_at?: string;

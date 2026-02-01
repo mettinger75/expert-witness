@@ -37,6 +37,7 @@ const caseSchema = z.object({
   retainer_received: z.boolean().default(true),
   retainer_amount: z.coerce.number().positive().optional().or(z.literal('')),
   estimated_hours: z.coerce.number().positive().optional().or(z.literal('')),
+  notion_page_url: z.string().optional(),
 })
 
 type CaseFormValues = z.infer<typeof caseSchema>
@@ -76,6 +77,7 @@ export function CaseForm({ initialData, defaultValues, onSubmit, isSubmitting }:
       retainer_received: d?.retainer_received ?? true,
       retainer_amount: initialData?.retainer_amount ?? '',
       estimated_hours: initialData?.estimated_hours ?? '',
+      notion_page_url: d?.notion_page_url ?? '',
     },
   })
 
@@ -405,6 +407,31 @@ export function CaseForm({ initialData, defaultValues, onSubmit, isSubmitting }:
                 )}
               />
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Notion Integration */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Notion Integration</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FormField
+              control={form.control}
+              name="notion_page_url"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Notion Page URL</FormLabel>
+                  <FormControl>
+                    <Input placeholder="https://www.notion.so/Your-Case-Page-abc123..." {...field} />
+                  </FormControl>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Paste the URL of a Notion page to link it with this case for AI analysis and syncing.
+                  </p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </CardContent>
         </Card>
 

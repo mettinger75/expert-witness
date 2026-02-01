@@ -69,6 +69,58 @@ export function useArchiveCase() {
   })
 }
 
+export function useNotionPull() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (caseId: string) => {
+      const response = await fetch('/api/notion/pull', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ caseId }),
+      })
+      if (!response.ok) {
+        let errorMsg = `Notion pull failed (${response.status})`
+        try { const err = await response.json(); errorMsg = err.error || errorMsg } catch { /* non-JSON */ }
+        throw new Error(errorMsg)
+      }
+      return response.json()
+    },
+    onSuccess: (data, caseId) => {
+      queryClient.invalidateQueries({ queryKey: ['cases', caseId] })
+      toast.success(`Pulled ${data.lineCount} lines from Notion`)
+    },
+    onError: (error: Error) => {
+      toast.error(`Notion pull failed: ${error.message}`)
+    },
+  })
+}
+
+export function useNotionPush() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (caseId: string) => {
+      const response = await fetch('/api/notion/push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ caseId }),
+      })
+      if (!response.ok) {
+        let errorMsg = `Notion push failed (${response.status})`
+        try { const err = await response.json(); errorMsg = err.error || errorMsg } catch { /* non-JSON */ }
+        throw new Error(errorMsg)
+      }
+      return response.json()
+    },
+    onSuccess: (_, caseId) => {
+      queryClient.invalidateQueries({ queryKey: ['cases', caseId] })
+      toast.success('Analysis pushed to Notion successfully')
+    },
+    onError: (error: Error) => {
+      toast.error(`Notion push failed: ${error.message}`)
+    },
+  })
+}
+
 export function useSynthesizeCase() {
   const queryClient = useQueryClient()
   return useMutation({
