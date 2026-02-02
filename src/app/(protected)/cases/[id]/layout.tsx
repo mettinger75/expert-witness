@@ -81,7 +81,7 @@ export default function CaseDetailLayout({
                 color={getColorForValue(CASE_STATUSES, caseData.status)}
               />
             </div>
-            <h1 className="text-2xl font-bold">{caseData.case_name}</h1>
+            <h1 className="text-2xl font-semibold" style={{ fontFamily: 'Georgia, serif', color: '#091525' }}>{caseData.case_name}</h1>
             {caseData.patient_name && (
               <p className="text-sm text-muted-foreground mt-1">
                 Patient: {caseData.patient_name}
@@ -107,9 +107,10 @@ export default function CaseDetailLayout({
                 className={cn(
                   'flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap',
                   isActive
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/30'
+                    ? 'text-neutral-900'
+                    : 'border-transparent text-neutral-500 hover:text-neutral-800 hover:border-neutral-300'
                 )}
+                style={isActive ? { borderBottomColor: '#C9A84C' } : undefined}
               >
                 <tab.icon className="h-4 w-4" />
                 {tab.label}

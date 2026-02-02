@@ -41,9 +41,9 @@ export default function BillingPage() {
     .reduce((sum, i) => sum + i.amount_paid, 0)
 
   const stats = [
-    { title: 'Total Outstanding', value: formatCurrency(totalOutstanding), icon: DollarSign, color: 'text-amber-600' },
-    { title: 'Invoiced This Month', value: formatCurrency(totalInvoicedThisMonth), icon: Receipt, color: 'text-primary' },
-    { title: 'Collected This Month', value: formatCurrency(totalCollectedThisMonth), icon: CreditCard, color: 'text-emerald-600' },
+    { title: 'Total Outstanding', value: formatCurrency(totalOutstanding), icon: DollarSign, color: '#F59E0B' },
+    { title: 'Invoiced This Month', value: formatCurrency(totalInvoicedThisMonth), icon: Receipt, color: '#091525' },
+    { title: 'Collected This Month', value: formatCurrency(totalCollectedThisMonth), icon: CreditCard, color: '#10B981' },
   ]
 
   return (
@@ -59,7 +59,7 @@ export default function BillingPage() {
           <Card key={stat.title}>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">{stat.title}</CardTitle>
-              <stat.icon className={`h-5 w-5 ${stat.color}`} />
+              <stat.icon className="h-5 w-5" style={{ color: stat.color }} />
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">{stat.value}</div>

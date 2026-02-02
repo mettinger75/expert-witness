@@ -2,7 +2,7 @@ import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
 const colorMap: Record<string, string> = {
-  blue: 'bg-sky-100 text-sky-800 border-sky-200',
+  blue: 'bg-blue-50 text-blue-800 border-blue-200',
   green: 'bg-emerald-100 text-emerald-800 border-emerald-200',
   yellow: 'bg-amber-100 text-amber-800 border-amber-200',
   red: 'bg-red-100 text-red-800 border-red-200',
