@@ -62,6 +62,14 @@ export const invoicesService = {
     return data as InvoiceRow
   },
 
+  async delete(id: string) {
+    const { error } = await supabase
+      .from('invoices')
+      .delete()
+      .eq('id', id)
+    if (error) throw error
+  },
+
   async generateFromTimeEntries(caseId: string, timeEntryIds: string[]) {
     // Fetch the time entries to sum up
     const { data: entries, error: fetchError } = await supabase

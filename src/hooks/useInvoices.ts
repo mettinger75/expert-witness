@@ -57,3 +57,19 @@ export function useUpdateInvoice() {
     },
   })
 }
+
+export function useDeleteInvoice() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id }: { id: string; caseId: string }) =>
+      invoicesService.delete(id),
+    onSuccess: (_, { caseId }) => {
+      queryClient.invalidateQueries({ queryKey: ['invoices'] })
+      queryClient.invalidateQueries({ queryKey: ['invoices', 'case', caseId] })
+      toast.success('Invoice deleted')
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to delete invoice: ${error.message}`)
+    },
+  })
+}
