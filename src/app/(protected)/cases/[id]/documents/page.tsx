@@ -382,7 +382,7 @@ export default function CaseDocumentsPage() {
                           </Badge>
                         )}
                         {doc.ocr_status === 'processing' && (
-                          <Badge variant="outline" className="text-xs text-blue-600 border-blue-200 bg-blue-50">
+                          <Badge variant="outline" className="text-xs text-primary border-border bg-muted">
                             <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                             Analyzing...
                           </Badge>

@@ -35,7 +35,7 @@ export default function CaseBillingPage() {
   const [logTimeOpen, setLogTimeOpen] = useState(false)
 
   const stats = [
-    { title: 'Total Hours', value: formatDuration(totalHours), icon: Clock, color: 'text-blue-600' },
+    { title: 'Total Hours', value: formatDuration(totalHours), icon: Clock, color: 'text-primary' },
     { title: 'Total Billed', value: formatCurrency(totalBilled), icon: DollarSign, color: 'text-emerald-600' },
     { title: 'Total Paid', value: formatCurrency(totalPaid), icon: CreditCard, color: 'text-green-600' },
     { title: 'Balance Due', value: formatCurrency(balanceDue), icon: Receipt, color: 'text-amber-600' },

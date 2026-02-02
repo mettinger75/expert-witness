@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Briefcase, Clock, DollarSign, AlertTriangle } from 'lucide-react'
 
 const stats = [
-  { title: 'Active Cases', value: '0', icon: Briefcase, color: 'text-blue-600' },
+  { title: 'Active Cases', value: '0', icon: Briefcase, color: 'text-primary' },
   { title: 'Unbilled Hours', value: '0h', icon: Clock, color: 'text-amber-600' },
   { title: 'Outstanding Balance', value: '$0', icon: DollarSign, color: 'text-emerald-600' },
   { title: 'Upcoming Deadlines', value: '0', icon: AlertTriangle, color: 'text-red-600' },

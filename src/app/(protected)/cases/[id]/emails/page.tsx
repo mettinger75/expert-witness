@@ -218,7 +218,7 @@ export default function CaseEmailsPage() {
               return (
                 <div key={log.id} className="relative flex gap-4">
                   {/* Timeline dot */}
-                  <div className="relative z-10 mt-4 w-[10px] h-[10px] rounded-full shrink-0 ring-2 ring-background bg-blue-500" style={{ marginLeft: '15px' }} />
+                  <div className="relative z-10 mt-4 w-[10px] h-[10px] rounded-full shrink-0 ring-2 ring-background bg-primary" style={{ marginLeft: '15px' }} />
 
                   <Card className="flex-1">
                     <CardContent className="py-3 px-4">

@@ -42,7 +42,7 @@ export default function BillingPage() {
 
   const stats = [
     { title: 'Total Outstanding', value: formatCurrency(totalOutstanding), icon: DollarSign, color: 'text-amber-600' },
-    { title: 'Invoiced This Month', value: formatCurrency(totalInvoicedThisMonth), icon: Receipt, color: 'text-blue-600' },
+    { title: 'Invoiced This Month', value: formatCurrency(totalInvoicedThisMonth), icon: Receipt, color: 'text-primary' },
     { title: 'Collected This Month', value: formatCurrency(totalCollectedThisMonth), icon: CreditCard, color: 'text-emerald-600' },
   ]
 

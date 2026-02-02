@@ -24,7 +24,7 @@ function getDotColor(eventType: string, isSignificant: boolean): string {
   if (isSignificant) return 'bg-red-500'
   if (['complication', 'code_event', 'death'].includes(eventType)) return 'bg-red-500'
   if (['vital_signs', 'medication_given'].includes(eventType)) return 'bg-amber-500'
-  return 'bg-blue-500'
+  return 'bg-primary'
 }
 
 export default function CaseTimelinePage() {

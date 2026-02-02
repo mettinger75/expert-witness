@@ -120,7 +120,7 @@ export default function ContactDetailPage() {
                 {contact.email && (
                   <div className="flex items-center gap-3">
                     <Mail className="h-4 w-4 text-muted-foreground" />
-                    <a href={`mailto:${contact.email}`} className="text-sm text-blue-600 hover:underline">
+                    <a href={`mailto:${contact.email}`} className="text-sm text-accent hover:underline">
                       {contact.email}
                     </a>
                   </div>

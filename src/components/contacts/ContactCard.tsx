@@ -60,7 +60,7 @@ export function ContactCard({ contact, linkedCaseCount }: ContactCardProps) {
                 <Mail className="h-3.5 w-3.5 shrink-0" />
                 <a
                   href={`mailto:${contact.email}`}
-                  className="truncate text-blue-600 hover:underline"
+                  className="truncate text-accent hover:underline"
                   onClick={(e) => e.stopPropagation()}
                 >
                   {contact.email}
