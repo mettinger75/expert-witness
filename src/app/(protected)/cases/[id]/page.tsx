@@ -32,6 +32,9 @@ export default function CaseOverviewPage() {
   const notionPush = useNotionPush()
   const toggleMilestone = useToggleMilestone()
   const [editingStatus, setEditingStatus] = useState(false)
+  const [editingDeadline, setEditingDeadline] = useState(false)
+  const [deadlineDate, setDeadlineDate] = useState('')
+  const [deadlineDesc, setDeadlineDesc] = useState('')
 
   if (isLoading || !caseData) return <LoadingSpinner className="py-12" />
 
@@ -40,6 +43,34 @@ export default function CaseOverviewPage() {
   function handleStatusChange(newStatus: string) {
     updateCase.mutate({ id: caseId, data: { status: newStatus as CaseStatus } })
     setEditingStatus(false)
+  }
+
+  function openDeadlineEdit() {
+    setDeadlineDate(caseData?.deadline_next || '')
+    setDeadlineDesc(caseData?.deadline_description || '')
+    setEditingDeadline(true)
+  }
+
+  function handleDeadlineSave() {
+    updateCase.mutate({
+      id: caseId,
+      data: {
+        deadline_next: deadlineDate || null,
+        deadline_description: deadlineDesc || null,
+      },
+    })
+    setEditingDeadline(false)
+  }
+
+  function handleDeadlineClear() {
+    updateCase.mutate({
+      id: caseId,
+      data: {
+        deadline_next: null,
+        deadline_description: null,
+      },
+    })
+    setEditingDeadline(false)
   }
 
   return (
@@ -459,14 +490,59 @@ export default function CaseOverviewPage() {
               <label className="text-xs text-muted-foreground">Date of Referral</label>
               <p className="text-sm font-medium">{formatDate(caseData.date_of_referral)}</p>
             </div>
-            {caseData.deadline_next && (
-              <div>
-                <label className="text-xs text-muted-foreground">
-                  {caseData.deadline_description || 'Next Deadline'}
+            <Separator />
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs text-muted-foreground flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  Next Deadline
                 </label>
-                <p className="text-sm font-medium">{formatDate(caseData.deadline_next)}</p>
+                <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={openDeadlineEdit}>
+                  {caseData.deadline_next ? 'Edit' : 'Set'}
+                </Button>
               </div>
-            )}
+              {editingDeadline ? (
+                <div className="space-y-2">
+                  <input
+                    type="date"
+                    value={deadlineDate}
+                    onChange={(e) => setDeadlineDate(e.target.value)}
+                    className="w-full px-2 py-1 text-sm border rounded"
+                  />
+                  <input
+                    type="text"
+                    value={deadlineDesc}
+                    onChange={(e) => setDeadlineDesc(e.target.value)}
+                    placeholder="Description (e.g., Report due)"
+                    className="w-full px-2 py-1 text-sm border rounded"
+                  />
+                  <div className="flex gap-1">
+                    <Button size="sm" className="h-7 text-xs flex-1" onClick={handleDeadlineSave}>
+                      Save
+                    </Button>
+                    {caseData.deadline_next && (
+                      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleDeadlineClear}>
+                        Clear
+                      </Button>
+                    )}
+                    <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEditingDeadline(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : caseData.deadline_next ? (
+                <div>
+                  <p className="text-sm font-medium" style={{ color: '#091525' }}>
+                    {formatDate(caseData.deadline_next)}
+                  </p>
+                  {caseData.deadline_description && (
+                    <p className="text-xs text-muted-foreground">{caseData.deadline_description}</p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No deadline set</p>
+              )}
+            </div>
           </CardContent>
         </Card>
 
