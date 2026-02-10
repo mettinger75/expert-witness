@@ -1565,6 +1565,7 @@ export interface SharedLinkRow {
   edited_html: string | null;
   edited_at: string | null;
   edited_by_name: string | null;
+  editor_notes: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -1583,6 +1584,7 @@ export interface SharedLinkInsert {
   max_views?: number | null;
   view_count?: number;
   is_active?: boolean;
+  editor_notes?: string | null;
 }
 
 export type SharedLinkUpdate = Partial<SharedLinkInsert>;
@@ -1856,9 +1858,88 @@ export interface Database {
         Insert: MeetingInsert;
         Update: MeetingUpdate;
       };
+      portal_invites: {
+        Row: PortalInviteRow;
+        Insert: PortalInviteInsert;
+        Update: PortalInviteUpdate;
+      };
+      portal_messages: {
+        Row: PortalMessageRow;
+        Insert: PortalMessageInsert;
+        Update: PortalMessageUpdate;
+      };
     };
   };
 }
+
+// =============================================================================
+// Portal Invites
+// =============================================================================
+export type PortalSenderType = 'attorney' | 'provider';
+
+export interface PortalInviteRow {
+  id: string;
+  case_id: string;
+  contact_id: string;
+  token: string;
+  can_view_summary: boolean;
+  can_view_timeline: boolean;
+  can_message: boolean;
+  can_view_reports: boolean;
+  can_edit_reports: boolean;
+  can_upload_documents: boolean;
+  is_active: boolean;
+  expires_at: string;
+  last_accessed_at: string | null;
+  view_count: number;
+  invited_by: string | null;
+  invitation_message: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PortalInviteInsert {
+  id?: string;
+  case_id: string;
+  contact_id: string;
+  token: string;
+  can_view_summary?: boolean;
+  can_view_timeline?: boolean;
+  can_message?: boolean;
+  can_view_reports?: boolean;
+  can_edit_reports?: boolean;
+  can_upload_documents?: boolean;
+  is_active?: boolean;
+  expires_at: string;
+  invited_by?: string | null;
+  invitation_message?: string | null;
+}
+
+export type PortalInviteUpdate = Partial<PortalInviteInsert>;
+
+export interface PortalMessageRow {
+  id: string;
+  portal_invite_id: string;
+  case_id: string;
+  sender_type: PortalSenderType;
+  sender_name: string;
+  content: string;
+  is_read: boolean;
+  read_at: string | null;
+  created_at: string;
+}
+
+export interface PortalMessageInsert {
+  id?: string;
+  portal_invite_id: string;
+  case_id: string;
+  sender_type: PortalSenderType;
+  sender_name: string;
+  content: string;
+  is_read?: boolean;
+}
+
+export type PortalMessageUpdate = Partial<PortalMessageInsert>;
 
 // =============================================================================
 // Convenience type aliases

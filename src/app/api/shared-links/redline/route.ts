@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     // Get all shared links for this entity that have edits
     const { data: links, error } = await supabase
       .from('shared_links')
-      .select('id, permission, recipient_name, recipient_email, original_html, edited_html, edited_at, edited_by_name, created_at')
+      .select('id, permission, recipient_name, recipient_email, original_html, edited_html, editor_notes, edited_at, edited_by_name, created_at')
       .eq('entity_id', entityId)
       .eq('entity_type', entityType)
       .eq('permission', 'edit')

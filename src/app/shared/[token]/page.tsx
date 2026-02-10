@@ -16,6 +16,7 @@ interface LinkData {
   expires_at: string
   original_html: string | null
   edited_html: string | null
+  editor_notes: string | null
 }
 
 export default function SharedPage() {

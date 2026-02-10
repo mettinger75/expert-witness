@@ -124,6 +124,7 @@ export async function GET(
         expires_at: link.expires_at,
         original_html: link.original_html || null,
         edited_html: link.edited_html || null,
+        editor_notes: link.editor_notes || null,
       },
       entity,
     })
@@ -143,7 +144,7 @@ export async function PUT(
 ) {
   try {
     const { token } = await params
-    const { content } = await request.json()
+    const { content, notes } = await request.json()
     const supabase = getSupabaseAdmin()
 
     // Validate token and permission
@@ -181,6 +182,7 @@ export async function PUT(
       .from('shared_links')
       .update({
         edited_html: content,
+        editor_notes: notes !== undefined ? notes : link.editor_notes,
         edited_at: new Date().toISOString(),
         edited_by_name: link.recipient_name || 'Unknown',
       })

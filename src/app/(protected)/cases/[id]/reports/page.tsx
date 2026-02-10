@@ -47,6 +47,7 @@ import {
   GitCompareArrows,
   Trash2,
   FilePlus,
+  StickyNote,
 } from 'lucide-react'
 
 const REPORT_STATUSES = [
@@ -405,6 +406,7 @@ export default function CaseReportsPage() {
     edited_html: string
     edited_at: string
     edited_by_name: string | null
+    editor_notes: string | null
   }
   const [redlineReportId, setRedlineReportId] = useState<string | null>(null)
   const [redlineData, setRedlineData] = useState<RedlineData[]>([])
@@ -861,6 +863,22 @@ export default function CaseReportsPage() {
                 editedHtml={redlineData[activeRedlineIdx].edited_html}
                 editorName={redlineData[activeRedlineIdx].edited_by_name || redlineData[activeRedlineIdx].recipient_name || undefined}
               />
+
+              {/* Editor notes callout */}
+              {redlineData[activeRedlineIdx].editor_notes && (
+                <div className="mt-4 p-4 bg-amber-50 border border-[#C9A84C]/30 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <StickyNote className="h-4 w-4 text-[#C9A84C]" />
+                    <h4 className="text-sm font-semibold text-[#0E1F35]">Editor Notes</h4>
+                    <span className="text-xs text-muted-foreground">
+                      from {redlineData[activeRedlineIdx].edited_by_name || 'attorney'}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                    {redlineData[activeRedlineIdx].editor_notes}
+                  </p>
+                </div>
+              )}
 
               {/* Accept / Reject buttons */}
               <div className="flex items-center justify-end gap-3 mt-4 p-4 bg-gray-50 rounded-lg border">

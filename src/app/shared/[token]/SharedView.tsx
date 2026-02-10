@@ -4,7 +4,7 @@ import { useState, useCallback, useMemo } from 'react'
 import { TiptapEditor } from '@/components/editor/TiptapEditor'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Save, Download, Loader2, Check, Eye, Pencil, FileSignature, GitCompareArrows } from 'lucide-react'
+import { Save, Download, Loader2, Check, Eye, Pencil, FileSignature, GitCompareArrows, StickyNote } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatDate } from '@/lib/formatters'
 import { SignaturePad } from '@/components/signing/SignaturePad'
@@ -25,6 +25,7 @@ interface SharedViewProps {
     expires_at: string
     original_html: string | null
     edited_html: string | null
+    editor_notes: string | null
   }
   entity: Record<string, unknown>
 }
@@ -113,6 +114,7 @@ export function SharedView({ token, link, entity }: SharedViewProps) {
 
   // If the attorney has already saved edits previously, resume from those edits
   const [content, setContent] = useState<string>(link.edited_html || originalContent)
+  const [notes, setNotes] = useState<string>(link.editor_notes || '')
 
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -141,7 +143,7 @@ export function SharedView({ token, link, entity }: SharedViewProps) {
       const res = await fetch(`/api/shared-links/${token}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ content, notes }),
       })
       if (!res.ok) throw new Error('Save failed')
       setSaved(true)
@@ -152,7 +154,7 @@ export function SharedView({ token, link, entity }: SharedViewProps) {
     } finally {
       setSaving(false)
     }
-  }, [token, content])
+  }, [token, content, notes])
 
   const handleExportPdf = useCallback(() => {
     const w = window.open('', '_blank')
@@ -309,20 +311,46 @@ export function SharedView({ token, link, entity }: SharedViewProps) {
 
       {/* Document editor/viewer */}
       {!signed && viewMode === 'edit' && (
-        <div className="bg-white rounded-lg border shadow-sm">
-          {link.entity_type === 'contract' && !isEditable ? (
-            <div
-              className="p-8"
-              style={{ fontFamily: 'Georgia, serif' }}
-              dangerouslySetInnerHTML={{ __html: content }}
-            />
-          ) : (
-            <TiptapEditor
-              content={content}
-              onUpdate={isEditable ? setContent : undefined}
-              editable={isEditable}
-              placeholder="Document content..."
-            />
+        <div className={isEditable ? 'flex gap-4' : ''}>
+          {/* Document editor/viewer - main column */}
+          <div className={isEditable ? 'flex-1 min-w-0' : ''}>
+            <div className="bg-white rounded-lg border shadow-sm">
+              {link.entity_type === 'contract' && !isEditable ? (
+                <div
+                  className="p-8"
+                  style={{ fontFamily: 'Georgia, serif' }}
+                  dangerouslySetInnerHTML={{ __html: content }}
+                />
+              ) : (
+                <TiptapEditor
+                  content={content}
+                  onUpdate={isEditable ? setContent : undefined}
+                  editable={isEditable}
+                  placeholder="Document content..."
+                />
+              )}
+            </div>
+          </div>
+
+          {/* Notes panel - side column */}
+          {isEditable && (
+            <div className="w-72 shrink-0">
+              <div className="bg-white rounded-lg border shadow-sm p-4 sticky top-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <StickyNote className="h-4 w-4 text-[#C9A84C]" />
+                  <h3 className="text-sm font-semibold text-[#0E1F35]">Editor Notes</h3>
+                </div>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Add notes for Dr. Ettinger..."
+                  className="w-full h-48 text-sm border rounded-md p-3 resize-y focus:outline-none focus:ring-2 focus:ring-[#C9A84C]/50 focus:border-[#C9A84C]"
+                />
+                <p className="text-xs text-muted-foreground mt-2">
+                  Private notes for Dr. Ettinger — not included in the document.
+                </p>
+              </div>
+            </div>
           )}
         </div>
       )}

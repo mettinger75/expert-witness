@@ -14,11 +14,13 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { CASE_STATUSES, CASE_TYPES, CASE_PRIORITIES, SPECIALTY_AREAS, CASE_CONTACT_ROLES, getLabelForValue, getColorForValue } from '@/lib/constants'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { formatDate, formatCurrency, formatDuration } from '@/lib/formatters'
-import { Calendar, DollarSign, Clock, Scale, User, MapPin, Edit, Users, CheckSquare, Mail, Phone, Building, Brain, RefreshCw, Loader2, AlertTriangle, ExternalLink, ArrowDownToLine, ArrowUpFromLine } from 'lucide-react'
+import { Calendar, DollarSign, Clock, Scale, User, MapPin, Edit, Users, CheckSquare, Mail, Phone, Building, Brain, RefreshCw, Loader2, AlertTriangle, ExternalLink, ArrowDownToLine, ArrowUpFromLine, Link2 } from 'lucide-react'
 import type { CaseStatus } from '@/types/enums'
 import { useState } from 'react'
 import Link from 'next/link'
 import { useToggleMilestone } from '@/hooks/useMilestones'
+import { CreatePortalInviteDialog } from '@/components/portal/CreatePortalInviteDialog'
+import { PortalMessagesPanel } from '@/components/portal/PortalMessagesPanel'
 
 export default function CaseOverviewPage() {
   const params = useParams()
@@ -35,6 +37,9 @@ export default function CaseOverviewPage() {
   const [editingDeadline, setEditingDeadline] = useState(false)
   const [deadlineDate, setDeadlineDate] = useState('')
   const [deadlineDesc, setDeadlineDesc] = useState('')
+  const [portalInviteOpen, setPortalInviteOpen] = useState(false)
+  const [portalContactId, setPortalContactId] = useState<string | undefined>()
+  const [portalContactName, setPortalContactName] = useState<string | undefined>()
 
   if (isLoading || !caseData) return <LoadingSpinner className="py-12" />
 
@@ -229,6 +234,19 @@ export default function CaseOverviewPage() {
                           )}
                         </div>
                       </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs text-[#C9A84C] hover:text-[#0E1F35]"
+                        onClick={() => {
+                          setPortalContactId(cc.contact_id)
+                          setPortalContactName(`${contact.first_name} ${contact.last_name}`)
+                          setPortalInviteOpen(true)
+                        }}
+                      >
+                        <Link2 className="h-3 w-3 mr-1" />
+                        Portal
+                      </Button>
                     </div>
                   )
                 })}
@@ -608,7 +626,19 @@ export default function CaseOverviewPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Portal Messages */}
+        <PortalMessagesPanel caseId={caseId} />
       </div>
+
+      {/* Portal Invite Dialog */}
+      <CreatePortalInviteDialog
+        caseId={caseId}
+        contactId={portalContactId}
+        contactName={portalContactName}
+        open={portalInviteOpen}
+        onOpenChange={setPortalInviteOpen}
+      />
     </div>
   )
 }
