@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -18,12 +19,25 @@ import { useInvoice, useUpdateInvoice, useDeleteInvoice } from '@/hooks/useInvoi
 import { useCase } from '@/hooks/useCases'
 import { INVOICE_STATUSES, getLabelForValue, getColorForValue } from '@/lib/constants'
 import { formatCurrency, formatDate } from '@/lib/formatters'
+import { supabase } from '@/lib/supabase'
 import type { InvoiceUpdate, InvoiceLineItemRow, PaymentRow } from '@/types/database.types'
-import { ArrowLeft, CreditCard, FileText, Pencil, Trash2 } from 'lucide-react'
+import { ArrowLeft, CreditCard, FileText, Mail, Pencil, Plus, Trash2, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
+
+interface EditableLineItem {
+  id: string | null // null = new item
+  description: string
+  quantity: number
+  unit_price: number
+  amount: number
+  time_entry_id: string | null
+  _deleted?: boolean
+}
 
 export default function InvoiceDetailPage() {
   const params = useParams()
   const router = useRouter()
+  const queryClient = useQueryClient()
   const invoiceId = params.id as string
 
   const { data: invoice, isLoading } = useInvoice(invoiceId)
@@ -35,11 +49,28 @@ export default function InvoiceDetailPage() {
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
 
+  // Line item editing state
+  const [editingLineItems, setEditingLineItems] = useState(false)
+  const [editableItems, setEditableItems] = useState<EditableLineItem[]>([])
+  const [savingLineItems, setSavingLineItems] = useState(false)
+
+  // Send invoice dialog state
+  const [sendOpen, setSendOpen] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [sendEmail, setSendEmail] = useState('')
+  const [sendName, setSendName] = useState('')
+  const [sendMessage, setSendMessage] = useState('')
+
   // Edit form state
   const [editStatus, setEditStatus] = useState('')
   const [editDueDate, setEditDueDate] = useState('')
   const [editNotes, setEditNotes] = useState('')
   const [editTerms, setEditTerms] = useState('')
+
+  const lineItems = (invoice as unknown as { invoice_line_items: InvoiceLineItemRow[] })?.invoice_line_items || []
+  const payments = (invoice as unknown as { payments: PaymentRow[] })?.payments || []
+
+  const canEditLineItems = invoice && invoice.status !== 'paid' && (invoice.status as string) !== 'void'
 
   function openEdit() {
     if (!invoice) return
@@ -72,6 +103,243 @@ export default function InvoiceDetailPage() {
     )
   }
 
+  // --- Line item editing ---
+
+  function startEditingLineItems() {
+    setEditableItems(
+      lineItems.map((item) => ({
+        id: item.id,
+        description: item.description,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        amount: item.amount,
+        time_entry_id: item.time_entry_id,
+      }))
+    )
+    setEditingLineItems(true)
+  }
+
+  function cancelEditingLineItems() {
+    setEditingLineItems(false)
+    setEditableItems([])
+  }
+
+  function updateLineItem(index: number, field: 'description' | 'quantity' | 'unit_price', value: string | number) {
+    setEditableItems((prev) => {
+      const updated = [...prev]
+      const item = { ...updated[index] }
+      if (field === 'description') {
+        item.description = value as string
+      } else if (field === 'quantity') {
+        item.quantity = Number(value) || 0
+        item.amount = item.quantity * item.unit_price
+      } else if (field === 'unit_price') {
+        item.unit_price = Number(value) || 0
+        item.amount = item.quantity * item.unit_price
+      }
+      updated[index] = item
+      return updated
+    })
+  }
+
+  function deleteLineItem(index: number) {
+    setEditableItems((prev) => {
+      const updated = [...prev]
+      const item = updated[index]
+      if (item.id) {
+        // Mark existing items as deleted instead of removing
+        updated[index] = { ...item, _deleted: true }
+      } else {
+        // New items can be removed directly
+        updated.splice(index, 1)
+      }
+      return updated
+    })
+  }
+
+  function addLineItem() {
+    setEditableItems((prev) => [
+      ...prev,
+      {
+        id: null,
+        description: '',
+        quantity: 1,
+        unit_price: 0,
+        amount: 0,
+        time_entry_id: null,
+      },
+    ])
+  }
+
+  const saveLineItems = useCallback(async () => {
+    if (!invoice) return
+    setSavingLineItems(true)
+
+    try {
+      const visibleItems = editableItems.filter((item) => !item._deleted)
+      const deletedItems = editableItems.filter((item) => item._deleted && item.id)
+      const newItems = editableItems.filter((item) => !item._deleted && !item.id)
+      const modifiedItems = editableItems.filter((item) => !item._deleted && item.id)
+
+      // Delete removed items
+      for (const item of deletedItems) {
+        // If it had a time_entry_id, un-bill the time entry
+        if (item.time_entry_id) {
+          await supabase
+            .from('time_entries')
+            .update({ is_billed: false, invoice_id: null })
+            .eq('id', item.time_entry_id)
+        }
+        await supabase
+          .from('invoice_line_items')
+          .delete()
+          .eq('id', item.id!)
+      }
+
+      // Update modified items
+      for (const item of modifiedItems) {
+        await supabase
+          .from('invoice_line_items')
+          .update({
+            description: item.description,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            amount: item.quantity * item.unit_price,
+          })
+          .eq('id', item.id!)
+      }
+
+      // Insert new items
+      for (const item of newItems) {
+        await supabase
+          .from('invoice_line_items')
+          .insert({
+            invoice_id: invoice.id,
+            case_id: invoice.case_id,
+            line_type: 'other' as const,
+            description: item.description,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            amount: item.quantity * item.unit_price,
+            sort_order: 0,
+            is_billed: true,
+          })
+      }
+
+      // Recalculate invoice totals
+      const newSubtotal = visibleItems.reduce((sum, item) => sum + item.quantity * item.unit_price, 0)
+      const taxRate = invoice.tax_rate || 0
+      const taxAmount = newSubtotal * (taxRate / 100)
+      const discountAmount = invoice.discount_amount || 0
+      const totalAmount = newSubtotal + taxAmount - discountAmount
+      const balanceDue = totalAmount - (invoice.amount_paid || 0)
+
+      await supabase
+        .from('invoices')
+        .update({
+          subtotal: newSubtotal,
+          tax_amount: taxAmount,
+          total_amount: totalAmount,
+          balance_due: balanceDue,
+        })
+        .eq('id', invoice.id)
+
+      // Invalidate queries
+      queryClient.invalidateQueries({ queryKey: ['invoices'] })
+      queryClient.invalidateQueries({ queryKey: ['invoices', invoice.id] })
+      queryClient.invalidateQueries({ queryKey: ['invoices', 'case', invoice.case_id] })
+      queryClient.invalidateQueries({ queryKey: ['time_entries'] })
+
+      toast.success('Line items updated')
+      setEditingLineItems(false)
+      setEditableItems([])
+    } catch (err) {
+      console.error('Failed to save line items:', err)
+      toast.error('Failed to save line items')
+    } finally {
+      setSavingLineItems(false)
+    }
+  }, [invoice, editableItems, queryClient])
+
+  // --- Send Invoice ---
+
+  function openSendDialog() {
+    if (!invoice) return
+    setSendEmail(invoice.bill_to_email || '')
+    setSendName(invoice.bill_to_name || '')
+    setSendMessage('')
+    setSendOpen(true)
+  }
+
+  async function handleSendInvoice() {
+    if (!invoice || !sendEmail) return
+    setSending(true)
+
+    try {
+      // Step 1: Create a shared link for the invoice
+      const createRes = await fetch('/api/shared-links', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          entityType: 'invoice',
+          entityId: invoice.id,
+          permission: 'view',
+          recipientName: sendName || null,
+          recipientEmail: sendEmail,
+          expiresInDays: 60,
+        }),
+      })
+
+      if (!createRes.ok) {
+        throw new Error('Failed to create shared link')
+      }
+
+      const { url: shareUrl } = await createRes.json()
+
+      // Step 2: Send the email
+      const emailRes = await fetch('/api/shared-links/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recipientEmail: sendEmail,
+          recipientName: sendName || null,
+          shareUrl,
+          entityType: 'invoice',
+          entityName: invoice.invoice_number,
+          permission: 'view',
+          senderMessage: sendMessage || null,
+        }),
+      })
+
+      if (!emailRes.ok) {
+        throw new Error('Failed to send email')
+      }
+
+      // Step 3: Update invoice status to 'sent' if currently draft
+      if (invoice.status === 'draft') {
+        await supabase
+          .from('invoices')
+          .update({
+            status: 'sent',
+            sent_at: new Date().toISOString(),
+            sent_method: 'email',
+          })
+          .eq('id', invoice.id)
+
+        queryClient.invalidateQueries({ queryKey: ['invoices'] })
+        queryClient.invalidateQueries({ queryKey: ['invoices', invoice.id] })
+      }
+
+      toast.success(`Invoice sent to ${sendEmail}`)
+      setSendOpen(false)
+    } catch (err) {
+      console.error('Failed to send invoice:', err)
+      toast.error('Failed to send invoice')
+    } finally {
+      setSending(false)
+    }
+  }
+
   if (isLoading) {
     return (
       <div>
@@ -96,9 +364,6 @@ export default function InvoiceDetailPage() {
     )
   }
 
-  const lineItems = (invoice as unknown as { invoice_line_items: InvoiceLineItemRow[] }).invoice_line_items || []
-  const payments = (invoice as unknown as { payments: PaymentRow[] }).payments || []
-
   return (
     <div>
       <Link href="/billing" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4">
@@ -120,9 +385,13 @@ export default function InvoiceDetailPage() {
               color={getColorForValue(INVOICE_STATUSES, invoice.status)}
             />
           </div>
-          <p className="text-sm" style={{ color: '#8892A2' }}>{caseData?.case_name || '—'}</p>
+          <p className="text-sm" style={{ color: '#8892A2' }}>{caseData?.case_name || '\u2014'}</p>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={openSendDialog}>
+            <Mail className="h-4 w-4 mr-2" />
+            Send Invoice
+          </Button>
           <Button variant="outline" onClick={openEdit}>
             <Pencil className="h-4 w-4 mr-2" />
             Edit
@@ -154,7 +423,7 @@ export default function InvoiceDetailPage() {
                         <p className="text-xs text-muted-foreground font-mono">{caseData.case_number}</p>
                       </Link>
                     ) : (
-                      <p className="text-muted-foreground">—</p>
+                      <p className="text-muted-foreground">\u2014</p>
                     )}
                   </div>
                 </div>
@@ -179,14 +448,109 @@ export default function InvoiceDetailPage() {
           </Card>
 
           {/* Line Items */}
-          {lineItems.length > 0 && (
-            <Card>
-              <CardHeader>
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
                 <CardTitle className="text-lg" style={{ fontFamily: 'Georgia, serif', color: '#091525' }}>
                   Line Items
                 </CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
+                {canEditLineItems && !editingLineItems && (
+                  <Button variant="outline" size="sm" onClick={startEditingLineItems}>
+                    <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                    Edit Line Items
+                  </Button>
+                )}
+                {editingLineItems && (
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={cancelEditingLineItems} disabled={savingLineItems}>
+                      Cancel
+                    </Button>
+                    <Button size="sm" onClick={saveLineItems} disabled={savingLineItems}>
+                      {savingLineItems ? (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        'Save Changes'
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              {editingLineItems ? (
+                <div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[45%]">Description</TableHead>
+                        <TableHead className="text-right w-[15%]">Qty</TableHead>
+                        <TableHead className="text-right w-[18%]">Unit Price</TableHead>
+                        <TableHead className="text-right w-[15%]">Amount</TableHead>
+                        <TableHead className="w-[7%]"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {editableItems
+                        .map((item, index) => ({ item, index }))
+                        .filter(({ item }) => !item._deleted)
+                        .map(({ item, index }) => (
+                          <TableRow key={item.id || `new-${index}`}>
+                            <TableCell>
+                              <Input
+                                value={item.description}
+                                onChange={(e) => updateLineItem(index, 'description', e.target.value)}
+                                placeholder="Description"
+                                className="h-8 text-sm"
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Input
+                                type="number"
+                                value={item.quantity}
+                                onChange={(e) => updateLineItem(index, 'quantity', e.target.value)}
+                                className="h-8 text-sm text-right"
+                                step="0.25"
+                                min="0"
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Input
+                                type="number"
+                                value={item.unit_price}
+                                onChange={(e) => updateLineItem(index, 'unit_price', e.target.value)}
+                                className="h-8 text-sm text-right"
+                                step="0.01"
+                                min="0"
+                              />
+                            </TableCell>
+                            <TableCell className="text-right text-sm font-medium tabular-nums">
+                              {formatCurrency(item.quantity * item.unit_price)}
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => deleteLineItem(index)}
+                                className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                    </TableBody>
+                  </Table>
+                  <div className="p-3 border-t">
+                    <Button variant="outline" size="sm" onClick={addLineItem} className="w-full">
+                      <Plus className="h-3.5 w-3.5 mr-1.5" />
+                      Add Line Item
+                    </Button>
+                  </div>
+                </div>
+              ) : lineItems.length > 0 ? (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -207,9 +571,11 @@ export default function InvoiceDetailPage() {
                     ))}
                   </TableBody>
                 </Table>
-              </CardContent>
-            </Card>
-          )}
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-8">No line items.</p>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Totals */}
           <Card>
@@ -365,6 +731,71 @@ export default function InvoiceDetailPage() {
             <Button variant="destructive" onClick={handleDelete} disabled={deleteInvoice.isPending}>
               {deleteInvoice.isPending ? 'Deleting...' : 'Delete'}
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Send Invoice Dialog */}
+      <Dialog open={sendOpen} onOpenChange={setSendOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Send Invoice</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="p-3 rounded-lg border" style={{ backgroundColor: '#f8fafc' }}>
+              <p className="text-sm font-medium" style={{ color: '#091525' }}>{invoice.invoice_number}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {invoice.bill_to_name && <span>{invoice.bill_to_name}</span>}
+                {invoice.bill_to_organization && <span> &mdash; {invoice.bill_to_organization}</span>}
+              </p>
+              <p className="text-sm font-semibold mt-2 tabular-nums" style={{ color: '#0E1F35' }}>
+                Balance Due: {formatCurrency(invoice.balance_due)}
+              </p>
+            </div>
+
+            <div>
+              <Label>Recipient Email</Label>
+              <Input
+                type="email"
+                value={sendEmail}
+                onChange={(e) => setSendEmail(e.target.value)}
+                placeholder="attorney@lawfirm.com"
+              />
+            </div>
+            <div>
+              <Label>Recipient Name (optional)</Label>
+              <Input
+                value={sendName}
+                onChange={(e) => setSendName(e.target.value)}
+                placeholder="e.g., Sarah Miller"
+              />
+            </div>
+            <div>
+              <Label>Message (optional)</Label>
+              <Textarea
+                value={sendMessage}
+                onChange={(e) => setSendMessage(e.target.value)}
+                rows={2}
+                placeholder="Add a personal note..."
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setSendOpen(false)}>Cancel</Button>
+              <Button onClick={handleSendInvoice} disabled={sending || !sendEmail}>
+                {sending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Mail className="h-4 w-4 mr-2" />
+                    Send
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

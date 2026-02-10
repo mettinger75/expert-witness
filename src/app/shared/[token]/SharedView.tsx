@@ -8,6 +8,7 @@ import { Save, Download, Loader2, Check, Eye, Pencil, FileSignature, GitCompareA
 import { toast } from 'sonner'
 import { formatDate } from '@/lib/formatters'
 import { SignaturePad } from '@/components/signing/SignaturePad'
+import { InvoiceView } from './InvoiceView'
 import HtmlDiffModule from 'htmldiff-js'
 import '@/components/editor/editor-styles.css'
 
@@ -18,7 +19,7 @@ interface SharedViewProps {
   token: string
   link: {
     id: string
-    entity_type: 'report' | 'contract'
+    entity_type: 'report' | 'contract' | 'invoice'
     permission: 'view' | 'edit' | 'sign'
     recipient_name: string | null
     expires_at: string
@@ -29,6 +30,65 @@ interface SharedViewProps {
 }
 
 export function SharedView({ token, link, entity }: SharedViewProps) {
+  // If this is an invoice, render the InvoiceView component directly
+  if (link.entity_type === 'invoice') {
+    const invoiceLineItems = (entity.invoice_line_items as Array<{
+      id: string
+      description: string
+      quantity: number
+      unit_price: number
+      amount: number
+      line_type: string
+      sort_order: number
+    }>) || []
+
+    return (
+      <div>
+        {/* Info bar */}
+        <div className="flex items-center justify-between mb-6 p-4 bg-white rounded-lg border">
+          <div className="flex items-center gap-3">
+            <Badge variant="secondary" className="text-xs">
+              <Eye className="h-3 w-3 mr-1 inline" />
+              Invoice
+            </Badge>
+            {link.recipient_name && (
+              <span className="text-sm text-muted-foreground">
+                Shared with {link.recipient_name}
+              </span>
+            )}
+            <span className="text-xs text-muted-foreground">
+              Expires {formatDate(link.expires_at)}
+            </span>
+          </div>
+        </div>
+
+        <InvoiceView
+          invoice={{
+            invoice_number: entity.invoice_number as string,
+            invoice_date: entity.invoice_date as string,
+            due_date: entity.due_date as string,
+            payment_terms: entity.payment_terms as number | null,
+            status: entity.status as string,
+            subtotal: entity.subtotal as number,
+            tax_rate: entity.tax_rate as number | null,
+            tax_amount: entity.tax_amount as number,
+            discount_amount: entity.discount_amount as number,
+            total_amount: entity.total_amount as number,
+            amount_paid: entity.amount_paid as number,
+            balance_due: entity.balance_due as number,
+            bill_to_name: entity.bill_to_name as string | null,
+            bill_to_organization: entity.bill_to_organization as string | null,
+            bill_to_address: entity.bill_to_address as string | null,
+            bill_to_email: entity.bill_to_email as string | null,
+            payment_instructions: entity.payment_instructions as string | null,
+            notes: entity.notes as string | null,
+          }}
+          lineItems={invoiceLineItems}
+        />
+      </div>
+    )
+  }
+
   // Determine the starting content: use previously saved edits if they exist, else the original
   const originalContent = (() => {
     if (link.entity_type === 'report') {

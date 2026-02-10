@@ -148,6 +148,14 @@ export const INVOICE_STATUSES = [
   { value: 'void', label: 'Void', color: 'gray' },
 ] as const
 
+// Charge Types (non-time line item types)
+export const CHARGE_TYPES = [
+  { value: 'expense', label: 'Expense' },
+  { value: 'flat_fee', label: 'Flat Fee' },
+  { value: 'retainer_application', label: 'Retainer Application' },
+  { value: 'adjustment', label: 'Adjustment' },
+] as const
+
 // Timeline Event Types
 export const TIMELINE_EVENT_TYPES = [
   { value: 'admission', label: 'Admission' },

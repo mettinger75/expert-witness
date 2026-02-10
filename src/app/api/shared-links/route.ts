@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (!['report', 'contract'].includes(entityType)) {
+    if (!['report', 'contract', 'invoice'].includes(entityType)) {
       return NextResponse.json(
         { error: 'Invalid entityType' },
         { status: 400 }
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     const supabase = getSupabaseAdmin()
 
     // Verify the entity exists and get its current HTML for redline tracking
-    const table = entityType === 'report' ? 'reports' : 'contracts'
+    const table = entityType === 'report' ? 'reports' : entityType === 'contract' ? 'contracts' : 'invoices'
     const { data: entity, error: entityError } = await supabase
       .from(table)
       .select('*')
@@ -69,8 +69,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Capture original HTML snapshot for edit links (enables redline diff later)
+    // Skip for invoices — no redline needed
     let originalHtml: string | null = null
-    if (permission === 'edit') {
+    if (permission === 'edit' && entityType !== 'invoice') {
       if (entityType === 'report') {
         const reportContent = entity.content as Record<string, unknown> | null
         if (reportContent?.import_mode === 'monolithic') {

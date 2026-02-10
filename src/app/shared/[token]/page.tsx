@@ -10,7 +10,7 @@ import { AlertCircle, Lock, Clock } from 'lucide-react'
 
 interface LinkData {
   id: string
-  entity_type: 'report' | 'contract'
+  entity_type: 'report' | 'contract' | 'invoice'
   permission: 'view' | 'edit' | 'sign'
   recipient_name: string | null
   expires_at: string

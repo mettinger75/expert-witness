@@ -1136,7 +1136,8 @@ export type InvoiceUpdate = Partial<InvoiceInsert>;
 // =============================================================================
 export interface InvoiceLineItemRow {
   id: string;
-  invoice_id: string;
+  invoice_id: string | null;
+  case_id: string | null;
   time_entry_id: string | null;
   line_type: LineItemType;
   description: string;
@@ -1144,12 +1145,14 @@ export interface InvoiceLineItemRow {
   unit_price: number;
   amount: number;
   sort_order: number;
+  is_billed: boolean;
   created_at: string;
 }
 
 export interface InvoiceLineItemInsert {
   id?: string;
-  invoice_id: string;
+  invoice_id?: string | null;
+  case_id?: string | null;
   time_entry_id?: string | null;
   line_type: LineItemType;
   description: string;
@@ -1157,6 +1160,7 @@ export interface InvoiceLineItemInsert {
   unit_price: number;
   amount?: number;
   sort_order?: number;
+  is_billed?: boolean;
   created_at?: string;
 }
 
@@ -1536,7 +1540,7 @@ export type ContractUpdate = Partial<ContractInsert>;
 // =============================================================================
 // Shared Links
 // =============================================================================
-export type SharedLinkEntityType = 'report' | 'contract';
+export type SharedLinkEntityType = 'report' | 'contract' | 'invoice';
 export type SharedLinkPermission = 'view' | 'edit' | 'sign';
 export type SharedLinkEventType = 'viewed' | 'edited' | 'signed' | 'downloaded' | 'pin_failed' | 'expired_access';
 

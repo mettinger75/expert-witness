@@ -66,10 +66,63 @@ export function useDeleteInvoice() {
     onSuccess: (_, { caseId }) => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] })
       queryClient.invalidateQueries({ queryKey: ['invoices', 'case', caseId] })
+      queryClient.invalidateQueries({ queryKey: ['time_entries'] })
+      queryClient.invalidateQueries({ queryKey: ['charges'] })
       toast.success('Invoice deleted')
     },
     onError: (error: Error) => {
       toast.error(`Failed to delete invoice: ${error.message}`)
+    },
+  })
+}
+
+export function useGenerateInvoice() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (input: {
+      caseId: string
+      timeEntryIds: string[]
+      chargeIds: string[]
+      billToContactId?: string
+      billToName?: string
+      billToOrganization?: string
+      billToAddress?: string
+      billToEmail?: string
+      templateId?: string
+      dueDate?: string
+      paymentTerms?: number
+      taxRate?: number
+      paymentInstructions?: string
+      notes?: string
+    }) => invoicesService.generateFromUnbilledItems(input.caseId, input),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['invoices'] })
+      queryClient.invalidateQueries({ queryKey: ['time_entries'] })
+      queryClient.invalidateQueries({ queryKey: ['charges'] })
+      toast.success(`Invoice ${data.invoice_number} created`)
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to generate invoice: ${error.message}`)
+    },
+  })
+}
+
+export function useAddToInvoice() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (input: {
+      invoiceId: string
+      timeEntryIds: string[]
+      chargeIds: string[]
+    }) => invoicesService.addItemsToInvoice(input.invoiceId, input.timeEntryIds, input.chargeIds),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['invoices'] })
+      queryClient.invalidateQueries({ queryKey: ['time_entries'] })
+      queryClient.invalidateQueries({ queryKey: ['charges'] })
+      toast.success(`Items added to invoice ${data.invoice_number}`)
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to add items: ${error.message}`)
     },
   })
 }

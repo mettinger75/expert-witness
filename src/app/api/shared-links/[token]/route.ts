@@ -86,12 +86,27 @@ export async function GET(
     })
 
     // Fetch the entity
-    const table = link.entity_type === 'report' ? 'reports' : 'contracts'
-    const { data: entity, error: entityError } = await supabase
-      .from(table)
-      .select('*')
-      .eq('id', link.entity_id)
-      .single()
+    let entity: Record<string, unknown> | null = null
+    let entityError: unknown = null
+
+    if (link.entity_type === 'invoice') {
+      const { data, error } = await supabase
+        .from('invoices')
+        .select('*, invoice_line_items(*)')
+        .eq('id', link.entity_id)
+        .single()
+      entity = data
+      entityError = error
+    } else {
+      const table = link.entity_type === 'report' ? 'reports' : 'contracts'
+      const { data, error } = await supabase
+        .from(table)
+        .select('*')
+        .eq('id', link.entity_id)
+        .single()
+      entity = data
+      entityError = error
+    }
 
     if (entityError || !entity) {
       return NextResponse.json(
