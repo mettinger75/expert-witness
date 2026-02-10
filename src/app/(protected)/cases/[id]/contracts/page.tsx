@@ -157,11 +157,11 @@ export default function CaseContractsPage() {
       const c = retaining.contacts
       setForm((prev) => ({
         ...prev,
-        firm_name: c.organization || '',
+        firm_name: c.organization_name || '',
         firm_contact_name: `${c.first_name} ${c.last_name}`.trim(),
         firm_email: c.email || '',
-        firm_phone: c.phone || '',
-        firm_address: [c.address_line1, c.address_line2, c.city, c.state, c.zip]
+        firm_phone: c.phone_primary || '',
+        firm_address: [c.address_street, c.address_city, c.address_state, c.address_zip]
           .filter(Boolean)
           .join(', '),
       }))

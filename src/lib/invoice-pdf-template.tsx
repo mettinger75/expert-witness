@@ -359,8 +359,8 @@ export function InvoicePDF({ invoice, contact, caseName, caseNumber, template }:
 
   // Use bill_to fields or fallback to contact
   const billToName = invoice.bill_to_name ?? (contact ? `${contact.first_name} ${contact.last_name}` : null)
-  const billToOrg = invoice.bill_to_organization ?? contact?.organization ?? null
-  const billToAddress = invoice.bill_to_address ?? (contact ? [contact.address_line1, contact.address_line2, contact.city && contact.state ? `${contact.city}, ${contact.state} ${contact.zip ?? ''}`.trim() : null].filter(Boolean).join('\n') : null)
+  const billToOrg = invoice.bill_to_organization ?? contact?.organization_name ?? null
+  const billToAddress = invoice.bill_to_address ?? (contact ? [contact.address_street, contact.address_city && contact.address_state ? `${contact.address_city}, ${contact.address_state} ${contact.address_zip ?? ''}`.trim() : null].filter(Boolean).join('\n') : null)
   const billToEmail = invoice.bill_to_email ?? contact?.email ?? null
 
   return (

@@ -76,9 +76,9 @@ export default function ContactDetailLayout({
             >
               {contact.first_name} {contact.last_name}
             </h1>
-            {(contact.organization || contact.title) && (
+            {(contact.organization_name || contact.title) && (
               <p className="text-sm text-muted-foreground mt-1">
-                {[contact.title, contact.organization].filter(Boolean).join(' at ')}
+                {[contact.title, contact.organization_name].filter(Boolean).join(' at ')}
               </p>
             )}
           </div>

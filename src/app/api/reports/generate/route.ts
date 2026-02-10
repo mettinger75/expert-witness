@@ -155,8 +155,8 @@ export async function POST(request: NextRequest) {
     const contactsContext = contacts?.length
       ? '\n\n## Case Contacts\n' +
         contacts
-          .map((cc: { role: string; is_primary: boolean; contact: { first_name: string; last_name: string; organization: string | null; contact_type: string } }) =>
-            `${cc.role}${cc.is_primary ? ' (primary)' : ''}: ${cc.contact?.first_name} ${cc.contact?.last_name}${cc.contact?.organization ? ` - ${cc.contact.organization}` : ''} (${cc.contact?.contact_type})`
+          .map((cc: { role: string; is_primary: boolean; contact: { first_name: string; last_name: string; organization_name: string | null; contact_type: string } }) =>
+            `${cc.role}${cc.is_primary ? ' (primary)' : ''}: ${cc.contact?.first_name} ${cc.contact?.last_name}${cc.contact?.organization_name ? ` - ${cc.contact.organization_name}` : ''} (${cc.contact?.contact_type})`
           )
           .join('\n')
       : ''

@@ -19,7 +19,7 @@ export const contactsService = {
     if (filters?.is_active !== undefined) query = query.eq('is_active', filters.is_active)
     if (filters?.search) {
       query = query.or(
-        `first_name.ilike.%${filters.search}%,last_name.ilike.%${filters.search}%,email.ilike.%${filters.search}%,organization.ilike.%${filters.search}%`
+        `first_name.ilike.%${filters.search}%,last_name.ilike.%${filters.search}%,email.ilike.%${filters.search}%,organization_name.ilike.%${filters.search}%`
       )
     }
 

@@ -72,7 +72,7 @@ export default function CaseContactsPage() {
                         <div className="font-medium text-sm">{c.first_name} {c.last_name}</div>
                         <div className="text-xs text-muted-foreground">
                           {getLabelForValue(CONTACT_TYPES, c.contact_type)}
-                          {c.organization ? ` - ${c.organization}` : ''}
+                          {c.organization_name ? ` - ${c.organization_name}` : ''}
                         </div>
                       </div>
                       <Button size="sm" variant="outline">Add</Button>
@@ -113,7 +113,7 @@ export default function CaseContactsPage() {
         />
       ) : (
         <div className="space-y-3">
-          {caseContacts.map((link: { id: string; contact_id: string; role: string; is_primary: boolean; contacts?: { first_name: string; last_name: string; contact_type: string; email: string | null; phone: string | null; organization: string | null } }) => (
+          {caseContacts.map((link: { id: string; contact_id: string; role: string; is_primary: boolean; contacts?: { first_name: string; last_name: string; contact_type: string; email: string | null; phone_primary: string | null; organization_name: string | null } }) => (
             <Card key={link.id}>
               <CardContent className="flex items-center gap-4 py-4">
                 <div className="flex-1 min-w-0">
@@ -132,8 +132,8 @@ export default function CaseContactsPage() {
                     )}
                   </div>
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    {link.contacts?.organization && (
-                      <span>{link.contacts.organization}</span>
+                    {link.contacts?.organization_name && (
+                      <span>{link.contacts.organization_name}</span>
                     )}
                     {link.contacts?.email && (
                       <span className="flex items-center gap-1">
@@ -141,10 +141,10 @@ export default function CaseContactsPage() {
                         {link.contacts.email}
                       </span>
                     )}
-                    {link.contacts?.phone && (
+                    {link.contacts?.phone_primary && (
                       <span className="flex items-center gap-1">
                         <Phone className="h-3.5 w-3.5" />
-                        {formatPhoneNumber(link.contacts.phone)}
+                        {formatPhoneNumber(link.contacts.phone_primary)}
                       </span>
                     )}
                   </div>

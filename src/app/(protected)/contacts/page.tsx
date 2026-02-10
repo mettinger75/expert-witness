@@ -91,10 +91,10 @@ export default function ContactsPage() {
                       <h3 className="font-semibold truncate">
                         {contact.first_name} {contact.last_name}
                       </h3>
-                      {contact.organization && (
+                      {contact.organization_name && (
                         <div className="flex items-center gap-1 text-sm text-muted-foreground mt-0.5">
                           <Building className="h-3 w-3 shrink-0" />
-                          <span className="truncate">{contact.organization}</span>
+                          <span className="truncate">{contact.organization_name}</span>
                         </div>
                       )}
                     </div>
@@ -109,10 +109,10 @@ export default function ContactsPage() {
                         <span className="truncate">{contact.email}</span>
                       </div>
                     )}
-                    {contact.phone && (
+                    {contact.phone_primary && (
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Phone className="h-3.5 w-3.5 shrink-0" />
-                        <span>{formatPhoneNumber(contact.phone)}</span>
+                        <span>{formatPhoneNumber(contact.phone_primary)}</span>
                       </div>
                     )}
                   </div>

@@ -49,10 +49,10 @@ export function ContactCard({ contact, linkedCaseCount }: ContactCardProps) {
           </div>
 
           <div className="mt-3 space-y-1.5">
-            {contact.organization && (
+            {contact.organization_name && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Building2 className="h-3.5 w-3.5 shrink-0" />
-                <span className="truncate">{contact.organization}</span>
+                <span className="truncate">{contact.organization_name}</span>
               </div>
             )}
             {contact.email && (
@@ -68,10 +68,10 @@ export function ContactCard({ contact, linkedCaseCount }: ContactCardProps) {
                 </a>
               </div>
             )}
-            {contact.phone && (
+            {contact.phone_primary && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Phone className="h-3.5 w-3.5 shrink-0" />
-                <span>{formatPhoneNumber(contact.phone)}</span>
+                <span>{formatPhoneNumber(contact.phone_primary)}</span>
               </div>
             )}
           </div>

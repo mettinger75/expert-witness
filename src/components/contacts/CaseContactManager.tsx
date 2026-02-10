@@ -43,7 +43,7 @@ export function CaseContactManager({ caseId }: CaseContactManagerProps) {
 
   const filteredContacts = allContacts.filter((contact) => {
     const fullName = `${contact.first_name} ${contact.last_name}`.toLowerCase()
-    const org = (contact.organization ?? '').toLowerCase()
+    const org = (contact.organization_name ?? '').toLowerCase()
     const query = searchQuery.toLowerCase()
     return fullName.includes(query) || org.includes(query)
   })
@@ -123,8 +123,8 @@ export function CaseContactManager({ caseId }: CaseContactManagerProps) {
                             {contact.first_name} {contact.last_name}
                             {isLinked && ' (already linked)'}
                           </div>
-                          {contact.organization && (
-                            <div className="text-xs text-muted-foreground">{contact.organization}</div>
+                          {contact.organization_name && (
+                            <div className="text-xs text-muted-foreground">{contact.organization_name}</div>
                           )}
                         </button>
                       )

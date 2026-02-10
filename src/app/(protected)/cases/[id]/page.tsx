@@ -207,10 +207,10 @@ export default function CaseOverviewPage() {
                             <Badge variant="default" className="text-xs">Primary</Badge>
                           )}
                         </div>
-                        {contact.organization && (
+                        {contact.organization_name && (
                           <div className="flex items-center gap-1 text-xs text-muted-foreground">
                             <Building className="h-3 w-3" />
-                            {contact.organization}
+                            {contact.organization_name}
                           </div>
                         )}
                         <div className="flex items-center gap-4">
@@ -223,13 +223,13 @@ export default function CaseOverviewPage() {
                               {contact.email}
                             </a>
                           )}
-                          {contact.phone && (
+                          {contact.phone_primary && (
                             <a
-                              href={`tel:${contact.phone}`}
+                              href={`tel:${contact.phone_primary}`}
                               className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary"
                             >
                               <Phone className="h-3 w-3" />
-                              {contact.phone}
+                              {contact.phone_primary}
                             </a>
                           )}
                         </div>

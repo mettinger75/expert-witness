@@ -19,16 +19,15 @@ const contactSchema = z.object({
   last_name: z.string().min(1, 'Last name is required'),
   contact_type: z.string().min(1, 'Contact type is required'),
   title: z.string().optional(),
-  organization: z.string().optional(),
+  organization_name: z.string().optional(),
   email: z.string().email('Invalid email address').optional().or(z.literal('')),
-  phone: z.string().optional(),
-  phone_alt: z.string().optional(),
+  phone_primary: z.string().optional(),
+  phone_secondary: z.string().optional(),
   fax: z.string().optional(),
-  address_line1: z.string().optional(),
-  address_line2: z.string().optional(),
-  city: z.string().optional(),
-  state: z.string().optional(),
-  zip: z.string().optional(),
+  address_street: z.string().optional(),
+  address_city: z.string().optional(),
+  address_state: z.string().optional(),
+  address_zip: z.string().optional(),
   bar_number: z.string().optional(),
   specialty: z.string().optional(),
   preferred_communication: z.enum(['email', 'phone', 'fax', 'mail']).optional(),
@@ -51,18 +50,17 @@ export function ContactForm({ initialData, onSubmit, isSubmitting }: ContactForm
       last_name: initialData?.last_name ?? '',
       contact_type: initialData?.contact_type ?? 'attorney',
       title: initialData?.title ?? '',
-      organization: initialData?.organization ?? '',
+      organization_name: initialData?.organization_name ?? '',
       email: initialData?.email ?? '',
-      phone: initialData?.phone ?? '',
-      phone_alt: initialData?.phone_alt ?? '',
+      phone_primary: initialData?.phone_primary ?? '',
+      phone_secondary: initialData?.phone_secondary ?? '',
       fax: initialData?.fax ?? '',
-      address_line1: initialData?.address_line1 ?? '',
-      address_line2: initialData?.address_line2 ?? '',
-      city: initialData?.city ?? '',
-      state: initialData?.state ?? '',
-      zip: initialData?.zip ?? '',
-      bar_number: '',
-      specialty: '',
+      address_street: initialData?.address_street ?? '',
+      address_city: initialData?.address_city ?? '',
+      address_state: initialData?.address_state ?? '',
+      address_zip: initialData?.address_zip ?? '',
+      bar_number: initialData?.bar_number ?? '',
+      specialty: initialData?.specialty ?? '',
       preferred_communication: (initialData?.preferred_communication as 'email' | 'phone' | 'fax' | 'mail') ?? 'email',
       notes: initialData?.notes ?? '',
     },
@@ -160,7 +158,7 @@ export function ContactForm({ initialData, onSubmit, isSubmitting }: ContactForm
               />
               <FormField
                 control={form.control}
-                name="organization"
+                name="organization_name"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Organization</FormLabel>
@@ -220,7 +218,7 @@ export function ContactForm({ initialData, onSubmit, isSubmitting }: ContactForm
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <FormField
                 control={form.control}
-                name="phone"
+                name="phone_primary"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Phone</FormLabel>
@@ -232,7 +230,7 @@ export function ContactForm({ initialData, onSubmit, isSubmitting }: ContactForm
               />
               <FormField
                 control={form.control}
-                name="phone_alt"
+                name="phone_secondary"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Alternate Phone</FormLabel>
@@ -266,24 +264,12 @@ export function ContactForm({ initialData, onSubmit, isSubmitting }: ContactForm
           <CardContent className="space-y-4">
             <FormField
               control={form.control}
-              name="address_line1"
+              name="address_street"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Address Line 1</FormLabel>
+                  <FormLabel>Street Address</FormLabel>
                   <FormControl>
-                    <Input placeholder="123 Main Street" {...field} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="address_line2"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Address Line 2</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Suite 400" {...field} />
+                    <Input placeholder="123 Main Street, Suite 400" {...field} />
                   </FormControl>
                 </FormItem>
               )}
@@ -291,7 +277,7 @@ export function ContactForm({ initialData, onSubmit, isSubmitting }: ContactForm
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <FormField
                 control={form.control}
-                name="city"
+                name="address_city"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>City</FormLabel>
@@ -303,7 +289,7 @@ export function ContactForm({ initialData, onSubmit, isSubmitting }: ContactForm
               />
               <FormField
                 control={form.control}
-                name="state"
+                name="address_state"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>State</FormLabel>
@@ -315,7 +301,7 @@ export function ContactForm({ initialData, onSubmit, isSubmitting }: ContactForm
               />
               <FormField
                 control={form.control}
-                name="zip"
+                name="address_zip"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Zip Code</FormLabel>

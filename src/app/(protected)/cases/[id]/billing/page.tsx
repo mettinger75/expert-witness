@@ -381,14 +381,13 @@ export default function CaseBillingPage() {
         billToName: selectedContact
           ? `${selectedContact.first_name} ${selectedContact.last_name}`
           : undefined,
-        billToOrganization: selectedContact?.organization ?? undefined,
+        billToOrganization: selectedContact?.organization_name ?? undefined,
         billToEmail: selectedContact?.email ?? undefined,
         billToAddress: selectedContact
           ? [
-              selectedContact.address_line1,
-              selectedContact.address_line2,
-              selectedContact.city && selectedContact.state
-                ? `${selectedContact.city}, ${selectedContact.state} ${selectedContact.zip ?? ''}`.trim()
+              selectedContact.address_street,
+              selectedContact.address_city && selectedContact.address_state
+                ? `${selectedContact.address_city}, ${selectedContact.address_state} ${selectedContact.address_zip ?? ''}`.trim()
                 : null,
             ]
               .filter(Boolean)
@@ -1057,7 +1056,7 @@ export default function CaseBillingPage() {
                       return (
                         <SelectItem key={cc.contact_id} value={cc.contact_id}>
                           {c.first_name} {c.last_name}
-                          {c.organization ? ` (${c.organization})` : ''}
+                          {c.organization_name ? ` (${c.organization_name})` : ''}
                         </SelectItem>
                       )
                     })}

@@ -32,9 +32,9 @@ export default function ContactOverviewPage() {
   const [editForm, setEditForm] = useState({
     first_name: '',
     last_name: '',
-    organization: '',
+    organization_name: '',
     email: '',
-    phone: '',
+    phone_primary: '',
     title: '',
   })
 
@@ -50,9 +50,9 @@ export default function ContactOverviewPage() {
       setEditForm({
         first_name: contact.first_name,
         last_name: contact.last_name,
-        organization: contact.organization || '',
+        organization_name: contact.organization_name || '',
         email: contact.email || '',
-        phone: contact.phone || '',
+        phone_primary: contact.phone_primary || '',
         title: contact.title || '',
       })
     }
@@ -110,9 +110,9 @@ export default function ContactOverviewPage() {
         data: {
           first_name: editForm.first_name,
           last_name: editForm.last_name,
-          organization: editForm.organization || null,
+          organization_name: editForm.organization_name || null,
           email: editForm.email || null,
-          phone: editForm.phone || null,
+          phone_primary: editForm.phone_primary || null,
           title: editForm.title || null,
         },
       },
@@ -225,37 +225,36 @@ export default function ContactOverviewPage() {
                 </a>
               </div>
             )}
-            {contact.phone && (
+            {contact.phone_primary && (
               <div className="flex items-center gap-3">
                 <Phone className="h-4 w-4 text-muted-foreground" />
-                <a href={`tel:${contact.phone}`} className="text-sm hover:underline" style={{ color: '#091525' }}>
-                  {formatPhoneNumber(contact.phone)}
+                <a href={`tel:${contact.phone_primary}`} className="text-sm hover:underline" style={{ color: '#091525' }}>
+                  {formatPhoneNumber(contact.phone_primary)}
                 </a>
               </div>
             )}
-            {contact.phone_alt && (
+            {contact.phone_secondary && (
               <div className="flex items-center gap-3">
                 <Phone className="h-4 w-4 text-muted-foreground" />
-                <a href={`tel:${contact.phone_alt}`} className="text-sm hover:underline" style={{ color: '#091525' }}>
-                  {formatPhoneNumber(contact.phone_alt)} (Alt)
+                <a href={`tel:${contact.phone_secondary}`} className="text-sm hover:underline" style={{ color: '#091525' }}>
+                  {formatPhoneNumber(contact.phone_secondary)} (Alt)
                 </a>
               </div>
             )}
-            {contact.organization && (
+            {contact.organization_name && (
               <div className="flex items-center gap-3">
                 <Building className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">{contact.organization}</span>
+                <span className="text-sm">{contact.organization_name}</span>
               </div>
             )}
-            {(contact.address_line1 || contact.city) && (
+            {(contact.address_street || contact.address_city) && (
               <div className="flex items-start gap-3">
                 <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
                 <div className="text-sm">
-                  {contact.address_line1 && <div>{contact.address_line1}</div>}
-                  {contact.address_line2 && <div>{contact.address_line2}</div>}
-                  {(contact.city || contact.state || contact.zip) && (
+                  {contact.address_street && <div>{contact.address_street}</div>}
+                  {(contact.address_city || contact.address_state || contact.address_zip) && (
                     <div>
-                      {[contact.city, contact.state].filter(Boolean).join(', ')} {contact.zip}
+                      {[contact.address_city, contact.address_state].filter(Boolean).join(', ')} {contact.address_zip}
                     </div>
                   )}
                 </div>
@@ -310,11 +309,11 @@ export default function ContactOverviewPage() {
               />
             </div>
             <div>
-              <Label htmlFor="organization">Organization</Label>
+              <Label htmlFor="organization_name">Organization</Label>
               <Input
-                id="organization"
-                value={editForm.organization}
-                onChange={(e) => setEditForm((p) => ({ ...p, organization: e.target.value }))}
+                id="organization_name"
+                value={editForm.organization_name}
+                onChange={(e) => setEditForm((p) => ({ ...p, organization_name: e.target.value }))}
               />
             </div>
             <div>
@@ -327,11 +326,11 @@ export default function ContactOverviewPage() {
               />
             </div>
             <div>
-              <Label htmlFor="phone">Phone</Label>
+              <Label htmlFor="phone_primary">Phone</Label>
               <Input
-                id="phone"
-                value={editForm.phone}
-                onChange={(e) => setEditForm((p) => ({ ...p, phone: e.target.value }))}
+                id="phone_primary"
+                value={editForm.phone_primary}
+                onChange={(e) => setEditForm((p) => ({ ...p, phone_primary: e.target.value }))}
               />
             </div>
             <div className="flex justify-end gap-2 pt-2">

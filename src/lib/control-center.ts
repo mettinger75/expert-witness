@@ -97,8 +97,8 @@ export function transformContactForCC(ewContact: Record<string, unknown>) {
     first_name: ewContact.first_name,
     last_name: ewContact.last_name,
     email: ewContact.email || null,
-    phone: ewContact.phone || null,
-    company: ewContact.organization || null,
+    phone: ewContact.phone_primary || null,
+    company: ewContact.organization_name || null,
     profession_category: mapContactType((ewContact.contact_type as string) || 'other'),
   }
 }

@@ -39,7 +39,7 @@ interface InvoiceFormProps {
   initialData?: InvoiceRow
   onSubmit: (data: InvoiceInsert & { line_items: Array<{ description: string; quantity: number; unit_price: number; is_expense: boolean }> }) => Promise<void>
   isSubmitting: boolean
-  contacts?: Array<{ id: string; first_name: string; last_name: string; organization?: string | null }>
+  contacts?: Array<{ id: string; first_name: string; last_name: string; organization_name?: string | null }>
 }
 
 function generateInvoiceNumber(): string {
@@ -158,7 +158,7 @@ export function InvoiceForm({ caseId, initialData, onSubmit, isSubmitting, conta
                         {contacts.map((c) => (
                           <SelectItem key={c.id} value={c.id}>
                             {c.first_name} {c.last_name}
-                            {c.organization ? ` - ${c.organization}` : ''}
+                            {c.organization_name ? ` - ${c.organization_name}` : ''}
                           </SelectItem>
                         ))}
                       </SelectContent>
