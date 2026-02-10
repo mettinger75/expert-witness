@@ -16,12 +16,16 @@ import {
   ClipboardList,
   Clock,
   Upload,
+  DollarSign,
+  Gavel,
 } from 'lucide-react'
 import { PortalSummary } from './PortalSummary'
 import { PortalTimeline } from './PortalTimeline'
 import { PortalMessages } from './PortalMessages'
 import { PortalReports } from './PortalReports'
 import { PortalDocuments } from './PortalDocuments'
+import { PortalFeeSchedule } from './PortalFeeSchedule'
+import { PortalDepositions } from './PortalDepositions'
 
 interface PortalInvite {
   id: string
@@ -34,6 +38,8 @@ interface PortalInvite {
   can_view_reports: boolean
   can_edit_reports: boolean
   can_upload_documents: boolean
+  can_view_fee_schedule: boolean
+  can_view_depositions: boolean
   expires_at: string
   view_count: number
   contact: {
@@ -113,6 +119,26 @@ interface TabConfig {
   enabled: boolean
 }
 
+interface FeeScheduleItem {
+  activity_type: string
+  description: string
+  rate_per_hour: number
+}
+
+interface DepositionPortalItem {
+  id: string
+  deponent_name: string
+  deponent_role: string
+  deposition_date: string
+  deposition_location: string | null
+  status: string
+  is_video_recorded: boolean
+  duration_hours: number | null
+  summary: string | null
+  ai_summary: string | null
+  key_admissions: string[] | null
+}
+
 interface PortalViewProps {
   token: string
   invite: PortalInvite
@@ -120,6 +146,8 @@ interface PortalViewProps {
   caseContacts: CaseContact[]
   sharedReports: SharedReport[]
   communications: Communication[]
+  feeSchedule: FeeScheduleItem[]
+  depositions: DepositionPortalItem[]
   initialUnreadCount: number
 }
 
@@ -130,6 +158,8 @@ export function PortalView({
   caseContacts,
   sharedReports,
   communications,
+  feeSchedule,
+  depositions,
   initialUnreadCount,
 }: PortalViewProps) {
   const [unreadCount, setUnreadCount] = useState(initialUnreadCount)
@@ -166,6 +196,18 @@ export function PortalView({
       icon: <Upload className="h-4 w-4" />,
       enabled: invite.can_upload_documents,
     },
+    {
+      id: 'fee-schedule',
+      label: 'Fee Schedule',
+      icon: <DollarSign className="h-4 w-4" />,
+      enabled: invite.can_view_fee_schedule,
+    },
+    {
+      id: 'depositions',
+      label: 'Depositions',
+      icon: <Gavel className="h-4 w-4" />,
+      enabled: invite.can_view_depositions,
+    },
   ]
 
   const enabledTabs = tabs.filter((t) => t.enabled)
@@ -201,6 +243,12 @@ export function PortalView({
               {invite.can_view_reports && <li>Access shared reports</li>}
               {invite.can_upload_documents && (
                 <li>Upload documents and records</li>
+              )}
+              {invite.can_view_fee_schedule && (
+                <li>View the fee schedule</li>
+              )}
+              {invite.can_view_depositions && (
+                <li>Review depositions</li>
               )}
             </ul>
             {invite.can_upload_documents && (
@@ -292,6 +340,12 @@ export function PortalView({
           />
         )}
         {activeTab === 'documents' && <PortalDocuments token={token} />}
+        {activeTab === 'fee-schedule' && (
+          <PortalFeeSchedule feeSchedule={feeSchedule} />
+        )}
+        {activeTab === 'depositions' && (
+          <PortalDepositions depositions={depositions} />
+        )}
       </div>
     </div>
   )

@@ -16,6 +16,8 @@ export async function POST(request: NextRequest) {
       canViewReports = true,
       canEditReports = false,
       canUploadDocuments = true,
+      canViewFeeSchedule = true,
+      canViewDepositions = true,
       invitationMessage,
     } = body
 
@@ -41,6 +43,8 @@ export async function POST(request: NextRequest) {
         can_view_reports: canViewReports,
         can_edit_reports: canEditReports,
         can_upload_documents: canUploadDocuments,
+        can_view_fee_schedule: canViewFeeSchedule,
+        can_view_depositions: canViewDepositions,
         expires_at: expiresAt.toISOString(),
         invitation_message: invitationMessage || null,
       })

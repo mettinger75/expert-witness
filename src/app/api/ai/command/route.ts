@@ -108,7 +108,7 @@ const TOOLS = [
       type: 'object' as const,
       properties: {
         case_id: { type: 'string' as const, description: 'UUID of the case' },
-        activity_type: { type: 'string' as const, description: 'Type of activity: record_review, report_writing, deposition, testimony, consultation, research, correspondence, travel, other' },
+        activity_type: { type: 'string' as const, description: 'Type of activity: record_review, file_review, research, report_writing, deposition_prep, deposition_testimony, trial_prep, trial_testimony, phone_conference, consultation, court_appearance, correspondence, travel, administrative, other' },
         description: { type: 'string' as const, description: 'Description of work performed' },
         duration_hours: { type: 'number' as const, description: 'Hours worked (e.g. 1.5)' },
         rate_per_hour: { type: 'number' as const, description: 'Hourly rate in dollars' },

@@ -1028,28 +1028,26 @@ export type TimeEntryUpdate = Partial<TimeEntryInsert>;
 // =============================================================================
 export interface BillingRateRow {
   id: string;
-  activity_type: ActivityType;
-  rate: number;
-  description: string | null;
+  activity_type: string;
+  description: string;
+  rate_per_hour: number;
+  is_active: boolean;
   effective_date: string;
   end_date: string | null;
-  is_default: boolean;
-  case_id: string | null;
-  contact_id: string | null;
+  notes: string | null;
   created_at: string;
   updated_at: string;
 }
 
 export interface BillingRateInsert {
   id?: string;
-  activity_type: ActivityType;
-  rate: number;
-  description?: string | null;
+  activity_type: string;
+  description: string;
+  rate_per_hour: number;
+  is_active?: boolean;
   effective_date: string;
   end_date?: string | null;
-  is_default?: boolean;
-  case_id?: string | null;
-  contact_id?: string | null;
+  notes?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -1890,6 +1888,8 @@ export interface PortalInviteRow {
   can_view_reports: boolean;
   can_edit_reports: boolean;
   can_upload_documents: boolean;
+  can_view_fee_schedule: boolean;
+  can_view_depositions: boolean;
   is_active: boolean;
   expires_at: string;
   last_accessed_at: string | null;
@@ -1911,6 +1911,8 @@ export interface PortalInviteInsert {
   can_view_reports?: boolean;
   can_edit_reports?: boolean;
   can_upload_documents?: boolean;
+  can_view_fee_schedule?: boolean;
+  can_view_depositions?: boolean;
   is_active?: boolean;
   expires_at: string;
   invited_by?: string | null;

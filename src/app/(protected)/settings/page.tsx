@@ -57,18 +57,18 @@ function loadInvoiceSettings(): InvoiceSettings {
 // --------------------------------------------------
 interface RateFormState {
   activity_type: string
-  rate: string
+  rate_per_hour: string
   description: string
   effective_date: string
-  is_default: boolean
+  is_active: boolean
 }
 
 const emptyRateForm = (): RateFormState => ({
   activity_type: '',
-  rate: '',
+  rate_per_hour: '',
   description: '',
   effective_date: new Date().toISOString().split('T')[0],
-  is_default: false,
+  is_active: true,
 })
 
 // --------------------------------------------------
@@ -95,10 +95,10 @@ export default function SettingsPage() {
     setEditingRate(rate)
     setForm({
       activity_type: rate.activity_type,
-      rate: String(rate.rate),
+      rate_per_hour: String(rate.rate_per_hour),
       description: rate.description ?? '',
       effective_date: rate.effective_date,
-      is_default: rate.is_default,
+      is_active: rate.is_active,
     })
     setDialogOpen(true)
   }
@@ -108,7 +108,7 @@ export default function SettingsPage() {
       toast.error('Please select an activity type')
       return
     }
-    const rateNum = parseFloat(form.rate)
+    const rateNum = parseFloat(form.rate_per_hour)
     if (isNaN(rateNum) || rateNum <= 0) {
       toast.error('Please enter a valid rate')
       return
@@ -118,10 +118,10 @@ export default function SettingsPage() {
       // Update existing
       const payload: BillingRateUpdate = {
         activity_type: form.activity_type as BillingRateInsert['activity_type'],
-        rate: rateNum,
-        description: form.description || null,
+        rate_per_hour: rateNum,
+        description: form.description || '',
         effective_date: form.effective_date,
-        is_default: form.is_default,
+        is_active: form.is_active,
       }
       updateRate.mutate(
         { id: editingRate.id, data: payload },
@@ -131,10 +131,10 @@ export default function SettingsPage() {
       // Create new
       const payload: BillingRateInsert = {
         activity_type: form.activity_type as BillingRateInsert['activity_type'],
-        rate: rateNum,
-        description: form.description || null,
+        rate_per_hour: rateNum,
+        description: form.description || '',
         effective_date: form.effective_date,
-        is_default: form.is_default,
+        is_active: form.is_active,
       }
       createRate.mutate(payload, { onSuccess: () => setDialogOpen(false) })
     }
@@ -299,7 +299,7 @@ export default function SettingsPage() {
                         <TableHead className="text-right">Rate</TableHead>
                         <TableHead>Description</TableHead>
                         <TableHead>Effective Date</TableHead>
-                        <TableHead className="text-center">Default</TableHead>
+                        <TableHead className="text-center">Active</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
@@ -313,14 +313,14 @@ export default function SettingsPage() {
                               {getLabelForValue(ACTIVITY_TYPES, rate.activity_type)}
                             </TableCell>
                             <TableCell className="text-right font-mono">
-                              {formatCurrency(rate.rate)}/hr
+                              {formatCurrency(rate.rate_per_hour)}/hr
                             </TableCell>
                             <TableCell className="max-w-[200px] truncate text-muted-foreground">
                               {rate.description || '-'}
                             </TableCell>
                             <TableCell>{formatDate(rate.effective_date)}</TableCell>
                             <TableCell className="text-center">
-                              {rate.is_default && (
+                              {rate.is_active && (
                                 <Star className="h-4 w-4 text-[#C9A84C] fill-[#C9A84C] inline-block" />
                               )}
                             </TableCell>
@@ -404,8 +404,8 @@ export default function SettingsPage() {
                     min="0"
                     step="25"
                     placeholder="e.g. 500"
-                    value={form.rate}
-                    onChange={(e) => setForm((p) => ({ ...p, rate: e.target.value }))}
+                    value={form.rate_per_hour}
+                    onChange={(e) => setForm((p) => ({ ...p, rate_per_hour: e.target.value }))}
                   />
                 </div>
 
@@ -431,14 +431,14 @@ export default function SettingsPage() {
 
                 <div className="flex items-center gap-2">
                   <Checkbox
-                    id="dialog-is-default"
-                    checked={form.is_default}
+                    id="dialog-is-active"
+                    checked={form.is_active}
                     onCheckedChange={(checked) =>
-                      setForm((p) => ({ ...p, is_default: checked === true }))
+                      setForm((p) => ({ ...p, is_active: checked === true }))
                     }
                   />
-                  <Label htmlFor="dialog-is-default" className="cursor-pointer">
-                    Set as default rate for this activity type
+                  <Label htmlFor="dialog-is-active" className="cursor-pointer">
+                    Active
                   </Label>
                 </div>
               </div>

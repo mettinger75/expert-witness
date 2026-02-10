@@ -77,6 +77,29 @@ export async function GET(
       communications = comms || []
     }
 
+    // Fetch fee schedule if permitted
+    let feeSchedule: unknown[] = []
+    if (invite.can_view_fee_schedule) {
+      const { data } = await supabase
+        .from('billing_rates')
+        .select('activity_type, description, rate_per_hour')
+        .eq('is_active', true)
+        .is('end_date', null)
+        .order('activity_type')
+      feeSchedule = data || []
+    }
+
+    // Fetch depositions if permitted
+    let depositions: unknown[] = []
+    if (invite.can_view_depositions) {
+      const { data } = await supabase
+        .from('depositions')
+        .select('id, deponent_name, deponent_role, deposition_date, deposition_location, status, is_video_recorded, duration_hours, summary, ai_summary, key_admissions')
+        .eq('case_id', invite.case_id)
+        .order('deposition_date', { ascending: false })
+      depositions = data || []
+    }
+
     // Unread message count
     let unreadCount = 0
     if (invite.can_message) {
@@ -101,6 +124,8 @@ export async function GET(
         can_view_reports: invite.can_view_reports,
         can_edit_reports: invite.can_edit_reports,
         can_upload_documents: invite.can_upload_documents,
+        can_view_fee_schedule: invite.can_view_fee_schedule,
+        can_view_depositions: invite.can_view_depositions,
         expires_at: invite.expires_at,
         view_count: invite.view_count + 1,
         contact: invite.contacts,
@@ -127,6 +152,8 @@ export async function GET(
       caseContacts: caseContacts || [],
       sharedReports,
       communications,
+      feeSchedule,
+      depositions,
       unreadCount,
     })
   } catch (error) {

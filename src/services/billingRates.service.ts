@@ -27,7 +27,7 @@ export const billingRatesService = {
       .select('*')
       .eq('activity_type', activityType)
       .is('end_date', null)
-      .eq('is_default', true)
+      .eq('is_active', true)
       .single()
     if (error) throw error
     return data as BillingRateRow

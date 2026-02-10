@@ -28,6 +28,8 @@ export function CreatePortalInviteDialog({ caseId, contactId, contactName, open,
   const [canViewReports, setCanViewReports] = useState(true)
   const [canEditReports, setCanEditReports] = useState(false)
   const [canUploadDocuments, setCanUploadDocuments] = useState(true)
+  const [canViewFeeSchedule, setCanViewFeeSchedule] = useState(true)
+  const [canViewDepositions, setCanViewDepositions] = useState(true)
   const [expiresInDays, setExpiresInDays] = useState('90')
   const [invitationMessage, setInvitationMessage] = useState('')
 
@@ -51,6 +53,8 @@ export function CreatePortalInviteDialog({ caseId, contactId, contactName, open,
           canViewReports,
           canEditReports: canViewReports ? canEditReports : false,
           canUploadDocuments,
+          canViewFeeSchedule,
+          canViewDepositions,
           invitationMessage: invitationMessage.trim() || undefined,
         }),
       })
@@ -136,6 +140,8 @@ export function CreatePortalInviteDialog({ caseId, contactId, contactName, open,
                   { label: 'View Reports', checked: canViewReports, onChange: setCanViewReports },
                   { label: 'Edit Reports', checked: canEditReports && canViewReports, onChange: setCanEditReports, disabled: !canViewReports },
                   { label: 'Upload Documents', checked: canUploadDocuments, onChange: setCanUploadDocuments },
+                  { label: 'Fee Schedule', checked: canViewFeeSchedule, onChange: setCanViewFeeSchedule },
+                  { label: 'Depositions', checked: canViewDepositions, onChange: setCanViewDepositions },
                 ].map((item) => (
                   <div key={item.label} className="flex items-center gap-2">
                     <Checkbox

@@ -315,21 +315,19 @@ export type PromptCategory =
 
 export type ActivityType =
   | 'record_review'
-  | 'medical_literature_review'
+  | 'file_review'
   | 'research'
   | 'report_writing'
-  | 'report_revision'
-  | 'phone_conference'
-  | 'video_conference'
+  | 'deposition_prep'
   | 'deposition_testimony'
-  | 'deposition_preparation'
+  | 'trial_prep'
   | 'trial_testimony'
-  | 'trial_preparation'
+  | 'phone_conference'
+  | 'consultation'
+  | 'court_appearance'
+  | 'correspondence'
   | 'travel'
-  | 'waiting_time'
   | 'administrative'
-  | 'ai_assisted_review'
-  | 'ai_assisted_drafting'
   | 'other';
 
 export type InvoiceStatus =

@@ -16,6 +16,8 @@ interface PortalInvite {
   can_view_reports: boolean
   can_edit_reports: boolean
   can_upload_documents: boolean
+  can_view_fee_schedule: boolean
+  can_view_depositions: boolean
   expires_at: string
   view_count: number
   contact: {
@@ -88,12 +90,34 @@ interface Communication {
   notes: string | null
 }
 
+interface FeeScheduleItem {
+  activity_type: string
+  description: string
+  rate_per_hour: number
+}
+
+interface DepositionPortalItem {
+  id: string
+  deponent_name: string
+  deponent_role: string
+  deposition_date: string
+  deposition_location: string | null
+  status: string
+  is_video_recorded: boolean
+  duration_hours: number | null
+  summary: string | null
+  ai_summary: string | null
+  key_admissions: string[] | null
+}
+
 interface PortalData {
   invite: PortalInvite
   caseData: CaseData
   caseContacts: CaseContact[]
   sharedReports: SharedReport[]
   communications: Communication[]
+  feeSchedule: FeeScheduleItem[]
+  depositions: DepositionPortalItem[]
   unreadCount: number
 }
 
@@ -150,6 +174,8 @@ export default function PortalPage() {
       caseContacts={data.caseContacts}
       sharedReports={data.sharedReports}
       communications={data.communications}
+      feeSchedule={data.feeSchedule}
+      depositions={data.depositions}
       initialUnreadCount={data.unreadCount}
     />
   )
