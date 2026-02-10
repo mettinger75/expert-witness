@@ -6,7 +6,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-source-sans);
   --font-mono: var(--font-geist-mono);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -48,29 +48,41 @@
   --radius-4xl: calc(var(--radius) + 16px);
 }
 
-/* Expert Witness Practice Management — Meridian Premium Theme
-   Navy Deep:       #091525  (card headers, hero backgrounds, sidebar gradient start)
-   Navy:            #0E1F35  (sidebar gradient end, secondary dark backgrounds)
+/* Meridian Design System — Expert Witness Practice Manager
+   Navy Deep:       #091525  (card headers, sidebar gradient start)
+   Navy:            #0E1F35  (sidebar gradient end, secondary dark)
    Navy Mid:        #152A42  (sidebar dropdown panels)
-   Gold:            #C9A84C  (accent lines, active nav, chart primary)
-   Gold Light:      #DFC06A  (gradient endpoints, hover states)
-   Background:      #FFFFFF  (page background)
+   Navy Light:      #1C3555  (hover states on dark)
+   Gold:            #C9A84C  (accent lines, active nav)
+   Gold Light:      #DFC06A  (gradient endpoints, hover)
+   Gold Dim:        #A68B3C  (pressed states)
+   Background:      #F0F2F5  (page background)
+   Card:            #FFFFFF  (card background)
    Card Alt Row:    #FAFBFC  (alternating table rows)
-   Table Header BG: #F8F9FB  (table header row background)
-   Subtle Divider:  #F0F1F4  (table row dividers, chart grid lines)
-   Muted Text:      #8892A2  (subtitles, secondary labels)
-   Lighter Text:    #B0B8C5  (timestamps, tertiary info)
-   Body Text:       #1F2937  (standard data values)
-   Positive:        #10B981  (surplus values)
-   Negative:        #EF4444  (deficit values)
+   Table Header BG: #F8F9FB
+   Border:          #D8DCE3
+   Muted Text:      #8892A2
+   Lighter Text:    #B0B8C5
+   Body Text:       #1F2937
 */
 
 :root {
-  --radius: 0.75rem;
+  --radius: 0.625rem;
 
-  /* Background colors */
-  --background: #FFFFFF;
-  --foreground: #1F2937;
+  /* Navy & Deep Colors */
+  --navy-deep: #091525;
+  --navy: #0E1F35;
+  --navy-mid: #152A42;
+  --navy-light: #1C3555;
+
+  /* Gold Accent */
+  --gold: #C9A84C;
+  --gold-light: #DFC06A;
+  --gold-dim: #A68B3C;
+
+  /* Backgrounds */
+  --background: #F0F2F5;
+  --foreground: #0E1F35;
 
   /* Card */
   --card: #FFFFFF;
@@ -95,27 +107,31 @@
   /* Accent - Gold */
   --accent: #C9A84C;
   --accent-foreground: #FFFFFF;
+  --accent-hover: #A68B3C;
 
   /* Destructive / Error */
   --destructive: #EF4444;
 
   /* Success */
-  --success: #10B981;
+  --success: #2D8B5F;
 
   /* Warning */
-  --warning: #F59E0B;
+  --warning: #D4A03C;
+
+  /* Danger */
+  --danger: #991b1b;
 
   /* Border */
-  --border: #E5E7EB;
-  --input: #E5E7EB;
-  --ring: #C9A84C;
+  --border: #D8DCE3;
+  --input: #D8DCE3;
+  --ring: #091525;
 
   /* Chart colors */
   --chart-1: #C9A84C;
   --chart-2: #2563EB;
-  --chart-3: #10B981;
+  --chart-3: #2D8B5F;
   --chart-4: #8B5CF6;
-  --chart-5: #F59E0B;
+  --chart-5: #D4A03C;
 
   /* Sidebar - Navy Gradient */
   --sidebar: #091525;
@@ -170,5 +186,63 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-source-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
+
+  h1, h2, h3, h4, h5, h6 {
+    letter-spacing: -0.025em;
+  }
+
+  h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  h2 {
+    font-size: 1.375rem;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  label, .label {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.375rem;
+  }
+
+  th {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 500;
+  }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #B0B8C5; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #8892A2; }
+
+/* Gold button utility */
+.btn-gold {
+  background: linear-gradient(135deg, #C9A84C 0%, #DFC06A 100%);
+  color: #091525;
+  font-weight: 600;
+}
+.btn-gold:hover {
+  background: linear-gradient(135deg, #DFC06A 0%, #C9A84C 100%);
+  box-shadow: 0 2px 8px rgba(201, 168, 76, 0.3);
 }

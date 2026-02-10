@@ -9,8 +9,8 @@ export function PageHeader({ title, description, action }: PageHeaderProps) {
     <div className="flex items-start justify-between mb-6">
       <div>
         <h1
-          className="text-2xl font-semibold"
-          style={{ fontFamily: 'Georgia, serif', color: '#091525' }}
+          className="text-[1.75rem] font-bold leading-[1.2] tracking-[-0.025em]"
+          style={{ color: '#091525' }}
         >
           {title}
         </h1>

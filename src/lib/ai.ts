@@ -2,8 +2,8 @@
 export const AI_CONFIG = {
   models: {
     fast: 'claude-haiku-4-5-20251001',
-    standard: 'claude-sonnet-4-20250514',
-    advanced: 'claude-opus-4-5-20251101',
+    standard: 'claude-sonnet-4-5-20250929',
+    advanced: 'claude-opus-4-6',
   },
   defaultParams: {
     max_tokens: 4096,

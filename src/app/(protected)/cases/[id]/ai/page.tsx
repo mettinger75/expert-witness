@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
+import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -12,7 +13,7 @@ import { Separator } from '@/components/ui/separator'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   Brain, Send, User, Bot, ChevronDown, Sparkles,
-  FileText, Clock, Users, Briefcase,
+  FileText, Clock, Users, Briefcase, ScrollText,
 } from 'lucide-react'
 
 // Placeholder messages
@@ -112,6 +113,29 @@ export default function CaseAIPage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-280px)]">
+      {/* Report Generator Card */}
+      <Card className="mb-4">
+        <CardContent className="flex items-center justify-between py-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-md bg-amber-50">
+              <ScrollText className="h-5 w-5" style={{ color: '#C9A84C' }} />
+            </div>
+            <div>
+              <h3 className="font-semibold text-sm">Generate Expert Report</h3>
+              <p className="text-xs text-muted-foreground">
+                Create a comprehensive report using AI summaries, notes, and your template
+              </p>
+            </div>
+          </div>
+          <Link href={`/cases/${caseId}/reports`}>
+            <Button variant="outline">
+              <ScrollText className="h-4 w-4 mr-2" />
+              Open Report Generator
+            </Button>
+          </Link>
+        </CardContent>
+      </Card>
+
       {/* Header Bar */}
       <div className="flex items-center justify-between pb-4 border-b mb-4">
         <div className="flex items-center gap-2">

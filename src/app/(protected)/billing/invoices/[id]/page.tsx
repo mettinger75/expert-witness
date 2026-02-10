@@ -46,7 +46,7 @@ export default function InvoiceDetailPage() {
     setEditStatus(invoice.status)
     setEditDueDate(invoice.due_date)
     setEditNotes(invoice.notes || '')
-    setEditTerms(invoice.terms || '')
+    setEditTerms(invoice.payment_terms != null ? String(invoice.payment_terms) : '')
     setEditOpen(true)
   }
 
@@ -56,7 +56,7 @@ export default function InvoiceDetailPage() {
       status: editStatus as InvoiceUpdate['status'],
       due_date: editDueDate,
       notes: editNotes || null,
-      terms: editTerms || null,
+      payment_terms: editTerms ? parseInt(editTerms, 10) : null,
     }
     updateInvoice.mutate(
       { id: invoice.id, data },
@@ -161,16 +161,16 @@ export default function InvoiceDetailPage() {
                 <div className="text-right space-y-3">
                   <div>
                     <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Invoice Date</label>
-                    <p className="mt-1 text-sm">{formatDate(invoice.issue_date)}</p>
+                    <p className="mt-1 text-sm">{formatDate(invoice.invoice_date)}</p>
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Due Date</label>
                     <p className="mt-1 text-sm">{formatDate(invoice.due_date)}</p>
                   </div>
-                  {invoice.terms && (
+                  {invoice.payment_terms != null && (
                     <div>
                       <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Terms</label>
-                      <p className="mt-1 text-sm">{invoice.terms}</p>
+                      <p className="mt-1 text-sm">Net {invoice.payment_terms}</p>
                     </div>
                   )}
                 </div>
@@ -228,7 +228,7 @@ export default function InvoiceDetailPage() {
                 <Separator />
                 <div className="flex justify-between font-medium">
                   <span>Total</span>
-                  <span className="tabular-nums">{formatCurrency(invoice.total)}</span>
+                  <span className="tabular-nums">{formatCurrency(invoice.total_amount)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Amount Paid</span>
@@ -333,8 +333,8 @@ export default function InvoiceDetailPage() {
               <Input type="date" value={editDueDate} onChange={(e) => setEditDueDate(e.target.value)} />
             </div>
             <div>
-              <Label>Terms</Label>
-              <Input value={editTerms} onChange={(e) => setEditTerms(e.target.value)} placeholder="e.g., Net 30" />
+              <Label>Payment Terms (days)</Label>
+              <Input type="number" value={editTerms} onChange={(e) => setEditTerms(e.target.value)} placeholder="e.g., 30" />
             </div>
             <div>
               <Label>Notes</Label>

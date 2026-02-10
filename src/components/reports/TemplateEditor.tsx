@@ -49,10 +49,10 @@ export function TemplateEditor({ template, sections: initialSections, onSave }: 
   const [sections, setSections] = useState<SectionItem[]>(
     initialSections?.map((s) => ({
       id: s.id,
-      name: s.name,
-      title: s.title,
+      name: s.section_key,
+      title: s.section_name,
       description: s.description ?? '',
-      default_prompt: s.default_prompt ?? '',
+      default_prompt: s.ai_prompt ?? '',
       is_required: s.is_required,
       is_ai_generated: s.is_ai_generated,
     })) ?? []
@@ -61,8 +61,8 @@ export function TemplateEditor({ template, sections: initialSections, onSave }: 
   const form = useForm<TemplateFormValues>({
     resolver: zodResolver(templateSchema) as any,
     defaultValues: {
-      name: template?.name ?? '',
-      report_type: template?.report_type ?? 'expert_report',
+      name: template?.template_name ?? '',
+      report_type: template?.template_type ?? 'expert_report',
       description: template?.description ?? '',
       is_active: template?.is_active ?? true,
     },

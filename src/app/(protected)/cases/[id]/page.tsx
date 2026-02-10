@@ -188,9 +188,13 @@ export default function CaseOverviewPage() {
                     <div key={cc.id} className="flex items-start justify-between border rounded-lg p-3">
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <span className="font-medium text-sm">
+                          <Link
+                            href={`/contacts/${contact.id}`}
+                            className="font-medium text-sm hover:underline"
+                            style={{ color: '#091525' }}
+                          >
                             {contact.first_name} {contact.last_name}
-                          </span>
+                          </Link>
                           <Badge variant="secondary" className="text-xs">
                             {getLabelForValue(CASE_CONTACT_ROLES, cc.role)}
                           </Badge>

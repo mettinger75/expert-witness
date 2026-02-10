@@ -34,20 +34,19 @@ export const paymentsService = {
     if (input.invoice_id) {
       const { data: invoice } = await supabase
         .from('invoices')
-        .select('amount_paid, total')
+        .select('amount_paid, total_amount')
         .eq('id', input.invoice_id)
         .single()
 
       if (invoice) {
         const newAmountPaid = (invoice.amount_paid || 0) + input.amount
-        const newBalance = (invoice.total || 0) - newAmountPaid
+        const newBalance = (invoice.total_amount || 0) - newAmountPaid
         await supabase
           .from('invoices')
           .update({
             amount_paid: newAmountPaid,
             balance_due: newBalance,
             status: newBalance <= 0 ? 'paid' : 'partial',
-            paid_at: newBalance <= 0 ? new Date().toISOString() : null,
           })
           .eq('id', input.invoice_id)
       }

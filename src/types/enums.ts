@@ -185,10 +185,13 @@ export type TimelineEventType =
 
 export type DeponentRole =
   | 'plaintiff'
-  | 'defendant_provider'
+  | 'defendant'
+  | 'expert_witness'
+  | 'treating_physician'
+  | 'nurse'
+  | 'first_responder'
   | 'fact_witness'
-  | 'expert_plaintiff'
-  | 'expert_defense'
+  | 'corporate_representative'
   | 'other';
 
 export type ExcerptCategory =
@@ -210,6 +213,7 @@ export type ExcerptCategory =
 export type ReportType =
   | 'preliminary_review'
   | 'initial_opinion_letter'
+  | 'expert_report'
   | 'expert_report_plaintiff'
   | 'expert_report_defense'
   | 'rebuttal_report'
@@ -223,14 +227,17 @@ export type ReportType =
   | 'damages_analysis'
   | 'deposition_prep'
   | 'trial_prep'
+  | 'letter'
   | 'custom';
 
 export type ReportStatus =
-  | 'draft_ai_generated'
-  | 'draft_editing'
-  | 'internal_review'
+  | 'draft'
+  | 'in_progress'
+  | 'ai_generating'
+  | 'review'
+  | 'revision'
   | 'final'
-  | 'submitted'
+  | 'sent'
   | 'superseded';
 
 export type GenerationStyle =
@@ -420,3 +427,41 @@ export type AuditAction =
   | 'view'
   | 'export'
   | 'ai_generate';
+
+// ---------------------------------------------------------------------------
+// Meeting enums
+// ---------------------------------------------------------------------------
+
+export type MeetingType =
+  | 'phone_call'
+  | 'video_call'
+  | 'in_person'
+  | 'deposition_prep'
+  | 'conference'
+  | 'client_call'
+  | 'expert_conference';
+
+export type TranscriptStatus =
+  | 'none'
+  | 'pending'
+  | 'processing'
+  | 'completed'
+  | 'failed';
+
+// ---------------------------------------------------------------------------
+// Contract enums
+// ---------------------------------------------------------------------------
+
+export type ContractType =
+  | 'retention_agreement'
+  | 'engagement_letter'
+  | 'amendment'
+  | 'other';
+
+export type ContractStatus =
+  | 'draft'
+  | 'review'
+  | 'sent'
+  | 'signed'
+  | 'expired'
+  | 'cancelled';

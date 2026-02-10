@@ -23,9 +23,9 @@ const timeEntrySchema = z.object({
   start_time: z.string().optional(),
   end_time: z.string().optional(),
   duration_hours: z.coerce.number().positive('Duration must be positive'),
-  rate: z.coerce.number().min(0).default(0),
+  rate_per_hour: z.coerce.number().min(0).default(0),
   is_billable: z.boolean().default(true),
-  notes: z.string().optional(),
+  internal_notes: z.string().optional(),
 })
 
 type TimeEntryFormValues = z.infer<typeof timeEntrySchema>
@@ -49,9 +49,9 @@ export function TimeEntryForm({ caseId, initialData, onSubmit, isSubmitting, cas
       start_time: initialData?.start_time ?? '',
       end_time: initialData?.end_time ?? '',
       duration_hours: initialData?.duration_hours ?? 0,
-      rate: initialData?.rate ?? 0,
+      rate_per_hour: initialData?.rate_per_hour ?? 0,
       is_billable: initialData?.is_billable ?? true,
-      notes: initialData?.notes ?? '',
+      internal_notes: initialData?.internal_notes ?? '',
     },
   })
 
@@ -88,7 +88,8 @@ export function TimeEntryForm({ caseId, initialData, onSubmit, isSubmitting, cas
     cleaned.description = values.description
     cleaned.date = values.date
     cleaned.duration_hours = values.duration_hours
-    cleaned.rate = values.rate
+    cleaned.rate_per_hour = values.rate_per_hour
+    cleaned.amount = values.duration_hours * values.rate_per_hour
     cleaned.is_billable = values.is_billable
 
     await onSubmit(cleaned as unknown as TimeEntryInsert)
@@ -222,7 +223,7 @@ export function TimeEntryForm({ caseId, initialData, onSubmit, isSubmitting, cas
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="rate"
+                name="rate_per_hour"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Rate ($/hr)</FormLabel>
@@ -248,7 +249,7 @@ export function TimeEntryForm({ caseId, initialData, onSubmit, isSubmitting, cas
 
             <FormField
               control={form.control}
-              name="notes"
+              name="internal_notes"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Notes</FormLabel>

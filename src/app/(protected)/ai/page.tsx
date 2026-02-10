@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { formatDate } from '@/lib/formatters'
 import { Plus, Brain, MessageSquare, Briefcase } from 'lucide-react'
+import { CommandPanel } from '@/components/ai/CommandPanel'
 
 // Placeholder conversation types
 const CONVERSATION_TYPES = [
@@ -23,14 +24,16 @@ function getConversationTypeLabel(type: string): string {
   return CONVERSATION_TYPES.find((t) => t.value === type)?.label ?? type
 }
 
-// Placeholder conversations grouped by case
-const placeholderConversations = [
-  { id: '1', title: 'Standard of care analysis - monitoring protocols', conversation_type: 'case_analysis', case_name: 'Smith v. General Hospital', case_id: 'c1', message_count: 12, updated_at: '2025-10-15T14:30:00' },
-  { id: '2', title: 'Anesthesia record discrepancies', conversation_type: 'document_review', case_name: 'Smith v. General Hospital', case_id: 'c1', message_count: 8, updated_at: '2025-10-14T09:15:00' },
-  { id: '3', title: 'Draft expert report - opinion section', conversation_type: 'report_drafting', case_name: 'Smith v. General Hospital', case_id: 'c1', message_count: 15, updated_at: '2025-10-10T16:45:00' },
-  { id: '4', title: 'Literature review - capnography monitoring', conversation_type: 'research', case_name: 'Johnson v. Metro Clinic', case_id: 'c2', message_count: 6, updated_at: '2025-10-12T11:00:00' },
-  { id: '5', title: 'Preliminary opinion analysis', conversation_type: 'case_analysis', case_name: 'Johnson v. Metro Clinic', case_id: 'c2', message_count: 4, updated_at: '2025-10-08T10:30:00' },
-]
+// Conversations loaded from database (empty until real conversations exist)
+const placeholderConversations: Array<{
+  id: string
+  title: string
+  conversation_type: string
+  case_name: string
+  case_id: string
+  message_count: number
+  updated_at: string
+}> = []
 
 // Group conversations by case
 function groupByCase(conversations: typeof placeholderConversations) {
@@ -59,6 +62,14 @@ export default function AIPage() {
           </Button>
         }
       />
+
+      {/* AI Command Center */}
+      <CommandPanel />
+
+      {/* Past Conversations */}
+      <h2 className="text-sm font-semibold uppercase tracking-wider mt-8 mb-4" style={{ color: '#8892A2' }}>
+        Past Conversations
+      </h2>
 
       {placeholderConversations.length === 0 ? (
         <EmptyState

@@ -209,6 +209,44 @@ export const MILESTONE_TYPES = [
   { value: 'other', label: 'Other' },
 ] as const
 
+// Contract Types
+export const CONTRACT_TYPES = [
+  { value: 'retention_agreement', label: 'Retention Agreement' },
+  { value: 'engagement_letter', label: 'Engagement Letter' },
+  { value: 'amendment', label: 'Amendment' },
+  { value: 'other', label: 'Other' },
+] as const
+
+// Contract Statuses
+export const CONTRACT_STATUSES = [
+  { value: 'draft', label: 'Draft', color: 'slate' },
+  { value: 'review', label: 'Under Review', color: 'yellow' },
+  { value: 'sent', label: 'Sent', color: 'blue' },
+  { value: 'signed', label: 'Signed', color: 'green' },
+  { value: 'expired', label: 'Expired', color: 'orange' },
+  { value: 'cancelled', label: 'Cancelled', color: 'red' },
+] as const
+
+// Meeting Types
+export const MEETING_TYPES = [
+  { value: 'phone_call', label: 'Phone Call' },
+  { value: 'video_call', label: 'Video Call' },
+  { value: 'in_person', label: 'In Person' },
+  { value: 'deposition_prep', label: 'Deposition Prep' },
+  { value: 'conference', label: 'Conference' },
+  { value: 'client_call', label: 'Client Call' },
+  { value: 'expert_conference', label: 'Expert Conference' },
+] as const
+
+// Transcript Statuses
+export const TRANSCRIPT_STATUSES = [
+  { value: 'none', label: 'No Transcript', color: 'gray' },
+  { value: 'pending', label: 'Pending', color: 'yellow' },
+  { value: 'processing', label: 'Processing', color: 'blue' },
+  { value: 'completed', label: 'Completed', color: 'green' },
+  { value: 'failed', label: 'Failed', color: 'red' },
+] as const
+
 // Helper Functions
 type ItemWithLabel = { value: string; label: string }
 type ItemWithColor = { value: string; label: string; color: string }

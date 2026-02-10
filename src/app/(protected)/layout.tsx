@@ -63,11 +63,15 @@ export default function ProtectedLayout({
   if (!user) return null
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex min-h-screen">
       <AppSidebar />
-      <main className="flex-1 overflow-auto">
-        <div className="p-8">{children}</div>
-      </main>
+      <div className="ml-[60px] flex-1 flex flex-col">
+        <main className="flex-1 overflow-auto" style={{ background: '#F0F2F5' }}>
+          <div className="max-w-7xl mx-auto px-6 py-6">
+            {children}
+          </div>
+        </main>
+      </div>
     </div>
   )
 }

@@ -66,14 +66,53 @@ export function useDeleteDocument() {
 }
 
 export function useUploadDocument() {
+  const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ caseId, file }: { caseId: string; file: File }) =>
-      documentsService.upload(caseId, file),
-    onSuccess: () => {
+    mutationFn: async ({
+      caseId,
+      file,
+      category,
+      description,
+      folderId,
+    }: {
+      caseId: string
+      file: File
+      category?: string
+      description?: string
+      folderId?: string | null
+    }) => {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('caseId', caseId)
+      formData.append('category', category || 'medical_record')
+      if (description) formData.append('description', description)
+      if (folderId) formData.append('folderId', folderId)
+
+      const response = await fetch('/api/documents/upload', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        let errorMsg = `Upload failed (${response.status})`
+        try {
+          const err = await response.json()
+          errorMsg = err.error || errorMsg
+        } catch { /* non-JSON */ }
+        throw new Error(errorMsg)
+      }
+
+      return response.json()
+    },
+    onSuccess: (data) => {
+      const caseId = data?.document?.case_id
+      if (caseId) {
+        queryClient.invalidateQueries({ queryKey: ['documents', 'case', caseId] })
+      }
       toast.success('File uploaded successfully')
     },
     onError: (error: Error) => {
-      toast.error(`Failed to upload file: ${error.message}`)
+      toast.error(`Failed to upload: ${error.message}`)
     },
   })
 }

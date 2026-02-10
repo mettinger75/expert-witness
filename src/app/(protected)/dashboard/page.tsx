@@ -26,16 +26,16 @@ export default function DashboardPage() {
   })
 
   const stats = [
-    { title: 'Active Cases', value: String(activeCases.length), icon: Briefcase, color: '#091525', href: '/cases' },
-    { title: 'Unbilled Hours', value: '—', icon: Clock, color: '#F59E0B', href: '/billing' },
-    { title: 'Outstanding Balance', value: formatCurrency(outstandingBalance), icon: DollarSign, color: '#10B981', href: '/billing' },
-    { title: 'Upcoming Deadlines', value: String(upcomingDeadlines.length), icon: AlertTriangle, color: '#EF4444', href: '/cases' },
+    { title: 'Active Cases', value: String(activeCases.length), icon: Briefcase, href: '/cases' },
+    { title: 'Unbilled Hours', value: '—', icon: Clock, href: '/billing' },
+    { title: 'Outstanding Balance', value: formatCurrency(outstandingBalance), icon: DollarSign, href: '/billing' },
+    { title: 'Upcoming Deadlines', value: String(upcomingDeadlines.length), icon: AlertTriangle, href: '/cases' },
   ]
 
   const recentCases = activeCases.slice(0, 5)
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 pb-12">
+    <div className="space-y-8 pb-12">
       <PageHeader
         title="Dashboard"
         description="Overview of your expert witness practice"
@@ -44,12 +44,19 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat) => (
           <Link key={stat.title} href={stat.href}>
-            <div className="bg-white border border-neutral-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-sm text-neutral-500">{stat.title}</p>
-                <stat.icon className="h-5 w-5" style={{ color: stat.color }} />
+            <div className="bg-white border border-[#D8DCE3] rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm" style={{ color: '#8892A2' }}>{stat.title}</p>
+                  <p className="text-3xl font-bold tabular-nums mt-1" style={{ color: '#0E1F35' }}>{stat.value}</p>
+                </div>
+                <div
+                  className="h-12 w-12 rounded-lg flex items-center justify-center shrink-0"
+                  style={{ backgroundColor: 'rgba(201, 168, 76, 0.10)' }}
+                >
+                  <stat.icon className="h-6 w-6" style={{ color: '#C9A84C' }} />
+                </div>
               </div>
-              <p className="text-3xl font-semibold text-neutral-900 tabular-nums">{stat.value}</p>
             </div>
           </Link>
         ))}
@@ -57,11 +64,10 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Cases */}
-        <div className="bg-white border border-neutral-200 rounded-xl overflow-hidden shadow-sm">
+        <div className="bg-white border border-[#D8DCE3] rounded-xl overflow-hidden shadow-sm">
           <div className="px-6 py-3 flex items-center justify-between" style={{ backgroundColor: '#091525' }}>
             <h2
               className="text-sm font-semibold tracking-wide text-white"
-              style={{ fontFamily: 'Georgia, serif' }}
             >
               Recent Cases
             </h2>
@@ -95,11 +101,10 @@ export default function DashboardPage() {
         </div>
 
         {/* Upcoming Deadlines */}
-        <div className="bg-white border border-neutral-200 rounded-xl overflow-hidden shadow-sm">
+        <div className="bg-white border border-[#D8DCE3] rounded-xl overflow-hidden shadow-sm">
           <div className="px-6 py-3 flex items-center justify-between" style={{ backgroundColor: '#091525' }}>
             <h2
               className="text-sm font-semibold tracking-wide text-white"
-              style={{ fontFamily: 'Georgia, serif' }}
             >
               Upcoming Deadlines
             </h2>

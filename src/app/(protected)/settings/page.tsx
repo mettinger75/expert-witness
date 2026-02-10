@@ -220,15 +220,15 @@ export default function SettingsPage() {
               </div>
               <div>
                 <Label htmlFor="default-model">Default Model</Label>
-                <Select defaultValue="gpt-4o">
+                <Select defaultValue="claude-sonnet-4">
                   <SelectTrigger id="default-model">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="gpt-4o-mini">GPT-4o Mini (Fast)</SelectItem>
-                    <SelectItem value="gpt-4o">GPT-4o (Standard)</SelectItem>
-                    <SelectItem value="claude-3-5-sonnet">Claude 3.5 Sonnet</SelectItem>
-                    <SelectItem value="claude-3-opus">Claude 3 Opus (Advanced)</SelectItem>
+                    <SelectItem value="claude-haiku-4-5">Claude Haiku 4.5 (Fast)</SelectItem>
+                    <SelectItem value="claude-sonnet-4">Claude Sonnet 4 (Standard)</SelectItem>
+                    <SelectItem value="claude-sonnet-4-5">Claude Sonnet 4.5 (Advanced)</SelectItem>
+                    <SelectItem value="claude-opus-4-5">Claude Opus 4.5 (Research)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

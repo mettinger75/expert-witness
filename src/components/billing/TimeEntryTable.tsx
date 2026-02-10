@@ -69,7 +69,7 @@ export function TimeEntryTable({ entries, showCase = false, onEdit, onDelete }: 
               {formatDuration(entry.duration_hours)}
             </TableCell>
             <TableCell className="text-right text-sm">
-              {formatCurrency(entry.rate)}/hr
+              {formatCurrency(entry.rate_per_hour)}/hr
             </TableCell>
             <TableCell className="text-right text-sm font-medium">
               {formatCurrency(entry.amount)}

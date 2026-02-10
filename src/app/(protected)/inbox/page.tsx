@@ -166,7 +166,7 @@ export default function InboxPage() {
                 <CardContent className="pt-4">
                   <div className="prose prose-sm max-w-none">
                     <pre className="whitespace-pre-wrap text-sm font-sans text-foreground bg-transparent p-0 border-0">
-                      {selectedEmail.details || selectedEmail.summary}
+                      {selectedEmail.detailed_notes || selectedEmail.summary}
                     </pre>
                   </div>
                 </CardContent>

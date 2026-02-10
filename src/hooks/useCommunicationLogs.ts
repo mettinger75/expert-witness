@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { communicationLogsService } from '@/services/communicationLogs.service'
-import type { CommunicationLogInsert } from '@/types/database.types'
+import type { CommunicationLogInsert, CommunicationLogUpdate } from '@/types/database.types'
 import { toast } from 'sonner'
 
 export function useCommunicationLogs(caseId: string) {
@@ -51,6 +51,24 @@ export function useAssignEmailToCase() {
     },
     onError: (error: Error) => {
       toast.error(`Failed to assign email: ${error.message}`)
+    },
+  })
+}
+
+/** Update a communication log entry */
+export function useUpdateCommunicationLog() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: CommunicationLogUpdate }) =>
+      communicationLogsService.update(id, data),
+    onSuccess: (data) => {
+      if (data.case_id) {
+        queryClient.invalidateQueries({ queryKey: ['communication_logs', 'case', data.case_id] })
+      }
+      queryClient.invalidateQueries({ queryKey: ['communication_logs', 'inbox'] })
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to update communication log: ${error.message}`)
     },
   })
 }

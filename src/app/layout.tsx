@@ -1,12 +1,14 @@
 import type { Metadata } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
+import { Source_Sans_3 } from "next/font/google"
+import { Geist_Mono } from "next/font/google"
 import { QueryProvider } from "@/components/providers/QueryProvider"
 import { Toaster } from "@/components/ui/sonner"
 import "./globals.css"
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const sourceSans = Source_Sans_3({
   subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-source-sans",
 })
 
 const geistMono = Geist_Mono({
@@ -26,7 +28,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body className={`${sourceSans.variable} ${geistMono.variable} antialiased`}>
         <QueryProvider>
           {children}
           <Toaster richColors position="top-right" />

@@ -24,9 +24,6 @@ import type {
   ExcerptCategory,
   ReportType,
   ReportStatus,
-  GenerationStyle,
-  GenerationLength,
-  GenerationTone,
   QueueStatus,
   ConversationType,
   MessageRole,
@@ -42,6 +39,8 @@ import type {
   NoteType,
   ConflictResolution,
   AuditAction,
+  MeetingType,
+  TranscriptStatus,
 } from './enums';
 
 // Re-export all enums so consumers can import from a single place if desired
@@ -268,6 +267,7 @@ export interface DocumentRow {
   exhibit_number: string | null;
   is_privileged: boolean;
   privilege_description: string | null;
+  report_id: string | null;
   version: number;
   parent_document_id: string | null;
   created_at: string;
@@ -308,6 +308,7 @@ export interface DocumentInsert {
   exhibit_number?: string | null;
   is_privileged?: boolean;
   privilege_description?: string | null;
+  report_id?: string | null;
   version?: number;
   parent_document_id?: string | null;
   created_at?: string;
@@ -546,15 +547,19 @@ export type DepositionExcerptUpdate = Partial<DepositionExcerptInsert>;
 // =============================================================================
 export interface ReportTemplateRow {
   id: string;
-  name: string;
-  report_type: ReportType;
+  template_name: string;
+  template_type: string;
   description: string | null;
-  default_style: GenerationStyle;
-  default_length: GenerationLength;
-  default_tone: GenerationTone;
-  header_template: string | null;
-  footer_template: string | null;
+  category: string | null;
+  header_content: string | null;
+  footer_content: string | null;
+  default_content_template: string | null;
+  css_styles: string | null;
+  page_format: Json | null;
+  variables: Json | null;
   is_active: boolean;
+  is_default: boolean;
+  sort_order: number;
   version: number;
   created_at: string;
   updated_at: string;
@@ -562,15 +567,19 @@ export interface ReportTemplateRow {
 
 export interface ReportTemplateInsert {
   id?: string;
-  name: string;
-  report_type: ReportType;
+  template_name: string;
+  template_type: string;
   description?: string | null;
-  default_style?: GenerationStyle;
-  default_length?: GenerationLength;
-  default_tone?: GenerationTone;
-  header_template?: string | null;
-  footer_template?: string | null;
+  category?: string | null;
+  header_content?: string | null;
+  footer_content?: string | null;
+  default_content_template?: string | null;
+  css_styles?: string | null;
+  page_format?: Json | null;
+  variables?: Json | null;
   is_active?: boolean;
+  is_default?: boolean;
+  sort_order?: number;
   version?: number;
   created_at?: string;
   updated_at?: string;
@@ -583,28 +592,34 @@ export type ReportTemplateUpdate = Partial<ReportTemplateInsert>;
 // =============================================================================
 export interface TemplateSectionRow {
   id: string;
-  name: string;
-  title: string;
+  section_name: string;
+  section_key: string;
   description: string | null;
-  default_prompt: string | null;
-  ai_instructions: string | null;
-  required_context: string[] | null;
+  default_content: string | null;
   is_required: boolean;
   is_ai_generated: boolean;
+  ai_prompt: string | null;
+  data_source: string | null;
+  content_type: string;
+  sort_order: number;
+  is_active: boolean;
   created_at: string;
   updated_at: string;
 }
 
 export interface TemplateSectionInsert {
   id?: string;
-  name: string;
-  title: string;
+  section_name: string;
+  section_key: string;
   description?: string | null;
-  default_prompt?: string | null;
-  ai_instructions?: string | null;
-  required_context?: string[] | null;
+  default_content?: string | null;
   is_required?: boolean;
   is_ai_generated?: boolean;
+  ai_prompt?: string | null;
+  data_source?: string | null;
+  content_type: string;
+  sort_order?: number;
+  is_active?: boolean;
   created_at?: string;
   updated_at?: string;
 }
@@ -619,8 +634,9 @@ export interface TemplateSectionMappingRow {
   template_id: string;
   section_id: string;
   sort_order: number;
-  is_optional: boolean;
-  custom_prompt_override: string | null;
+  is_included: boolean;
+  override_content: string | null;
+  override_prompt: string | null;
   created_at: string;
 }
 
@@ -629,8 +645,9 @@ export interface TemplateSectionMappingInsert {
   template_id: string;
   section_id: string;
   sort_order?: number;
-  is_optional?: boolean;
-  custom_prompt_override?: string | null;
+  is_included?: boolean;
+  override_content?: string | null;
+  override_prompt?: string | null;
   created_at?: string;
 }
 
@@ -643,24 +660,28 @@ export interface ReportRow {
   id: string;
   case_id: string;
   template_id: string | null;
+  report_name: string;
   report_type: ReportType;
-  title: string;
+  report_number: string | null;
   status: ReportStatus;
+  content: Json | null;
+  sections_data: Json | null;
+  rendered_html: string | null;
+  rendered_text: string | null;
   version: number;
   parent_report_id: string | null;
-  generation_style: GenerationStyle | null;
-  generation_length: GenerationLength | null;
-  generation_tone: GenerationTone | null;
-  content_sections: Json | null;
-  full_content: string | null;
-  full_content_html: string | null;
-  ai_model_used: string | null;
+  is_latest_version: boolean;
+  change_notes: string | null;
+  output_document_id: string | null;
+  output_format: string | null;
+  reviewed_at: string | null;
+  reviewer_notes: string | null;
+  approved_at: string | null;
+  sent_at: string | null;
+  sent_to: string[] | null;
+  sent_method: string | null;
+  ai_generated_sections: string[] | null;
   ai_generation_metadata: Json | null;
-  word_count: number | null;
-  submitted_to: string | null;
-  submitted_date: string | null;
-  document_id: string | null;
-  notes: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -669,24 +690,28 @@ export interface ReportInsert {
   id?: string;
   case_id: string;
   template_id?: string | null;
+  report_name: string;
   report_type: ReportType;
-  title: string;
+  report_number?: string | null;
   status?: ReportStatus;
+  content?: Json | null;
+  sections_data?: Json | null;
+  rendered_html?: string | null;
+  rendered_text?: string | null;
   version?: number;
   parent_report_id?: string | null;
-  generation_style?: GenerationStyle | null;
-  generation_length?: GenerationLength | null;
-  generation_tone?: GenerationTone | null;
-  content_sections?: Json | null;
-  full_content?: string | null;
-  full_content_html?: string | null;
-  ai_model_used?: string | null;
+  is_latest_version?: boolean;
+  change_notes?: string | null;
+  output_document_id?: string | null;
+  output_format?: string | null;
+  reviewed_at?: string | null;
+  reviewer_notes?: string | null;
+  approved_at?: string | null;
+  sent_at?: string | null;
+  sent_to?: string[] | null;
+  sent_method?: string | null;
+  ai_generated_sections?: string[] | null;
   ai_generation_metadata?: Json | null;
-  word_count?: number | null;
-  submitted_to?: string | null;
-  submitted_date?: string | null;
-  document_id?: string | null;
-  notes?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -949,21 +974,23 @@ export type AIContextRuleUpdate = Partial<AIContextRuleInsert>;
 export interface TimeEntryRow {
   id: string;
   case_id: string;
+  billing_rate_id: string | null;
   activity_type: ActivityType;
   description: string;
   date: string;
   start_time: string | null;
   end_time: string | null;
   duration_hours: number;
-  rate: number;
+  is_timer_entry: boolean;
+  rate_per_hour: number;
   amount: number;
   is_billable: boolean;
   is_billed: boolean;
   invoice_id: string | null;
+  status: string;
+  internal_notes: string | null;
   document_id: string | null;
-  ai_assisted: boolean;
-  ai_time_saved_minutes: number | null;
-  notes: string | null;
+  deposition_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -971,21 +998,23 @@ export interface TimeEntryRow {
 export interface TimeEntryInsert {
   id?: string;
   case_id: string;
+  billing_rate_id?: string | null;
   activity_type: ActivityType;
   description: string;
-  date: string;
+  date?: string;
   start_time?: string | null;
   end_time?: string | null;
   duration_hours: number;
-  rate: number;
-  amount?: number;
+  is_timer_entry?: boolean;
+  rate_per_hour: number;
+  amount: number;
   is_billable?: boolean;
   is_billed?: boolean;
   invoice_id?: string | null;
+  status?: string;
+  internal_notes?: string | null;
   document_id?: string | null;
-  ai_assisted?: boolean;
-  ai_time_saved_minutes?: number | null;
-  notes?: string | null;
+  deposition_id?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -1032,23 +1061,34 @@ export interface InvoiceRow {
   id: string;
   case_id: string;
   invoice_number: string;
-  bill_to_contact_id: string;
-  status: InvoiceStatus;
-  issue_date: string;
+  invoice_date: string;
   due_date: string;
+  period_start: string | null;
+  period_end: string | null;
+  status: InvoiceStatus;
   subtotal: number;
   tax_rate: number | null;
   tax_amount: number;
-  total: number;
+  discount_amount: number;
+  discount_description: string | null;
+  total_amount: number;
   amount_paid: number;
   balance_due: number;
+  bill_to_contact_id: string | null;
+  bill_to_name: string | null;
+  bill_to_organization: string | null;
+  bill_to_address: string | null;
+  bill_to_email: string | null;
+  payment_terms: number | null;
+  payment_instructions: string | null;
   notes: string | null;
-  terms: string | null;
+  internal_notes: string | null;
+  template_id: string | null;
   sent_at: string | null;
+  sent_method: string | null;
   viewed_at: string | null;
-  paid_at: string | null;
-  reminder_sent_at: string | null;
-  document_id: string | null;
+  last_reminder_sent_at: string | null;
+  reminder_count: number;
   created_at: string;
   updated_at: string;
 }
@@ -1057,23 +1097,34 @@ export interface InvoiceInsert {
   id?: string;
   case_id: string;
   invoice_number: string;
-  bill_to_contact_id: string;
-  status?: InvoiceStatus;
-  issue_date: string;
+  invoice_date: string;
   due_date: string;
+  period_start?: string | null;
+  period_end?: string | null;
+  status?: InvoiceStatus;
   subtotal?: number;
   tax_rate?: number | null;
   tax_amount?: number;
-  total?: number;
+  discount_amount?: number;
+  discount_description?: string | null;
+  total_amount?: number;
   amount_paid?: number;
   balance_due?: number;
+  bill_to_contact_id?: string | null;
+  bill_to_name?: string | null;
+  bill_to_organization?: string | null;
+  bill_to_address?: string | null;
+  bill_to_email?: string | null;
+  payment_terms?: number | null;
+  payment_instructions?: string | null;
   notes?: string | null;
-  terms?: string | null;
+  internal_notes?: string | null;
+  template_id?: string | null;
   sent_at?: string | null;
+  sent_method?: string | null;
   viewed_at?: string | null;
-  paid_at?: string | null;
-  reminder_sent_at?: string | null;
-  document_id?: string | null;
+  last_reminder_sent_at?: string | null;
+  reminder_count?: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -1155,20 +1206,30 @@ export interface CommunicationLogRow {
   id: string;
   case_id: string | null;
   contact_id: string | null;
-  from_email: string | null;
-  from_name: string | null;
   communication_type: CommunicationType;
   direction: string;
+  status: string;
   subject: string | null;
   summary: string;
-  details: string | null;
+  detailed_notes: string | null;
+  from_name: string | null;
+  from_email: string | null;
+  to_names: string[] | null;
+  to_emails: string[] | null;
+  cc_names: string[] | null;
+  cc_emails: string[] | null;
   communication_date: string;
   duration_minutes: number | null;
-  follow_up_needed: boolean;
+  scheduled_date: string | null;
+  follow_up_required: boolean;
   follow_up_date: string | null;
   follow_up_notes: string | null;
-  is_privileged: boolean;
-  attachments: Json | null;
+  follow_up_completed: boolean;
+  follow_up_completed_at: string | null;
+  attachment_document_ids: string[] | null;
+  is_billable: boolean;
+  time_entry_id: string | null;
+  tags: string[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -1177,20 +1238,30 @@ export interface CommunicationLogInsert {
   id?: string;
   case_id?: string | null;
   contact_id?: string | null;
-  from_email?: string | null;
-  from_name?: string | null;
   communication_type: CommunicationType;
   direction?: string;
+  status?: string;
   subject?: string | null;
   summary: string;
-  details?: string | null;
+  detailed_notes?: string | null;
+  from_name?: string | null;
+  from_email?: string | null;
+  to_names?: string[] | null;
+  to_emails?: string[] | null;
+  cc_names?: string[] | null;
+  cc_emails?: string[] | null;
   communication_date: string;
   duration_minutes?: number | null;
-  follow_up_needed?: boolean;
+  scheduled_date?: string | null;
+  follow_up_required?: boolean;
   follow_up_date?: string | null;
   follow_up_notes?: string | null;
-  is_privileged?: boolean;
-  attachments?: Json | null;
+  follow_up_completed?: boolean;
+  follow_up_completed_at?: string | null;
+  attachment_document_ids?: string[] | null;
+  is_billable?: boolean;
+  time_entry_id?: string | null;
+  tags?: string[] | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -1392,6 +1463,215 @@ export interface AuditLogInsert {
 export type AuditLogUpdate = Partial<AuditLogInsert>;
 
 // =============================================================================
+// Contracts
+// =============================================================================
+export interface ContractRow {
+  id: string;
+  case_id: string;
+  contract_type: string;
+  contract_number: string | null;
+  title: string;
+  status: string;
+  firm_name: string | null;
+  firm_contact_name: string | null;
+  firm_address: string | null;
+  firm_email: string | null;
+  firm_phone: string | null;
+  contact_id: string | null;
+  hourly_rate: number;
+  deposition_rate: number;
+  trial_rate: number;
+  retainer_amount: number;
+  cancellation_fee_hours: number;
+  payment_terms_days: number;
+  scope_description: string | null;
+  additional_terms: string | null;
+  rendered_html: string | null;
+  sent_at: string | null;
+  sent_via: string | null;
+  signed_at: string | null;
+  signed_by: string | null;
+  signature_data: string | null;
+  signature_ip: string | null;
+  signature_timestamp: string | null;
+  signature_user_agent: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ContractInsert {
+  id?: string;
+  case_id: string;
+  contract_type?: string;
+  contract_number?: string | null;
+  title: string;
+  status?: string;
+  firm_name?: string | null;
+  firm_contact_name?: string | null;
+  firm_address?: string | null;
+  firm_email?: string | null;
+  firm_phone?: string | null;
+  contact_id?: string | null;
+  hourly_rate?: number;
+  deposition_rate?: number;
+  trial_rate?: number;
+  retainer_amount?: number;
+  cancellation_fee_hours?: number;
+  payment_terms_days?: number;
+  scope_description?: string | null;
+  additional_terms?: string | null;
+  rendered_html?: string | null;
+  sent_at?: string | null;
+  sent_via?: string | null;
+  signed_at?: string | null;
+  signed_by?: string | null;
+  signature_data?: string | null;
+  signature_ip?: string | null;
+  signature_timestamp?: string | null;
+  signature_user_agent?: string | null;
+}
+
+export type ContractUpdate = Partial<ContractInsert>;
+
+// =============================================================================
+// Shared Links
+// =============================================================================
+export type SharedLinkEntityType = 'report' | 'contract';
+export type SharedLinkPermission = 'view' | 'edit' | 'sign';
+export type SharedLinkEventType = 'viewed' | 'edited' | 'signed' | 'downloaded' | 'pin_failed' | 'expired_access';
+
+export interface SharedLinkRow {
+  id: string;
+  entity_type: SharedLinkEntityType;
+  entity_id: string;
+  token: string;
+  permission: SharedLinkPermission;
+  recipient_name: string | null;
+  recipient_email: string | null;
+  contact_id: string | null;
+  pin_hash: string | null;
+  expires_at: string;
+  max_views: number | null;
+  view_count: number;
+  is_active: boolean;
+  revoked_at: string | null;
+  last_accessed_at: string | null;
+  last_accessed_ip: string | null;
+  original_html: string | null;
+  edited_html: string | null;
+  edited_at: string | null;
+  edited_by_name: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SharedLinkInsert {
+  id?: string;
+  entity_type: SharedLinkEntityType;
+  entity_id: string;
+  token: string;
+  permission?: SharedLinkPermission;
+  recipient_name?: string | null;
+  recipient_email?: string | null;
+  contact_id?: string | null;
+  pin_hash?: string | null;
+  expires_at: string;
+  max_views?: number | null;
+  view_count?: number;
+  is_active?: boolean;
+}
+
+export type SharedLinkUpdate = Partial<SharedLinkInsert>;
+
+export interface SharedLinkEventRow {
+  id: string;
+  shared_link_id: string;
+  event_type: SharedLinkEventType;
+  ip_address: string | null;
+  user_agent: string | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+}
+
+// =============================================================================
+// Invoice Templates
+// =============================================================================
+export interface InvoiceTemplateRow {
+  id: string;
+  template_name: string;
+  description: string | null;
+  default_payment_terms: number;
+  default_notes: string | null;
+  payment_instructions: string | null;
+  header_text: string | null;
+  footer_text: string | null;
+  default_tax_rate: number | null;
+  is_default: boolean;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface InvoiceTemplateInsert {
+  id?: string;
+  template_name: string;
+  description?: string | null;
+  default_payment_terms?: number;
+  default_notes?: string | null;
+  payment_instructions?: string | null;
+  header_text?: string | null;
+  footer_text?: string | null;
+  default_tax_rate?: number | null;
+  is_default?: boolean;
+  is_active?: boolean;
+}
+
+export type InvoiceTemplateUpdate = Partial<InvoiceTemplateInsert>;
+
+// =============================================================================
+// Meetings
+// =============================================================================
+export interface MeetingRow {
+  id: string;
+  case_id: string;
+  meeting_name: string;
+  meeting_date: string;
+  meeting_type: MeetingType;
+  duration_seconds: number | null;
+  recording_file_path: string | null;
+  recording_file_size: number | null;
+  transcript_text: string | null;
+  transcript_status: TranscriptStatus;
+  ai_summary: string | null;
+  ai_key_points: Json;
+  ai_action_items: Json;
+  participants: Json;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MeetingInsert {
+  id?: string;
+  case_id: string;
+  meeting_name: string;
+  meeting_date: string;
+  meeting_type?: MeetingType;
+  duration_seconds?: number | null;
+  recording_file_path?: string | null;
+  recording_file_size?: number | null;
+  transcript_text?: string | null;
+  transcript_status?: TranscriptStatus;
+  ai_summary?: string | null;
+  ai_key_points?: Json;
+  ai_action_items?: Json;
+  participants?: Json;
+  notes?: string | null;
+}
+
+export type MeetingUpdate = Partial<MeetingInsert>;
+
+// =============================================================================
 // Database interface -- mirrors Supabase generated types pattern
 // =============================================================================
 export interface Database {
@@ -1551,6 +1831,26 @@ export interface Database {
         Row: AuditLogRow;
         Insert: AuditLogInsert;
         Update: AuditLogUpdate;
+      };
+      contracts: {
+        Row: ContractRow;
+        Insert: ContractInsert;
+        Update: ContractUpdate;
+      };
+      shared_links: {
+        Row: SharedLinkRow;
+        Insert: SharedLinkInsert;
+        Update: SharedLinkUpdate;
+      };
+      invoice_templates: {
+        Row: InvoiceTemplateRow;
+        Insert: InvoiceTemplateInsert;
+        Update: InvoiceTemplateUpdate;
+      };
+      meetings: {
+        Row: MeetingRow;
+        Insert: MeetingInsert;
+        Update: MeetingUpdate;
       };
     };
   };

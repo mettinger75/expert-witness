@@ -73,7 +73,8 @@ export function TimerWidget() {
       description: timer.description,
       date: new Date().toISOString().split('T')[0],
       duration_hours: Math.round(durationHours * 100) / 100,
-      rate: 0, // Will be set by backend based on billing rates
+      rate_per_hour: 0, // Will be set by backend based on billing rates
+      amount: 0,
       is_billable: true,
     })
   }

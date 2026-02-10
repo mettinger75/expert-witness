@@ -2,14 +2,15 @@ import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
 const colorMap: Record<string, string> = {
-  blue: 'bg-blue-50 text-blue-800 border-blue-200',
-  green: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-  yellow: 'bg-amber-100 text-amber-800 border-amber-200',
-  red: 'bg-red-100 text-red-800 border-red-200',
-  purple: 'bg-purple-100 text-purple-800 border-purple-200',
-  gray: 'bg-gray-100 text-gray-800 border-gray-200',
-  orange: 'bg-orange-100 text-orange-800 border-orange-200',
-  slate: 'bg-slate-100 text-slate-800 border-slate-200',
+  blue: 'bg-sky-50 text-sky-800 border-sky-200',
+  green: 'bg-[#E8F5EE] text-[#15803d] border-[#bbf7d0]',
+  yellow: 'bg-[#fefce8] text-[#a16207] border-[#fef08a]',
+  red: 'bg-[#fef2f2] text-[#991b1b] border-[#fecaca]',
+  purple: 'bg-purple-50 text-purple-800 border-purple-200',
+  gray: 'bg-slate-100 text-slate-600 border-slate-200',
+  orange: 'bg-orange-50 text-orange-800 border-orange-200',
+  slate: 'bg-slate-100 text-slate-600 border-slate-200',
+  rose: 'bg-rose-50 text-rose-700 border-rose-200',
 }
 
 interface StatusBadgeProps {

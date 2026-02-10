@@ -12,7 +12,17 @@ export const invoicesService = {
       .from('invoices')
       .select('*, invoice_line_items(*)')
       .eq('case_id', caseId)
-      .order('issue_date', { ascending: false })
+      .order('invoice_date', { ascending: false })
+    if (error) throw error
+    return (data ?? []) as (InvoiceRow & { invoice_line_items: unknown[] })[]
+  },
+
+  async getByContactId(contactId: string) {
+    const { data, error } = await supabase
+      .from('invoices')
+      .select('*, invoice_line_items(*)')
+      .eq('bill_to_contact_id', contactId)
+      .order('invoice_date', { ascending: false })
     if (error) throw error
     return (data ?? []) as (InvoiceRow & { invoice_line_items: unknown[] })[]
   },
@@ -21,7 +31,7 @@ export const invoicesService = {
     let query = supabase
       .from('invoices')
       .select('*')
-      .order('issue_date', { ascending: false })
+      .order('invoice_date', { ascending: false })
 
     if (filters?.status) query = query.eq('status', filters.status)
     if (filters?.case_id) query = query.eq('case_id', filters.case_id)
@@ -87,11 +97,10 @@ export const invoicesService = {
       .insert({
         case_id: caseId,
         invoice_number: invoiceNumber,
-        bill_to_contact_id: '', // Caller should set this via update
-        issue_date: new Date().toISOString().split('T')[0],
+        invoice_date: new Date().toISOString().split('T')[0],
         due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         subtotal,
-        total: subtotal,
+        total_amount: subtotal,
         balance_due: subtotal,
       })
       .select()
@@ -105,7 +114,7 @@ export const invoicesService = {
       line_type: 'time' as const,
       description: entry.description,
       quantity: entry.duration_hours,
-      unit_price: entry.rate,
+      unit_price: entry.rate_per_hour,
       amount: entry.amount,
       sort_order: index,
     }))

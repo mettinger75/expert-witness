@@ -24,10 +24,10 @@ const lineItemSchema = z.object({
 
 const invoiceSchema = z.object({
   invoice_number: z.string().min(1, 'Invoice number is required'),
-  bill_to_contact_id: z.string().min(1, 'Bill to contact is required'),
-  terms: z.string().optional(),
+  bill_to_contact_id: z.string().optional(),
+  payment_terms: z.string().optional(),
   due_date: z.string().min(1, 'Due date is required'),
-  issue_date: z.string().min(1, 'Issue date is required'),
+  invoice_date: z.string().min(1, 'Invoice date is required'),
   notes: z.string().optional(),
   line_items: z.array(lineItemSchema).min(1, 'At least one line item is required'),
 })
@@ -56,9 +56,9 @@ export function InvoiceForm({ caseId, initialData, onSubmit, isSubmitting, conta
     defaultValues: {
       invoice_number: initialData?.invoice_number ?? generateInvoiceNumber(),
       bill_to_contact_id: initialData?.bill_to_contact_id ?? '',
-      terms: initialData?.terms ?? 'Net 30',
+      payment_terms: initialData?.payment_terms != null ? String(initialData.payment_terms) : '30',
       due_date: initialData?.due_date ?? '',
-      issue_date: initialData?.issue_date ?? new Date().toISOString().split('T')[0],
+      invoice_date: initialData?.invoice_date ?? new Date().toISOString().split('T')[0],
       notes: initialData?.notes ?? '',
       line_items: [{ description: '', quantity: 1, unit_price: 0, is_expense: false }],
     },
@@ -78,13 +78,13 @@ export function InvoiceForm({ caseId, initialData, onSubmit, isSubmitting, conta
     await onSubmit({
       case_id: caseId,
       invoice_number: values.invoice_number,
-      bill_to_contact_id: values.bill_to_contact_id,
-      terms: values.terms || null,
+      bill_to_contact_id: values.bill_to_contact_id || null,
+      payment_terms: values.payment_terms ? parseInt(values.payment_terms, 10) : null,
       due_date: values.due_date,
-      issue_date: values.issue_date,
+      invoice_date: values.invoice_date,
       notes: values.notes || null,
       subtotal,
-      total: subtotal,
+      total_amount: subtotal,
       balance_due: subtotal,
       line_items: values.line_items,
     })
@@ -115,10 +115,10 @@ export function InvoiceForm({ caseId, initialData, onSubmit, isSubmitting, conta
               />
               <FormField
                 control={form.control}
-                name="issue_date"
+                name="invoice_date"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Issue Date *</FormLabel>
+                    <FormLabel>Invoice Date *</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
@@ -169,10 +169,10 @@ export function InvoiceForm({ caseId, initialData, onSubmit, isSubmitting, conta
               />
               <FormField
                 control={form.control}
-                name="terms"
+                name="payment_terms"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Payment Terms</FormLabel>
+                    <FormLabel>Payment Terms (days)</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -180,11 +180,11 @@ export function InvoiceForm({ caseId, initialData, onSubmit, isSubmitting, conta
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="Due on Receipt">Due on Receipt</SelectItem>
-                        <SelectItem value="Net 15">Net 15</SelectItem>
-                        <SelectItem value="Net 30">Net 30</SelectItem>
-                        <SelectItem value="Net 45">Net 45</SelectItem>
-                        <SelectItem value="Net 60">Net 60</SelectItem>
+                        <SelectItem value="0">Due on Receipt</SelectItem>
+                        <SelectItem value="15">Net 15</SelectItem>
+                        <SelectItem value="30">Net 30</SelectItem>
+                        <SelectItem value="45">Net 45</SelectItem>
+                        <SelectItem value="60">Net 60</SelectItem>
                       </SelectContent>
                     </Select>
                   </FormItem>

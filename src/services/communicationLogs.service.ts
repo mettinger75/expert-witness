@@ -16,6 +16,16 @@ export const communicationLogsService = {
     return (data ?? []) as CommunicationLogRow[]
   },
 
+  async getByContactId(contactId: string) {
+    const { data, error } = await supabase
+      .from('communication_logs')
+      .select('*')
+      .eq('contact_id', contactId)
+      .order('communication_date', { ascending: false })
+    if (error) throw error
+    return (data ?? []) as CommunicationLogRow[]
+  },
+
   /** Get all unassigned emails (inbox) */
   async getUnassigned() {
     const { data, error } = await supabase

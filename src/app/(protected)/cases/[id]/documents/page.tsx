@@ -14,13 +14,30 @@ import { EmptyState } from '@/components/shared/EmptyState'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { DOCUMENT_CATEGORIES, getLabelForValue } from '@/lib/constants'
 import { formatDate } from '@/lib/formatters'
-import { useDocuments, useUploadDocument, useCreateDocument, useProcessDocument } from '@/hooks/useDocuments'
+import { useDocuments, useUploadDocument, useProcessDocument } from '@/hooks/useDocuments'
 import { useFolders } from '@/hooks/useFolders'
-import type { DocumentCategory } from '@/types/enums'
+import { DocumentViewer } from '@/components/documents/DocumentViewer'
+import type { DocumentRow } from '@/types/database.types'
 import {
   Upload, FileText, Search, Star, Filter,
-  Folder, FolderOpen, Loader2, X, RefreshCw, Brain,
+  Folder, FolderOpen, Loader2, X, RefreshCw, Brain, Eye,
 } from 'lucide-react'
+
+// Medical record categories for the Medical Records tab
+const MEDICAL_CATEGORIES = [
+  'medical_record',
+  'anesthesia_record',
+  'operative_report',
+  'nursing_notes',
+  'lab_results',
+  'imaging',
+  'pharmacy',
+  'autopsy',
+]
+
+const MEDICAL_DOCUMENT_CATEGORIES = DOCUMENT_CATEGORIES.filter(c =>
+  MEDICAL_CATEGORIES.includes(c.value)
+)
 
 export default function CaseDocumentsPage() {
   const params = useParams()
@@ -29,6 +46,8 @@ export default function CaseDocumentsPage() {
   const [search, setSearch] = useState('')
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null)
   const [uploadOpen, setUploadOpen] = useState(false)
+  const [viewerOpen, setViewerOpen] = useState(false)
+  const [viewingDoc, setViewingDoc] = useState<DocumentRow | null>(null)
 
   // Upload form state
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
@@ -44,20 +63,24 @@ export default function CaseDocumentsPage() {
     search: search || undefined,
   }
   const [isPolling, setIsPolling] = useState(false)
-  const { data: documents = [], isLoading: docsLoading } = useDocuments(caseId, filters, {
+  const { data: allDocuments = [], isLoading: docsLoading } = useDocuments(caseId, filters, {
     refetchInterval: isPolling ? 3000 : undefined,
   })
   const { data: folders = [], isLoading: foldersLoading } = useFolders(caseId)
+
+  // Client-side filter to only show medical categories
+  const documents = categoryFilter !== 'all'
+    ? allDocuments
+    : allDocuments.filter(d => MEDICAL_CATEGORIES.includes(d.category))
 
   // Track if any documents are processing to enable polling
   const hasProcessing = documents.some(d => d.ocr_status === 'processing')
   useEffect(() => { setIsPolling(hasProcessing) }, [hasProcessing])
 
   const uploadMutation = useUploadDocument()
-  const createMutation = useCreateDocument()
   const processDocument = useProcessDocument()
 
-  const isUploading = uploadMutation.isPending || createMutation.isPending
+  const isUploading = uploadMutation.isPending
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -85,25 +108,18 @@ export default function CaseDocumentsPage() {
 
     for (const file of selectedFiles) {
       try {
-        // Upload file to storage
-        const filePath = await uploadMutation.mutateAsync({ caseId, file })
-
-        // Create document record
-        const newDoc = await createMutation.mutateAsync({
-          case_id: caseId,
-          file_name: file.name,
-          original_file_name: file.name,
-          file_path: filePath,
-          file_size: file.size,
-          mime_type: file.type || 'application/octet-stream',
-          category: docCategory as DocumentCategory,
-          description: docDescription || null,
-          date_of_document: docDate || null,
+        // Upload file via API route (handles storage + DB record creation)
+        const result = await uploadMutation.mutateAsync({
+          caseId,
+          file,
+          category: docCategory,
+          description: docDescription || undefined,
+          folderId: selectedFolder,
         })
 
         // Auto-process PDF files with AI
-        if (file.type === 'application/pdf' && newDoc?.id) {
-          processDocument.mutate(newDoc.id)
+        if (file.type === 'application/pdf' && result?.document?.id) {
+          processDocument.mutate(result.document.id)
         }
       } catch {
         // Error toasts are handled by the mutation hooks
@@ -129,9 +145,9 @@ export default function CaseDocumentsPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-lg font-semibold">Documents</h2>
+          <h2 className="text-lg font-semibold">Medical Records</h2>
           <p className="text-sm text-muted-foreground">
-            Manage case documents and files
+            Manage medical records and clinical documents
             {!docsLoading && ` (${documents.length} total)`}
           </p>
         </div>
@@ -204,7 +220,7 @@ export default function CaseDocumentsPage() {
                     <SelectValue placeholder="Select type..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {DOCUMENT_CATEGORIES.map((c) => (
+                    {MEDICAL_DOCUMENT_CATEGORIES.map((c) => (
                       <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
                     ))}
                   </SelectContent>
@@ -321,8 +337,8 @@ export default function CaseDocumentsPage() {
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {DOCUMENT_CATEGORIES.map((c) => (
+                <SelectItem value="all">All Medical Records</SelectItem>
+                {MEDICAL_DOCUMENT_CATEGORIES.map((c) => (
                   <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
                 ))}
               </SelectContent>
@@ -336,13 +352,20 @@ export default function CaseDocumentsPage() {
           ) : documents.length === 0 ? (
             <EmptyState
               icon={FileText}
-              title="No documents found"
-              description="Upload documents to start building your case file."
+              title="No medical records found"
+              description="Upload medical records, operative reports, nursing notes, and other clinical documents."
             />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {documents.map((doc) => (
-                <Card key={doc.id} className="hover:bg-muted/50 transition-colors">
+                <Card
+                  key={doc.id}
+                  className="hover:bg-muted/50 transition-colors cursor-pointer"
+                  onClick={() => {
+                    setViewingDoc(doc as DocumentRow)
+                    setViewerOpen(true)
+                  }}
+                >
                   <CardContent className="flex items-start gap-3 py-4">
                     <div className="p-2 rounded-md bg-muted">
                       <FileText className="h-5 w-5 text-muted-foreground" />
@@ -353,13 +376,30 @@ export default function CaseDocumentsPage() {
                         {doc.is_exhibit && (
                           <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-500 shrink-0" />
                         )}
+                        {/* View button */}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 ml-auto shrink-0"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setViewingDoc(doc as DocumentRow)
+                            setViewerOpen(true)
+                          }}
+                          title="View document"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                        </Button>
                         {/* Reprocess button */}
                         {doc.mime_type === 'application/pdf' && doc.ocr_status !== 'processing' && (
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-6 w-6 p-0 ml-auto shrink-0"
-                            onClick={() => processDocument.mutate(doc.id)}
+                            className="h-6 w-6 p-0 shrink-0"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              processDocument.mutate(doc.id)
+                            }}
                             disabled={processDocument.isPending}
                             title={doc.ocr_status === 'completed' ? 'Reprocess with AI' : 'Process with AI'}
                           >
@@ -445,6 +485,13 @@ export default function CaseDocumentsPage() {
           )}
         </div>
       </div>
+
+      {/* Document Viewer */}
+      <DocumentViewer
+        document={viewingDoc}
+        open={viewerOpen}
+        onOpenChange={setViewerOpen}
+      />
     </div>
   )
 }
