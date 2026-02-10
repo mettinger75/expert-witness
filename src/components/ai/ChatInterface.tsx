@@ -3,10 +3,10 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Card } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { ChatMessage } from '@/components/ai/ChatMessage'
 import { ChatInput } from '@/components/ai/ChatInput'
 import { Sparkles, Loader2 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface Message {
   id: string
@@ -19,21 +19,36 @@ interface Message {
 interface ChatInterfaceProps {
   caseId?: string
   conversationType?: string
+  initialMessages?: Message[]
+  onMessageComplete?: (userMsg: string, assistantMsg: string) => void
+  className?: string
 }
 
 const AI_MODELS = [
-  { value: 'claude-sonnet-4-20250514', label: 'Claude Sonnet 4' },
-  { value: 'claude-opus-4-20250514', label: 'Claude Opus 4' },
-  { value: 'gpt-4o', label: 'GPT-4o' },
-  { value: 'gpt-4o-mini', label: 'GPT-4o Mini' },
+  { value: 'fast', label: 'Claude Haiku (Fast)' },
+  { value: 'standard', label: 'Claude Sonnet (Standard)' },
+  { value: 'advanced', label: 'Claude Opus (Advanced)' },
 ]
 
-export function ChatInterface({ caseId, conversationType = 'general_question' }: ChatInterfaceProps) {
-  const [messages, setMessages] = useState<Message[]>([])
+export function ChatInterface({
+  caseId,
+  conversationType = 'general',
+  initialMessages,
+  onMessageComplete,
+  className,
+}: ChatInterfaceProps) {
+  const [messages, setMessages] = useState<Message[]>(initialMessages ?? [])
   const [isLoading, setIsLoading] = useState(false)
-  const [selectedModel, setSelectedModel] = useState('claude-sonnet-4-20250514')
+  const [selectedModel, setSelectedModel] = useState('standard')
   const [tokenUsage, setTokenUsage] = useState<{ input: number; output: number } | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
+
+  // Sync initialMessages when they change (e.g. conversation switch)
+  useEffect(() => {
+    if (initialMessages) {
+      setMessages(initialMessages)
+    }
+  }, [initialMessages])
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -58,7 +73,7 @@ export function ChatInterface({ caseId, conversationType = 'general_question' }:
         id: assistantId,
         role: 'assistant',
         content: '',
-        model: selectedModel,
+        model: AI_MODELS.find((m) => m.value === selectedModel)?.label,
       }
       setMessages((prev) => [...prev, assistantMessage])
 
@@ -71,7 +86,7 @@ export function ChatInterface({ caseId, conversationType = 'general_question' }:
               role: m.role,
               content: m.content,
             })),
-            model: selectedModel,
+            modelTier: selectedModel,
             caseId,
             conversationType,
           }),
@@ -117,25 +132,19 @@ export function ChatInterface({ caseId, conversationType = 'general_question' }:
                     setTokenUsage(parsed.usage)
                   }
                 } catch {
-                  // Non-JSON line, possibly partial content
-                  fullContent += data
-                  setMessages((prev) =>
-                    prev.map((m) =>
-                      m.id === assistantId
-                        ? {
-                            ...m,
-                            content: fullContent,
-                            timestamp: new Date().toLocaleTimeString(),
-                          }
-                        : m
-                    )
-                  )
+                  // Non-JSON line, skip
                 }
               }
             }
           }
+
+          // Notify parent that the exchange is complete
+          if (onMessageComplete && fullContent) {
+            onMessageComplete(content, fullContent)
+          }
         }
       } catch (error) {
+        console.error('Chat error:', error)
         setMessages((prev) =>
           prev.map((m) =>
             m.id === assistantId
@@ -151,11 +160,11 @@ export function ChatInterface({ caseId, conversationType = 'general_question' }:
         setIsLoading(false)
       }
     },
-    [messages, selectedModel, caseId, conversationType]
+    [messages, selectedModel, caseId, conversationType, onMessageComplete]
   )
 
   return (
-    <Card className="flex flex-col h-[600px]">
+    <Card className={cn('flex flex-col', className || 'h-[600px]')}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b">
         <div className="flex items-center gap-2">
@@ -169,7 +178,7 @@ export function ChatInterface({ caseId, conversationType = 'general_question' }:
             </span>
           )}
           <Select value={selectedModel} onValueChange={setSelectedModel}>
-            <SelectTrigger className="h-8 w-[180px] text-xs">
+            <SelectTrigger className="h-8 w-[200px] text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

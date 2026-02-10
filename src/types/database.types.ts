@@ -767,17 +767,21 @@ export type ReportGenerationQueueUpdate = Partial<ReportGenerationQueueInsert>;
 export interface AIConversationRow {
   id: string;
   case_id: string | null;
-  document_id: string | null;
-  report_id: string | null;
-  conversation_type: ConversationType;
   title: string;
-  summary: string | null;
-  is_pinned: boolean;
-  is_archived: boolean;
+  conversation_type: string;
+  status: string;
+  context_type: string | null;
+  context_id: string | null;
+  system_prompt: string | null;
+  model: string | null;
   message_count: number;
+  total_input_tokens: number;
+  total_output_tokens: number;
+  estimated_cost: number | null;
+  is_pinned: boolean;
+  is_favorite: boolean;
+  tags: string[] | null;
   last_message_at: string | null;
-  model_used: string | null;
-  total_tokens_used: number;
   created_at: string;
   updated_at: string;
 }
@@ -785,19 +789,21 @@ export interface AIConversationRow {
 export interface AIConversationInsert {
   id?: string;
   case_id?: string | null;
-  document_id?: string | null;
-  report_id?: string | null;
-  conversation_type: ConversationType;
-  title: string;
-  summary?: string | null;
-  is_pinned?: boolean;
-  is_archived?: boolean;
+  title?: string;
+  conversation_type?: string;
+  status?: string;
+  context_type?: string | null;
+  context_id?: string | null;
+  system_prompt?: string | null;
+  model?: string | null;
   message_count?: number;
+  total_input_tokens?: number;
+  total_output_tokens?: number;
+  estimated_cost?: number | null;
+  is_pinned?: boolean;
+  is_favorite?: boolean;
+  tags?: string[] | null;
   last_message_at?: string | null;
-  model_used?: string | null;
-  total_tokens_used?: number;
-  created_at?: string;
-  updated_at?: string;
 }
 
 export type AIConversationUpdate = Partial<AIConversationInsert>;
@@ -808,27 +814,51 @@ export type AIConversationUpdate = Partial<AIConversationInsert>;
 export interface AIMessageRow {
   id: string;
   conversation_id: string;
-  role: MessageRole;
+  role: string;
   content: string;
-  metadata: Json | null;
-  tokens_used: number | null;
-  model_used: string | null;
-  rating: number | null;
-  feedback: string | null;
+  content_type: string;
+  model: string | null;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  finish_reason: string | null;
+  latency_ms: number | null;
+  tool_calls: Json | null;
+  tool_results: Json | null;
+  function_name: string | null;
+  context_documents: string[] | null;
+  context_summary: string | null;
+  is_edited: boolean;
+  original_content: string | null;
+  user_rating: number | null;
+  user_feedback: string | null;
+  is_hidden: boolean;
+  sort_order: number;
   created_at: string;
+  updated_at: string;
 }
 
 export interface AIMessageInsert {
   id?: string;
   conversation_id: string;
-  role: MessageRole;
+  role: string;
   content: string;
-  metadata?: Json | null;
-  tokens_used?: number | null;
-  model_used?: string | null;
-  rating?: number | null;
-  feedback?: string | null;
-  created_at?: string;
+  content_type?: string;
+  model?: string | null;
+  input_tokens?: number | null;
+  output_tokens?: number | null;
+  finish_reason?: string | null;
+  latency_ms?: number | null;
+  tool_calls?: Json | null;
+  tool_results?: Json | null;
+  function_name?: string | null;
+  context_documents?: string[] | null;
+  context_summary?: string | null;
+  is_edited?: boolean;
+  original_content?: string | null;
+  user_rating?: number | null;
+  user_feedback?: string | null;
+  is_hidden?: boolean;
+  sort_order?: number;
 }
 
 export type AIMessageUpdate = Partial<AIMessageInsert>;

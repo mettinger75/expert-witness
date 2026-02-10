@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const {
       messages,
-      conversationType = 'general_question',
+      conversationType = 'general',
       caseId,
       modelTier = 'standard',
       maxTokens = AI_CONFIG.defaultParams.max_tokens,
@@ -24,15 +24,17 @@ export async function POST(request: NextRequest) {
       case_analysis: SYSTEM_PROMPTS.case_summary,
       document_review: SYSTEM_PROMPTS.document_analysis,
       report_drafting: SYSTEM_PROMPTS.report_generation,
-      research_assistant: SYSTEM_PROMPTS.research_assistant,
+      research: SYSTEM_PROMPTS.research_assistant,
       deposition_prep: SYSTEM_PROMPTS.deposition_prep,
-      general_question: SYSTEM_PROMPTS.research_assistant,
-      medical_research: SYSTEM_PROMPTS.research_assistant,
+      standard_of_care: SYSTEM_PROMPTS.standard_of_care,
+      general: SYSTEM_PROMPTS.research_assistant,
+      timeline_review: SYSTEM_PROMPTS.timeline_generation,
+      causation_analysis: SYSTEM_PROMPTS.standard_of_care,
     }
 
     let systemPrompt = systemPromptMap[conversationType] || SYSTEM_PROMPTS.research_assistant
 
-    // If case-specific, assemble context
+    // If case-specific, assemble context with documents
     if (caseId) {
       const supabase = getSupabaseAdmin()
       const { data: caseData } = await supabase
@@ -41,8 +43,40 @@ export async function POST(request: NextRequest) {
         .eq('id', caseId)
         .single()
 
+      // Fetch processed documents with AI summaries
+      const { data: documents } = await supabase
+        .from('documents')
+        .select('original_file_name, document_type, ai_summary, ai_key_findings, ai_extracted_dates, ai_extracted_medications, ai_extracted_providers')
+        .eq('case_id', caseId)
+        .not('ai_summary', 'is', null)
+        .order('created_at', { ascending: true })
+        .limit(20)
+
       if (caseData) {
-        const context = assembleContext(caseData)
+        // Build document context strings
+        const documentStrings = documents?.map((doc) => {
+          const parts = [`**${doc.original_file_name}** (${doc.document_type || 'document'})`]
+          if (doc.ai_summary) parts.push(`Summary: ${doc.ai_summary}`)
+          if (doc.ai_key_findings) {
+            const findings = Array.isArray(doc.ai_key_findings) ? doc.ai_key_findings : []
+            if (findings.length > 0) parts.push(`Key Findings: ${findings.join('; ')}`)
+          }
+          if (doc.ai_extracted_dates) {
+            const dates = Array.isArray(doc.ai_extracted_dates) ? doc.ai_extracted_dates : []
+            if (dates.length > 0) parts.push(`Key Dates: ${dates.join('; ')}`)
+          }
+          if (doc.ai_extracted_medications) {
+            const meds = Array.isArray(doc.ai_extracted_medications) ? doc.ai_extracted_medications : []
+            if (meds.length > 0) parts.push(`Medications: ${meds.join(', ')}`)
+          }
+          if (doc.ai_extracted_providers) {
+            const providers = Array.isArray(doc.ai_extracted_providers) ? doc.ai_extracted_providers : []
+            if (providers.length > 0) parts.push(`Providers: ${providers.join(', ')}`)
+          }
+          return parts.join('\n')
+        }) || []
+
+        const context = assembleContext(caseData, documentStrings)
         systemPrompt = `${systemPrompt}\n\n${context}`
       }
     }
@@ -80,7 +114,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Stream the response back
+    // Stream the response back, normalizing Anthropic SSE events
+    // into simplified { content: "..." } format for the client
     const stream = new ReadableStream({
       async start(controller) {
         const reader = response.body?.getReader()
@@ -90,13 +125,62 @@ export async function POST(request: NextRequest) {
         }
 
         const decoder = new TextDecoder()
+        const encoder = new TextEncoder()
+        let buffer = ''
+
         try {
           while (true) {
             const { done, value } = await reader.read()
             if (done) break
-            const chunk = decoder.decode(value, { stream: true })
-            controller.enqueue(new TextEncoder().encode(chunk))
+
+            buffer += decoder.decode(value, { stream: true })
+            const lines = buffer.split('\n')
+            // Keep the last incomplete line in the buffer
+            buffer = lines.pop() || ''
+
+            for (const line of lines) {
+              if (!line.startsWith('data: ')) continue
+              const data = line.slice(6).trim()
+              if (data === '[DONE]') continue
+
+              try {
+                const event = JSON.parse(data)
+
+                // Extract text content from content_block_delta events
+                if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
+                  const simplified = JSON.stringify({ content: event.delta.text })
+                  controller.enqueue(encoder.encode(`data: ${simplified}\n\n`))
+                }
+
+                // Extract usage info from message_delta events
+                if (event.type === 'message_delta' && event.usage) {
+                  const usage = JSON.stringify({
+                    usage: {
+                      input: event.usage.input_tokens || 0,
+                      output: event.usage.output_tokens || 0,
+                    },
+                  })
+                  controller.enqueue(encoder.encode(`data: ${usage}\n\n`))
+                }
+
+                // Also capture usage from message_start
+                if (event.type === 'message_start' && event.message?.usage) {
+                  const usage = JSON.stringify({
+                    usage: {
+                      input: event.message.usage.input_tokens || 0,
+                      output: event.message.usage.output_tokens || 0,
+                    },
+                  })
+                  controller.enqueue(encoder.encode(`data: ${usage}\n\n`))
+                }
+              } catch {
+                // Skip unparseable lines
+              }
+            }
           }
+
+          // Signal done
+          controller.enqueue(encoder.encode('data: [DONE]\n\n'))
         } catch (error) {
           console.error('Stream error:', error)
         } finally {

@@ -267,19 +267,22 @@ export type QueueStatus =
 // ---------------------------------------------------------------------------
 
 export type ConversationType =
+  | 'general'
   | 'case_analysis'
   | 'document_review'
   | 'report_drafting'
-  | 'research_assistant'
   | 'deposition_prep'
-  | 'trial_prep'
-  | 'general_question'
-  | 'medical_research';
+  | 'research'
+  | 'timeline_review'
+  | 'standard_of_care'
+  | 'causation_analysis'
+  | 'template';
 
 export type MessageRole =
   | 'system'
   | 'user'
-  | 'assistant';
+  | 'assistant'
+  | 'tool';
 
 export type AITaskType =
   | 'document_ocr'

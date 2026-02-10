@@ -31,15 +31,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Document not found' }, { status: 404 })
     }
 
-    // Validate file is a PDF
-    if (doc.mime_type !== 'application/pdf') {
+    // Validate file is a PDF (check file_type or mime_type or filename)
+    const isPdf =
+      doc.file_type === 'pdf' ||
+      doc.mime_type === 'application/pdf' ||
+      doc.original_file_name?.toLowerCase().endsWith('.pdf') ||
+      doc.file_name?.toLowerCase().endsWith('.pdf')
+    if (!isPdf) {
       // For non-PDF files, mark as not needed
       await supabase.from('documents').update({ ocr_status: 'not_needed' }).eq('id', documentId)
       return NextResponse.json({ error: 'Only PDF files can be processed', status: 'skipped' }, { status: 400 })
     }
 
     // Validate file size
-    if (doc.file_size && doc.file_size > MAX_PDF_SIZE) {
+    if ((doc.file_size_bytes || doc.file_size) && (doc.file_size_bytes || doc.file_size) > MAX_PDF_SIZE) {
       await supabase.from('documents').update({ ocr_status: 'failed' }).eq('id', documentId)
       return NextResponse.json(
         { error: 'PDF exceeds 32MB size limit for AI processing' },
@@ -50,10 +55,12 @@ export async function POST(request: NextRequest) {
     // Mark as processing
     await supabase.from('documents').update({ ocr_status: 'processing' }).eq('id', documentId)
 
-    // Download PDF from Supabase storage
+    // Download PDF from Supabase storage (use storage_path, fall back to file_path)
+    const storagePath = doc.storage_path || doc.file_path
+    const storageBucket = doc.storage_bucket || 'case-documents'
     const { data: fileData, error: downloadError } = await supabase.storage
-      .from('case-documents')
-      .download(doc.file_path)
+      .from(storageBucket)
+      .download(storagePath)
 
     if (downloadError || !fileData) {
       await supabase.from('documents').update({ ocr_status: 'failed' }).eq('id', documentId)
@@ -72,7 +79,7 @@ export async function POST(request: NextRequest) {
     const model = AI_CONFIG.models[modelTier]
 
     const userPrompt = [
-      `Analyze this medical document (${doc.original_file_name || doc.file_name}, category: ${doc.category || 'unknown'}).`,
+      `Analyze this medical document (${doc.original_file_name || doc.file_name}, type: ${doc.document_type || doc.category || 'unknown'}).`,
       '',
       'Return ONLY a valid JSON object with these fields:',
       '{',
@@ -83,7 +90,7 @@ export async function POST(request: NextRequest) {
       '  "extracted_providers": ["array of provider/physician names mentioned"],',
       '  "diagnoses": ["array of diagnoses mentioned"],',
       '  "procedures": ["array of procedures or surgeries mentioned"],',
-      '  "ocr_text": "full extracted text content of the document - include all readable text"',
+      '  "ocr_text": "key extracted text content - focus on findings, impressions, and clinical details rather than repeating every line verbatim"',
       '}',
     ].join('\n')
 
@@ -92,11 +99,11 @@ export async function POST(request: NextRequest) {
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
-        'anthropic-version': ANTHROPIC_API_VERSION_PDF,
+        'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
         model,
-        max_tokens: 8192,
+        max_tokens: 16384,
         temperature: 0.1,
         system: SYSTEM_PROMPTS.document_processing,
         messages: [
