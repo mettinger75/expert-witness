@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Switch } from '@/components/ui/switch'
-import { CASE_TYPES, CASE_PRIORITIES, SPECIALTY_AREAS } from '@/lib/constants'
+import { OPTION_KEYS } from '@/lib/constants'
+import { useAppOptions } from '@/components/providers/OptionsProvider'
 import type { CaseInsert, CaseRow } from '@/types/database.types'
 import { Loader2 } from 'lucide-react'
 
@@ -50,6 +51,7 @@ interface CaseFormProps {
 }
 
 export function CaseForm({ initialData, defaultValues, onSubmit, isSubmitting }: CaseFormProps) {
+  const { getActiveOptions } = useAppOptions()
   // Merge initialData and defaultValues (initialData takes precedence for editing existing cases)
   const d = initialData ?? defaultValues
   const form = useForm<CaseFormValues>({
@@ -138,7 +140,7 @@ export function CaseForm({ initialData, defaultValues, onSubmit, isSubmitting }:
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {CASE_TYPES.map((t) => (
+                        {getActiveOptions(OPTION_KEYS.CASE_TYPES).map((t) => (
                           <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
                         ))}
                       </SelectContent>
@@ -184,7 +186,7 @@ export function CaseForm({ initialData, defaultValues, onSubmit, isSubmitting }:
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {CASE_PRIORITIES.map((p) => (
+                        {getActiveOptions(OPTION_KEYS.CASE_PRIORITIES).map((p) => (
                           <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
                         ))}
                       </SelectContent>
@@ -208,7 +210,7 @@ export function CaseForm({ initialData, defaultValues, onSubmit, isSubmitting }:
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {SPECIALTY_AREAS.map((s) => (
+                      {getActiveOptions(OPTION_KEYS.SPECIALTY_AREAS).map((s) => (
                         <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
                       ))}
                     </SelectContent>

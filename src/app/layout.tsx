@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { Source_Sans_3 } from "next/font/google"
 import { Geist_Mono } from "next/font/google"
 import { QueryProvider } from "@/components/providers/QueryProvider"
+import { OptionsProvider } from "@/components/providers/OptionsProvider"
 import { Toaster } from "@/components/ui/sonner"
 import "./globals.css"
 
@@ -30,7 +31,9 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${sourceSans.variable} ${geistMono.variable} antialiased`}>
         <QueryProvider>
-          {children}
+          <OptionsProvider>
+            {children}
+          </OptionsProvider>
           <Toaster richColors position="top-right" />
         </QueryProvider>
       </body>

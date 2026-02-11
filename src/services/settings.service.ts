@@ -33,6 +33,29 @@ export const settingsService = {
     return data as SystemSettingRow
   },
 
+  async upsert(
+    key: string,
+    value: Json,
+    opts?: { setting_type?: string; category?: string; description?: string }
+  ) {
+    const { data, error } = await supabase
+      .from('system_settings')
+      .upsert(
+        {
+          setting_key: key,
+          setting_value: value,
+          setting_type: opts?.setting_type ?? 'json',
+          category: opts?.category ?? 'general',
+          description: opts?.description ?? null,
+        },
+        { onConflict: 'setting_key' }
+      )
+      .select()
+      .single()
+    if (error) throw error
+    return data as SystemSettingRow
+  },
+
   async getByCategory(category: string) {
     const { data, error } = await supabase
       .from('system_settings')

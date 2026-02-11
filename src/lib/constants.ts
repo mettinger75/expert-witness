@@ -277,3 +277,144 @@ export function getColorForValue(
   const item = items.find((i) => i.value === value)
   return (item as ItemWithColor | undefined)?.color ?? 'gray'
 }
+
+// =============================================================================
+// Configurable Options Infrastructure
+// =============================================================================
+
+/** Shape of each option item stored in system_settings */
+export interface OptionItem {
+  value: string
+  label: string
+  color?: string
+  is_active: boolean
+  sort_order: number
+}
+
+/** All configurable option keys */
+export const OPTION_KEYS = {
+  CASE_STATUSES: 'options.case_statuses',
+  CASE_TYPES: 'options.case_types',
+  CASE_PRIORITIES: 'options.case_priorities',
+  SPECIALTY_AREAS: 'options.specialty_areas',
+  PATIENT_OUTCOMES: 'options.patient_outcomes',
+  CONTACT_TYPES: 'options.contact_types',
+  CASE_CONTACT_ROLES: 'options.case_contact_roles',
+  DOCUMENT_CATEGORIES: 'options.document_categories',
+  TIMELINE_EVENT_TYPES: 'options.timeline_event_types',
+  NOTE_TYPES: 'options.note_types',
+  MILESTONE_TYPES: 'options.milestone_types',
+  ACTIVITY_TYPES: 'options.activity_types',
+  CHARGE_TYPES: 'options.charge_types',
+  INVOICE_STATUSES: 'options.invoice_statuses',
+  REPORT_TYPES: 'options.report_types',
+  CONTRACT_TYPES: 'options.contract_types',
+  CONTRACT_STATUSES: 'options.contract_statuses',
+  MEETING_TYPES: 'options.meeting_types',
+  TRANSCRIPT_STATUSES: 'options.transcript_statuses',
+  DASHBOARD_LAYOUT: 'dashboard.layout',
+} as const
+
+/** Convert a readonly const array to OptionItem[] for defaults */
+function toOptionItems(
+  items: readonly { value: string; label: string; color?: string }[]
+): OptionItem[] {
+  return items.map((item, i) => ({
+    value: item.value,
+    label: item.label,
+    color: (item as { color?: string }).color,
+    is_active: true,
+    sort_order: i,
+  }))
+}
+
+/** Default option values (hardcoded fallback when DB is unavailable) */
+export const OPTION_DEFAULTS: Record<string, OptionItem[]> = {
+  [OPTION_KEYS.CASE_STATUSES]: toOptionItems(CASE_STATUSES),
+  [OPTION_KEYS.CASE_TYPES]: toOptionItems(CASE_TYPES),
+  [OPTION_KEYS.CASE_PRIORITIES]: toOptionItems(CASE_PRIORITIES),
+  [OPTION_KEYS.SPECIALTY_AREAS]: toOptionItems(SPECIALTY_AREAS),
+  [OPTION_KEYS.PATIENT_OUTCOMES]: toOptionItems(PATIENT_OUTCOMES),
+  [OPTION_KEYS.CONTACT_TYPES]: toOptionItems(CONTACT_TYPES),
+  [OPTION_KEYS.CASE_CONTACT_ROLES]: toOptionItems(CASE_CONTACT_ROLES),
+  [OPTION_KEYS.DOCUMENT_CATEGORIES]: toOptionItems(DOCUMENT_CATEGORIES),
+  [OPTION_KEYS.TIMELINE_EVENT_TYPES]: toOptionItems(TIMELINE_EVENT_TYPES),
+  [OPTION_KEYS.NOTE_TYPES]: toOptionItems(NOTE_TYPES),
+  [OPTION_KEYS.MILESTONE_TYPES]: toOptionItems(MILESTONE_TYPES),
+  [OPTION_KEYS.ACTIVITY_TYPES]: toOptionItems(ACTIVITY_TYPES),
+  [OPTION_KEYS.CHARGE_TYPES]: toOptionItems(CHARGE_TYPES),
+  [OPTION_KEYS.INVOICE_STATUSES]: toOptionItems(INVOICE_STATUSES),
+  [OPTION_KEYS.REPORT_TYPES]: toOptionItems(REPORT_TYPES),
+  [OPTION_KEYS.CONTRACT_TYPES]: toOptionItems(CONTRACT_TYPES),
+  [OPTION_KEYS.CONTRACT_STATUSES]: toOptionItems(CONTRACT_STATUSES),
+  [OPTION_KEYS.MEETING_TYPES]: toOptionItems(MEETING_TYPES),
+  [OPTION_KEYS.TRANSCRIPT_STATUSES]: toOptionItems(TRANSCRIPT_STATUSES),
+}
+
+/** Map from option key (without 'options.' prefix) to DB constraint info */
+export const CONSTRAINT_MAP: Record<
+  string,
+  Array<{ table: string; column: string; constraint: string }>
+> = {
+  case_statuses: [
+    { table: 'cases', column: 'status', constraint: 'cases_status_check' },
+  ],
+  case_types: [
+    { table: 'cases', column: 'case_type', constraint: 'cases_case_type_check' },
+  ],
+  case_priorities: [
+    { table: 'cases', column: 'priority', constraint: 'cases_priority_check' },
+  ],
+  specialty_areas: [
+    { table: 'cases', column: 'specialty_area', constraint: 'cases_specialty_area_check' },
+  ],
+  patient_outcomes: [
+    { table: 'cases', column: 'patient_outcome', constraint: 'cases_patient_outcome_check' },
+  ],
+  contact_types: [
+    { table: 'contacts', column: 'contact_type', constraint: 'contacts_contact_type_check' },
+  ],
+  case_contact_roles: [
+    { table: 'case_contacts', column: 'role', constraint: 'case_contacts_role_check' },
+  ],
+  document_categories: [
+    { table: 'documents', column: 'document_type', constraint: 'documents_document_type_check' },
+  ],
+  timeline_event_types: [
+    { table: 'medical_records_timeline', column: 'event_type', constraint: 'medical_records_timeline_event_type_check' },
+  ],
+  note_types: [
+    { table: 'case_notes', column: 'note_type', constraint: 'case_notes_note_type_check' },
+  ],
+  milestone_types: [
+    { table: 'case_milestones', column: 'milestone_type', constraint: 'case_milestones_milestone_type_check' },
+  ],
+  activity_types: [
+    { table: 'time_entries', column: 'activity_type', constraint: 'time_entries_activity_type_check' },
+    { table: 'billing_rates', column: 'activity_type', constraint: 'billing_rates_activity_type_check' },
+  ],
+  invoice_statuses: [
+    { table: 'invoices', column: 'status', constraint: 'invoices_status_check' },
+  ],
+  report_types: [
+    { table: 'reports', column: 'report_type', constraint: 'reports_report_type_check' },
+    { table: 'report_templates', column: 'template_type', constraint: 'report_templates_template_type_check' },
+  ],
+  contract_types: [
+    { table: 'contracts', column: 'contract_type', constraint: 'contracts_type_check' },
+  ],
+  contract_statuses: [
+    { table: 'contracts', column: 'status', constraint: 'contracts_status_check' },
+  ],
+  meeting_types: [
+    { table: 'meetings', column: 'meeting_type', constraint: 'meetings_meeting_type_check' },
+  ],
+  transcript_statuses: [
+    { table: 'meetings', column: 'transcript_status', constraint: 'meetings_transcript_status_check' },
+  ],
+}
+
+/** Available StatusBadge colors for option editing */
+export const BADGE_COLORS = [
+  'slate', 'gray', 'red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink',
+] as const

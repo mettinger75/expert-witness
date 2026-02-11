@@ -12,11 +12,13 @@ import { Badge } from '@/components/ui/badge'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
-import { CASE_STATUSES, CASE_TYPES, CASE_PRIORITIES, getLabelForValue, getColorForValue } from '@/lib/constants'
+import { OPTION_KEYS } from '@/lib/constants'
+import { useAppOptions } from '@/components/providers/OptionsProvider'
 import { formatDate, formatCurrency } from '@/lib/formatters'
 import { Plus, Search, Briefcase, Filter } from 'lucide-react'
 
 export default function CasesPage() {
+  const { getActiveOptions, getLabel, getColor } = useAppOptions()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [typeFilter, setTypeFilter] = useState<string>('all')
@@ -61,7 +63,7 @@ export default function CasesPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
-            {CASE_STATUSES.map((s) => (
+            {getActiveOptions(OPTION_KEYS.CASE_STATUSES).map((s) => (
               <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
             ))}
           </SelectContent>
@@ -72,7 +74,7 @@ export default function CasesPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Types</SelectItem>
-            {CASE_TYPES.map((t) => (
+            {getActiveOptions(OPTION_KEYS.CASE_TYPES).map((t) => (
               <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
             ))}
           </SelectContent>
@@ -108,17 +110,17 @@ export default function CasesPage() {
                         {c.case_number}
                       </span>
                       <StatusBadge
-                        label={getLabelForValue(CASE_STATUSES, c.status)}
-                        color={getColorForValue(CASE_STATUSES, c.status)}
+                        label={getLabel(OPTION_KEYS.CASE_STATUSES, c.status)}
+                        color={getColor(OPTION_KEYS.CASE_STATUSES, c.status)}
                       />
                       <StatusBadge
-                        label={getLabelForValue(CASE_PRIORITIES, c.priority)}
-                        color={getColorForValue(CASE_PRIORITIES, c.priority)}
+                        label={getLabel(OPTION_KEYS.CASE_PRIORITIES, c.priority)}
+                        color={getColor(OPTION_KEYS.CASE_PRIORITIES, c.priority)}
                       />
                     </div>
                     <h3 className="font-semibold truncate">{c.case_name}</h3>
                     <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-                      <span>{getLabelForValue(CASE_TYPES, c.case_type)}</span>
+                      <span>{getLabel(OPTION_KEYS.CASE_TYPES, c.case_type)}</span>
                       <span className="capitalize">{c.side}</span>
                       {c.patient_name && <span>Patient: {c.patient_name}</span>}
                     </div>

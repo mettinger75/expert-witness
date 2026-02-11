@@ -1,17 +1,30 @@
 'use client'
 
+import { useMemo } from 'react'
 import Link from 'next/link'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { useCases } from '@/hooks/useCases'
 import { useInvoices } from '@/hooks/useInvoices'
 import { StatusBadge } from '@/components/shared/StatusBadge'
-import { CASE_STATUSES, getLabelForValue, getColorForValue } from '@/lib/constants'
+import { CASE_STATUSES, getLabelForValue, getColorForValue, OPTION_KEYS } from '@/lib/constants'
+import { useAppOptions } from '@/components/providers/OptionsProvider'
 import { formatDate, formatCurrency } from '@/lib/formatters'
 import { Briefcase, Clock, DollarSign, AlertTriangle, ArrowRight } from 'lucide-react'
 
+interface DashboardWidget {
+  widget: string
+  label: string
+  is_visible: boolean
+  sort_order: number
+}
+
 export default function DashboardPage() {
+  const { getOptions } = useAppOptions()
   const { data: activeCases = [] } = useCases({ is_closed: false })
   const { data: allInvoices = [] } = useInvoices()
+
+  // Get dashboard layout from settings
+  const dashLayout = getOptions(OPTION_KEYS.DASHBOARD_LAYOUT) as unknown as DashboardWidget[]
 
   const outstandingBalance = allInvoices
     .filter((i) => ['sent', 'overdue', 'partial'].includes(i.status))
@@ -25,12 +38,49 @@ export default function DashboardPage() {
     return diffDays <= 30 && diffDays >= -7
   })
 
-  const stats = [
-    { title: 'Active Cases', value: String(activeCases.length), icon: Briefcase, href: '/cases' },
-    { title: 'Unbilled Hours', value: '—', icon: Clock, href: '/billing' },
-    { title: 'Outstanding Balance', value: formatCurrency(outstandingBalance), icon: DollarSign, href: '/billing' },
-    { title: 'Upcoming Deadlines', value: String(upcomingDeadlines.length), icon: AlertTriangle, href: '/cases' },
+  const allStats = [
+    { key: 'stat_active_cases', title: 'Active Cases', value: String(activeCases.length), icon: Briefcase, href: '/cases' },
+    { key: 'stat_pending_deadlines', title: 'Upcoming Deadlines', value: String(upcomingDeadlines.length), icon: AlertTriangle, href: '/cases' },
+    { key: 'stat_unbilled_hours', title: 'Unbilled Hours', value: '—', icon: Clock, href: '/billing' },
+    { key: 'stat_outstanding_invoices', title: 'Outstanding Balance', value: formatCurrency(outstandingBalance), icon: DollarSign, href: '/billing' },
   ]
+
+  // Filter and sort stats based on dashboard layout
+  const stats = useMemo(() => {
+    if (!dashLayout || dashLayout.length === 0) return allStats
+    const statWidgets = dashLayout
+      .filter((w) => w.widget.startsWith('stat_') && w.is_visible)
+      .sort((a, b) => a.sort_order - b.sort_order)
+    if (statWidgets.length === 0) return allStats
+    return statWidgets
+      .map((sw) => allStats.find((s) => s.key === sw.widget))
+      .filter(Boolean) as typeof allStats
+  }, [dashLayout, allStats])
+
+  // Check widget visibility
+  const isWidgetVisible = (widgetKey: string) => {
+    if (!dashLayout || dashLayout.length === 0) return true
+    const w = dashLayout.find((d) => d.widget === widgetKey)
+    return w ? w.is_visible : true
+  }
+
+  // Sort bottom widgets
+  const bottomWidgets = useMemo(() => {
+    const widgets = [
+      { key: 'recent_cases', sort: 4 },
+      { key: 'upcoming_deadlines', sort: 5 },
+    ]
+    if (dashLayout && dashLayout.length > 0) {
+      return widgets
+        .map((w) => {
+          const layout = dashLayout.find((d) => d.widget === w.key)
+          return { ...w, sort: layout?.sort_order ?? w.sort, visible: layout?.is_visible ?? true }
+        })
+        .filter((w) => w.visible)
+        .sort((a, b) => a.sort - b.sort)
+    }
+    return widgets.map((w) => ({ ...w, visible: true }))
+  }, [dashLayout])
 
   const recentCases = activeCases.slice(0, 5)
 
@@ -64,6 +114,7 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Cases */}
+        {isWidgetVisible('recent_cases') && (
         <div className="bg-white border border-[#D8DCE3] rounded-xl overflow-hidden shadow-sm">
           <div className="px-6 py-3 flex items-center justify-between" style={{ backgroundColor: '#091525' }}>
             <h2
@@ -99,8 +150,10 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
+        )}
 
         {/* Upcoming Deadlines */}
+        {isWidgetVisible('upcoming_deadlines') && (
         <div className="bg-white border border-[#D8DCE3] rounded-xl overflow-hidden shadow-sm">
           <div className="px-6 py-3 flex items-center justify-between" style={{ backgroundColor: '#091525' }}>
             <h2
@@ -149,6 +202,7 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
+        )}
       </div>
     </div>
   )
