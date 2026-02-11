@@ -18,6 +18,7 @@ import {
   Upload,
   DollarSign,
   Gavel,
+  FileSignature,
 } from 'lucide-react'
 import { PortalSummary } from './PortalSummary'
 import { PortalTimeline } from './PortalTimeline'
@@ -26,6 +27,8 @@ import { PortalReports } from './PortalReports'
 import { PortalDocuments } from './PortalDocuments'
 import { PortalFeeSchedule } from './PortalFeeSchedule'
 import { PortalDepositions } from './PortalDepositions'
+import { PortalContract } from './PortalContract'
+import { PortalOnboarding } from './PortalOnboarding'
 
 interface PortalInvite {
   id: string
@@ -40,6 +43,10 @@ interface PortalInvite {
   can_upload_documents: boolean
   can_view_fee_schedule: boolean
   can_view_depositions: boolean
+  can_sign_contract: boolean
+  contract_id: string | null
+  onboarding_mode: boolean
+  onboarding_steps: Record<string, string> | null
   expires_at: string
   view_count: number
   contact: {
@@ -50,6 +57,13 @@ interface PortalInvite {
     organization_name?: string
     contact_type: string
   } | null
+}
+
+interface ContractStatus {
+  id: string
+  status: string
+  signedAt: string | null
+  title: string
 }
 
 interface CaseData {
@@ -87,18 +101,15 @@ interface CaseContact {
   }
 }
 
-interface SharedReport {
+interface CaseReport {
   id: string
-  entity_id: string
-  token: string
-  is_active: boolean
-  reports: {
-    id: string
-    report_name: string
-    status: string
-    created_at: string
-    updated_at: string
-  } | null
+  report_name: string
+  report_type: string
+  status: string
+  version: number
+  is_latest_version: boolean
+  created_at: string
+  updated_at: string
 }
 
 interface Communication {
@@ -144,11 +155,12 @@ interface PortalViewProps {
   invite: PortalInvite
   caseData: CaseData
   caseContacts: CaseContact[]
-  sharedReports: SharedReport[]
+  caseReports: CaseReport[]
   communications: Communication[]
   feeSchedule: FeeScheduleItem[]
   depositions: DepositionPortalItem[]
   initialUnreadCount: number
+  contractStatus: ContractStatus | null
 }
 
 export function PortalView({
@@ -156,16 +168,25 @@ export function PortalView({
   invite,
   caseData,
   caseContacts,
-  sharedReports,
+  caseReports,
   communications,
   feeSchedule,
   depositions,
   initialUnreadCount,
+  contractStatus,
 }: PortalViewProps) {
   const [unreadCount, setUnreadCount] = useState(initialUnreadCount)
-  const [showWelcome, setShowWelcome] = useState(invite.view_count === 1)
+  const [showWelcome, setShowWelcome] = useState(invite.view_count === 1 && !invite.onboarding_mode)
+  const [contractSigned, setContractSigned] = useState(contractStatus?.status === 'signed')
+  const [showOnboarding, setShowOnboarding] = useState(invite.onboarding_mode)
 
   const tabs: TabConfig[] = [
+    {
+      id: 'contract',
+      label: 'Contract',
+      icon: <FileSignature className="h-4 w-4" />,
+      enabled: invite.can_sign_contract && !!invite.contract_id,
+    },
     {
       id: 'summary',
       label: 'Summary',
@@ -217,6 +238,37 @@ export function PortalView({
     ? `${invite.contact.first_name} ${invite.contact.last_name}`
     : 'Attorney'
 
+  // Onboarding mode: show guided stepper instead of tabs
+  if (showOnboarding) {
+    const onboardingSteps = (invite.onboarding_steps || {
+      sign_contract: 'pending',
+      retainer_payment: 'locked',
+      upload_documents: 'locked',
+    }) as { sign_contract: 'pending' | 'completed' | 'locked' | 'not_applicable'; retainer_payment: 'pending' | 'completed' | 'locked' | 'not_applicable'; upload_documents: 'pending' | 'completed' | 'locked' | 'not_applicable' }
+
+    return (
+      <div>
+        {/* Case header */}
+        <div className="mb-8 text-center">
+          <div className="inline-flex items-center gap-2 bg-[#0E1F35] text-white px-4 py-1.5 rounded-full text-sm mb-3">
+            <span className="text-[#C9A84C] font-medium">Case Portal</span>
+            <span className="text-white/40">|</span>
+            <span>{caseData.case_number}</span>
+          </div>
+          <h1 className="text-2xl font-bold text-[#0E1F35]">{caseData.case_name}</h1>
+        </div>
+
+        <PortalOnboarding
+          token={token}
+          caseName={caseData.case_name}
+          contactName={contactName}
+          initialSteps={onboardingSteps}
+          onComplete={() => setShowOnboarding(false)}
+        />
+      </div>
+    )
+  }
+
   return (
     <div>
       {/* Welcome Dialog (first visit) */}
@@ -233,6 +285,9 @@ export function PortalView({
           <div className="text-sm text-gray-600 space-y-2">
             <p>From this portal you can:</p>
             <ul className="list-disc list-inside space-y-1">
+              {invite.can_sign_contract && invite.contract_id && (
+                <li className="font-medium text-[#0E1F35]">Review and sign the retention agreement</li>
+              )}
               {invite.can_view_summary && <li>View the case summary</li>}
               {invite.can_view_timeline && (
                 <li>Review the communication timeline</li>
@@ -262,15 +317,19 @@ export function PortalView({
             <Button
               onClick={() => {
                 setShowWelcome(false)
-                if (invite.can_upload_documents) {
+                if (invite.can_sign_contract && invite.contract_id && !contractSigned) {
+                  setActiveTab('contract')
+                } else if (invite.can_upload_documents) {
                   setActiveTab('documents')
                 }
               }}
               className="bg-[#0E1F35] hover:bg-[#0E1F35]/90"
             >
-              {invite.can_upload_documents
-                ? 'Upload Documents'
-                : 'Get Started'}
+              {invite.can_sign_contract && invite.contract_id && !contractSigned
+                ? 'Review & Sign Agreement'
+                : invite.can_upload_documents
+                  ? 'Upload Documents'
+                  : 'Get Started'}
             </Button>
             <Button variant="outline" onClick={() => setShowWelcome(false)}>
               Explore Portal
@@ -314,6 +373,9 @@ export function PortalView({
                   {unreadCount}
                 </span>
               )}
+              {tab.id === 'contract' && !contractSigned && (
+                <span className="ml-1 w-2 h-2 rounded-full bg-[#C9A84C]" />
+              )}
             </button>
           ))}
         </nav>
@@ -321,6 +383,12 @@ export function PortalView({
 
       {/* Tab content */}
       <div>
+        {activeTab === 'contract' && (
+          <PortalContract
+            token={token}
+            onSigned={() => setContractSigned(true)}
+          />
+        )}
         {activeTab === 'summary' && (
           <PortalSummary caseData={caseData} caseContacts={caseContacts} />
         )}
@@ -335,8 +403,7 @@ export function PortalView({
         )}
         {activeTab === 'reports' && (
           <PortalReports
-            sharedReports={sharedReports}
-            canEdit={invite.can_edit_reports}
+            caseReports={caseReports}
           />
         )}
         {activeTab === 'documents' && <PortalDocuments token={token} />}

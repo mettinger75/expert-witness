@@ -40,6 +40,7 @@ export default function CaseOverviewPage() {
   const [portalInviteOpen, setPortalInviteOpen] = useState(false)
   const [portalContactId, setPortalContactId] = useState<string | undefined>()
   const [portalContactName, setPortalContactName] = useState<string | undefined>()
+  const [portalContactEmail, setPortalContactEmail] = useState<string | undefined>()
 
   if (isLoading || !caseData) return <LoadingSpinner className="py-12" />
 
@@ -241,6 +242,7 @@ export default function CaseOverviewPage() {
                         onClick={() => {
                           setPortalContactId(cc.contact_id)
                           setPortalContactName(`${contact.first_name} ${contact.last_name}`)
+                          setPortalContactEmail(contact.email || undefined)
                           setPortalInviteOpen(true)
                         }}
                       >
@@ -636,6 +638,8 @@ export default function CaseOverviewPage() {
         caseId={caseId}
         contactId={portalContactId}
         contactName={portalContactName}
+        contactEmail={portalContactEmail}
+        caseName={caseData.case_name}
         open={portalInviteOpen}
         onOpenChange={setPortalInviteOpen}
       />

@@ -53,16 +53,16 @@ export async function GET(
       .select('*, contacts(*)')
       .eq('case_id', invite.case_id)
 
-    // Fetch shared reports for this contact (if reports enabled)
-    let sharedReports: unknown[] = []
+    // Fetch reports for this case (if reports enabled)
+    let caseReports: unknown[] = []
     if (invite.can_view_reports) {
-      const { data: links } = await supabase
-        .from('shared_links')
-        .select('*, reports:entity_id(*)')
-        .eq('contact_id', invite.contact_id)
-        .eq('entity_type', 'report')
-        .eq('is_active', true)
-      sharedReports = links || []
+      const { data: reports } = await supabase
+        .from('reports')
+        .select('id, report_name, report_type, status, version, is_latest_version, created_at, updated_at')
+        .eq('case_id', invite.case_id)
+        .eq('is_latest_version', true)
+        .order('updated_at', { ascending: false })
+      caseReports = reports || []
     }
 
     // Fetch communication timeline (if enabled)
@@ -100,6 +100,24 @@ export async function GET(
       depositions = data || []
     }
 
+    // Fetch contract status if contract is attached
+    let contractStatus: { id: string; status: string; signedAt: string | null; title: string } | null = null
+    if (invite.can_sign_contract && invite.contract_id) {
+      const { data: contract } = await supabase
+        .from('contracts')
+        .select('id, status, signed_at, title')
+        .eq('id', invite.contract_id)
+        .single()
+      if (contract) {
+        contractStatus = {
+          id: contract.id,
+          status: contract.status,
+          signedAt: contract.signed_at,
+          title: contract.title,
+        }
+      }
+    }
+
     // Unread message count
     let unreadCount = 0
     if (invite.can_message) {
@@ -126,10 +144,15 @@ export async function GET(
         can_upload_documents: invite.can_upload_documents,
         can_view_fee_schedule: invite.can_view_fee_schedule,
         can_view_depositions: invite.can_view_depositions,
+        can_sign_contract: invite.can_sign_contract,
+        contract_id: invite.contract_id,
+        onboarding_mode: invite.onboarding_mode,
+        onboarding_steps: invite.onboarding_steps,
         expires_at: invite.expires_at,
         view_count: invite.view_count + 1,
         contact: invite.contacts,
       },
+      contractStatus,
       caseData: {
         id: caseData.id,
         case_name: caseData.case_name,
@@ -150,7 +173,7 @@ export async function GET(
         jurisdiction_court: caseData.jurisdiction_court,
       },
       caseContacts: caseContacts || [],
-      sharedReports,
+      caseReports,
       communications,
       feeSchedule,
       depositions,

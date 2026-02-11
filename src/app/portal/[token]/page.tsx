@@ -18,6 +18,10 @@ interface PortalInvite {
   can_upload_documents: boolean
   can_view_fee_schedule: boolean
   can_view_depositions: boolean
+  can_sign_contract: boolean
+  contract_id: string | null
+  onboarding_mode: boolean
+  onboarding_steps: Record<string, string> | null
   expires_at: string
   view_count: number
   contact: {
@@ -28,6 +32,13 @@ interface PortalInvite {
     organization_name?: string
     contact_type: string
   } | null
+}
+
+interface ContractStatusInfo {
+  id: string
+  status: string
+  signedAt: string | null
+  title: string
 }
 
 interface CaseData {
@@ -65,18 +76,15 @@ interface CaseContact {
   }
 }
 
-interface SharedReport {
+interface CaseReport {
   id: string
-  entity_id: string
-  token: string
-  is_active: boolean
-  reports: {
-    id: string
-    report_name: string
-    status: string
-    created_at: string
-    updated_at: string
-  } | null
+  report_name: string
+  report_type: string
+  status: string
+  version: number
+  is_latest_version: boolean
+  created_at: string
+  updated_at: string
 }
 
 interface Communication {
@@ -114,11 +122,12 @@ interface PortalData {
   invite: PortalInvite
   caseData: CaseData
   caseContacts: CaseContact[]
-  sharedReports: SharedReport[]
+  caseReports: CaseReport[]
   communications: Communication[]
   feeSchedule: FeeScheduleItem[]
   depositions: DepositionPortalItem[]
   unreadCount: number
+  contractStatus: ContractStatusInfo | null
 }
 
 export default function PortalPage() {
@@ -172,11 +181,12 @@ export default function PortalPage() {
       invite={data.invite}
       caseData={data.caseData}
       caseContacts={data.caseContacts}
-      sharedReports={data.sharedReports}
+      caseReports={data.caseReports}
       communications={data.communications}
       feeSchedule={data.feeSchedule}
       depositions={data.depositions}
       initialUnreadCount={data.unreadCount}
+      contractStatus={data.contractStatus}
     />
   )
 }
