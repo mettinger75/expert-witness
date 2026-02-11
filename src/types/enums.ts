@@ -78,6 +78,9 @@ export type ContactType =
   | 'medical_provider'
   | 'insurance'
   | 'court'
+  | 'physician'
+  | 'nurse'
+  | 'patient'
   | 'other';
 
 export type CaseContactRole =

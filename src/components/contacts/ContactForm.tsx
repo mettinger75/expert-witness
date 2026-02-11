@@ -30,7 +30,7 @@ const contactSchema = z.object({
   address_zip: z.string().optional(),
   bar_number: z.string().optional(),
   specialty: z.string().optional(),
-  preferred_communication: z.enum(['email', 'phone', 'fax', 'mail']).optional(),
+  preferred_communication: z.enum(['email', 'phone', 'fax']).optional(),
   notes: z.string().optional(),
 })
 
@@ -61,7 +61,7 @@ export function ContactForm({ initialData, onSubmit, isSubmitting }: ContactForm
       address_zip: initialData?.address_zip ?? '',
       bar_number: initialData?.bar_number ?? '',
       specialty: initialData?.specialty ?? '',
-      preferred_communication: (initialData?.preferred_communication as 'email' | 'phone' | 'fax' | 'mail') ?? 'email',
+      preferred_communication: (initialData?.preferred_communication as 'email' | 'phone' | 'fax') ?? 'email',
       notes: initialData?.notes ?? '',
     },
   })
@@ -208,7 +208,6 @@ export function ContactForm({ initialData, onSubmit, isSubmitting }: ContactForm
                         <SelectItem value="email">Email</SelectItem>
                         <SelectItem value="phone">Phone</SelectItem>
                         <SelectItem value="fax">Fax</SelectItem>
-                        <SelectItem value="mail">Mail</SelectItem>
                       </SelectContent>
                     </Select>
                   </FormItem>
