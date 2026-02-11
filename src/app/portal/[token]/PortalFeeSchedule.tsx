@@ -13,10 +13,12 @@ import { DollarSign } from 'lucide-react'
 import { ACTIVITY_TYPES } from '@/lib/constants'
 import { formatCurrency } from '@/lib/formatters'
 
-interface FeeScheduleItem {
+export interface FeeScheduleItem {
   activity_type: string
   description: string
   rate_per_hour: number
+  flat_fee: number | null
+  daily_rate: number | null
 }
 
 interface PortalFeeScheduleProps {
@@ -54,6 +56,12 @@ export function PortalFeeSchedule({ feeSchedule }: PortalFeeScheduleProps) {
                 <TableHead className="text-[#0E1F35] font-semibold text-right">
                   Rate / Hr
                 </TableHead>
+                <TableHead className="text-[#0E1F35] font-semibold text-right">
+                  Flat Fee
+                </TableHead>
+                <TableHead className="text-[#0E1F35] font-semibold text-right">
+                  Daily Rate
+                </TableHead>
                 <TableHead className="text-[#0E1F35] font-semibold">
                   Description
                 </TableHead>
@@ -71,6 +79,12 @@ export function PortalFeeSchedule({ feeSchedule }: PortalFeeScheduleProps) {
                     </TableCell>
                     <TableCell className="text-right font-semibold text-[#C9A84C]">
                       {formatCurrency(item.rate_per_hour)}
+                    </TableCell>
+                    <TableCell className="text-right font-semibold text-[#0E1F35]">
+                      {item.flat_fee != null ? formatCurrency(item.flat_fee) : <span className="text-gray-300">—</span>}
+                    </TableCell>
+                    <TableCell className="text-right font-semibold text-[#0E1F35]">
+                      {item.daily_rate != null ? formatCurrency(item.daily_rate) : <span className="text-gray-300">—</span>}
                     </TableCell>
                     <TableCell className="text-sm text-gray-600">
                       {item.description || '-'}

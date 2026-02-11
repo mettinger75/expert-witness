@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Case Portal — Dr. Mark Ettinger',
+  title: 'Case Portal — Mark Ettinger, M.D.',
   description: 'Attorney case portal',
 }
 
@@ -15,7 +15,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
             ME
           </div>
           <div>
-            <h1 className="text-sm font-semibold">Dr. Mark Ettinger</h1>
+            <h1 className="text-sm font-semibold">Mark Ettinger, M.D.</h1>
             <p className="text-xs text-gray-300">Expert Witness — Case Portal</p>
           </div>
         </div>

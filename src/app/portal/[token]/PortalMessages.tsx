@@ -139,7 +139,7 @@ export function PortalMessages({ token, onUnreadChange }: PortalMessagesProps) {
       {/* Header with refresh */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-medium text-gray-500">
-          Secure Messages with Dr. Ettinger
+          Secure Messages with Mark Ettinger, M.D.
         </h3>
         <Button
           variant="outline"

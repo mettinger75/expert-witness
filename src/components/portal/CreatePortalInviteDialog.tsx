@@ -3,22 +3,24 @@
 import { useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
-import { Copy, Check, Link2, Loader2, Mail, Send } from 'lucide-react'
+import { Copy, Check, Link2, Loader2, Mail, Send, FileSignature } from 'lucide-react'
 
 interface CreatePortalInviteDialogProps {
   caseId: string
   contactId?: string
   contactName?: string
   contactEmail?: string
+  contactOrganization?: string
   caseName?: string
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-export function CreatePortalInviteDialog({ caseId, contactId, contactName, contactEmail, caseName, open, onOpenChange }: CreatePortalInviteDialogProps) {
+export function CreatePortalInviteDialog({ caseId, contactId, contactName, contactEmail, contactOrganization, caseName, open, onOpenChange }: CreatePortalInviteDialogProps) {
   const [creating, setCreating] = useState(false)
   const [portalUrl, setPortalUrl] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
@@ -37,6 +39,13 @@ export function CreatePortalInviteDialog({ caseId, contactId, contactName, conta
   const [expiresInDays, setExpiresInDays] = useState('90')
   const [invitationMessage, setInvitationMessage] = useState('')
 
+  // Contract / Onboarding
+  const [attachContract, setAttachContract] = useState(false)
+  const [hourlyRate, setHourlyRate] = useState('500')
+  const [depositionRate, setDepositionRate] = useState('750')
+  const [trialRate, setTrialRate] = useState('750')
+  const [retainerAmount, setRetainerAmount] = useState('5000')
+
   async function handleCreate() {
     if (!contactId) {
       toast.error('No contact selected')
@@ -44,6 +53,39 @@ export function CreatePortalInviteDialog({ caseId, contactId, contactName, conta
     }
     setCreating(true)
     try {
+      let contractId: string | null = null
+
+      // Step 1: Create contract if attaching retention agreement
+      if (attachContract) {
+        const contractRes = await fetch('/api/contracts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            caseId,
+            contactId,
+            firmName: contactOrganization || null,
+            firmContactName: contactName || null,
+            firmEmail: contactEmail || null,
+            hourlyRate: parseFloat(hourlyRate) || 500,
+            depositionRate: parseFloat(depositionRate) || 750,
+            trialRate: parseFloat(trialRate) || 750,
+            retainerAmount: parseFloat(retainerAmount) || 5000,
+          }),
+        })
+        if (!contractRes.ok) throw new Error('Failed to create contract')
+        const contractData = await contractRes.json()
+        contractId = contractData.contract.id
+
+        // Step 2: Generate HTML for the contract
+        const pdfRes = await fetch('/api/contracts/generate-pdf', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contractId }),
+        })
+        if (!pdfRes.ok) throw new Error('Failed to generate contract')
+      }
+
+      // Step 3: Create the portal invite
       const res = await fetch('/api/portal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -59,15 +101,18 @@ export function CreatePortalInviteDialog({ caseId, contactId, contactName, conta
           canUploadDocuments,
           canViewFeeSchedule,
           canViewDepositions,
+          canSignContract: attachContract,
+          contractId,
+          onboardingMode: true,
           invitationMessage: invitationMessage.trim() || undefined,
         }),
       })
       if (!res.ok) throw new Error('Failed to create invite')
       const { portalUrl: url } = await res.json()
       setPortalUrl(url)
-      toast.success('Portal invite created')
-    } catch {
-      toast.error('Failed to create portal invite')
+      toast.success('Portal invite created' + (attachContract ? ' with retention agreement' : ''))
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to create portal invite')
     } finally {
       setCreating(false)
     }
@@ -98,6 +143,7 @@ export function CreatePortalInviteDialog({ caseId, contactId, contactName, conta
       if (canUploadDocuments) features.push('Upload documents and records')
       if (canViewFeeSchedule) features.push('View fee schedule')
       if (canViewDepositions) features.push('Review depositions')
+      if (attachContract) features.push('Review and sign retention agreement')
 
       const res = await fetch('/api/portal/invite-email', {
         method: 'POST',
@@ -131,12 +177,13 @@ export function CreatePortalInviteDialog({ caseId, contactId, contactName, conta
     setEmailSent(false)
     setSendingEmail(false)
     setInvitationMessage('')
+    setAttachContract(false)
     onOpenChange(false)
   }
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-[#0E1F35]">
             <Link2 className="h-5 w-5 inline mr-2 text-[#C9A84C]" />
@@ -222,6 +269,73 @@ export function CreatePortalInviteDialog({ caseId, contactId, contactName, conta
               </div>
             </div>
 
+            {/* Retention Agreement */}
+            <div className="p-4 bg-[#0E1F35]/5 border border-[#0E1F35]/10 rounded-lg space-y-3">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  checked={attachContract}
+                  onCheckedChange={(checked) => setAttachContract(checked === true)}
+                />
+                <div className="flex items-center gap-1.5">
+                  <FileSignature className="h-4 w-4 text-[#C9A84C]" />
+                  <span className="text-sm font-medium text-[#0E1F35]">Attach Retention Agreement</span>
+                </div>
+              </div>
+              {attachContract && (
+                <div className="space-y-3 pl-6">
+                  <p className="text-xs text-gray-500">
+                    A retention agreement will be auto-generated with {contactName || 'the attorney'}&apos;s information and the rates below.
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-xs text-gray-500">Hourly Rate</label>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="25"
+                        value={hourlyRate}
+                        onChange={(e) => setHourlyRate(e.target.value)}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500">Deposition Rate</label>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="25"
+                        value={depositionRate}
+                        onChange={(e) => setDepositionRate(e.target.value)}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500">Trial Rate</label>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="25"
+                        value={trialRate}
+                        onChange={(e) => setTrialRate(e.target.value)}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500">Retainer Amount</label>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="500"
+                        value={retainerAmount}
+                        onChange={(e) => setRetainerAmount(e.target.value)}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Features */}
             <div>
               <label className="text-sm font-medium text-gray-700 block mb-2">Portal Features</label>
@@ -285,7 +399,7 @@ export function CreatePortalInviteDialog({ caseId, contactId, contactName, conta
           ) : (
             <Button onClick={handleCreate} disabled={creating || !contactId}>
               {creating && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-              Create Invite
+              {attachContract ? 'Create Invite with Agreement' : 'Create Invite'}
             </Button>
           )}
         </DialogFooter>

@@ -1061,6 +1061,8 @@ export interface BillingRateRow {
   activity_type: string;
   description: string;
   rate_per_hour: number;
+  flat_fee: number | null;
+  daily_rate: number | null;
   is_active: boolean;
   effective_date: string;
   end_date: string | null;
@@ -1074,6 +1076,8 @@ export interface BillingRateInsert {
   activity_type: string;
   description: string;
   rate_per_hour: number;
+  flat_fee?: number | null;
+  daily_rate?: number | null;
   is_active?: boolean;
   effective_date: string;
   end_date?: string | null;
@@ -1529,6 +1533,8 @@ export interface ContractRow {
   signature_ip: string | null;
   signature_timestamp: string | null;
   signature_user_agent: string | null;
+  portal_invite_id: string | null;
+  sent_via_portal: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -1563,6 +1569,8 @@ export interface ContractInsert {
   signature_ip?: string | null;
   signature_timestamp?: string | null;
   signature_user_agent?: string | null;
+  portal_invite_id?: string | null;
+  sent_via_portal?: boolean;
 }
 
 export type ContractUpdate = Partial<ContractInsert>;
@@ -1920,6 +1928,10 @@ export interface PortalInviteRow {
   can_upload_documents: boolean;
   can_view_fee_schedule: boolean;
   can_view_depositions: boolean;
+  can_sign_contract: boolean;
+  contract_id: string | null;
+  onboarding_mode: boolean;
+  onboarding_steps: Json | null;
   is_active: boolean;
   expires_at: string;
   last_accessed_at: string | null;
@@ -1943,6 +1955,10 @@ export interface PortalInviteInsert {
   can_upload_documents?: boolean;
   can_view_fee_schedule?: boolean;
   can_view_depositions?: boolean;
+  can_sign_contract?: boolean;
+  contract_id?: string | null;
+  onboarding_mode?: boolean;
+  onboarding_steps?: Json | null;
   is_active?: boolean;
   expires_at: string;
   invited_by?: string | null;

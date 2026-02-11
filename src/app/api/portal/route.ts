@@ -18,6 +18,9 @@ export async function POST(request: NextRequest) {
       canUploadDocuments = true,
       canViewFeeSchedule = true,
       canViewDepositions = true,
+      canSignContract = false,
+      contractId = null,
+      onboardingMode = false,
       invitationMessage,
     } = body
 
@@ -30,6 +33,18 @@ export async function POST(request: NextRequest) {
 
     const expiresAt = new Date()
     expiresAt.setDate(expiresAt.getDate() + expiresInDays)
+
+    // Build onboarding steps if onboarding mode is enabled (6-step flow)
+    const onboardingSteps = onboardingMode
+      ? {
+          review_fee_schedule: 'pending',
+          review_cv: 'locked',
+          enter_case_details: 'locked',
+          sign_contract: canSignContract && contractId ? 'locked' : 'not_applicable',
+          retainer_payment: canSignContract && contractId ? 'locked' : 'not_applicable',
+          upload_documents: canUploadDocuments ? 'locked' : 'not_applicable',
+        }
+      : null
 
     const { data: invite, error } = await supabase
       .from('portal_invites')
@@ -45,6 +60,10 @@ export async function POST(request: NextRequest) {
         can_upload_documents: canUploadDocuments,
         can_view_fee_schedule: canViewFeeSchedule,
         can_view_depositions: canViewDepositions,
+        can_sign_contract: canSignContract,
+        contract_id: contractId || null,
+        onboarding_mode: onboardingMode,
+        onboarding_steps: onboardingSteps,
         expires_at: expiresAt.toISOString(),
         invitation_message: invitationMessage || null,
       })
@@ -52,6 +71,20 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error) throw error
+
+    // If a contract is attached, update the contract record
+    if (contractId && canSignContract) {
+      await supabase
+        .from('contracts')
+        .update({
+          portal_invite_id: invite.id,
+          sent_via_portal: true,
+          sent_at: new Date().toISOString(),
+          status: 'sent',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', contractId)
+    }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'
     const portalUrl = `${appUrl}/portal/${token}`

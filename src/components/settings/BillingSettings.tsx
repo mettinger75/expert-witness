@@ -23,6 +23,8 @@ import { toast } from 'sonner'
 interface RateFormState {
   activity_type: string
   rate_per_hour: string
+  flat_fee: string
+  daily_rate: string
   description: string
   effective_date: string
   is_active: boolean
@@ -31,6 +33,8 @@ interface RateFormState {
 const emptyRateForm = (): RateFormState => ({
   activity_type: '',
   rate_per_hour: '',
+  flat_fee: '',
+  daily_rate: '',
   description: '',
   effective_date: new Date().toISOString().split('T')[0],
   is_active: true,
@@ -79,6 +83,8 @@ export function BillingSettings() {
     setForm({
       activity_type: rate.activity_type,
       rate_per_hour: String(rate.rate_per_hour),
+      flat_fee: rate.flat_fee != null ? String(rate.flat_fee) : '',
+      daily_rate: rate.daily_rate != null ? String(rate.daily_rate) : '',
       description: rate.description ?? '',
       effective_date: rate.effective_date,
       is_active: rate.is_active,
@@ -89,12 +95,17 @@ export function BillingSettings() {
   async function handleSaveRate() {
     if (!form.activity_type) { toast.error('Please select an activity type'); return }
     const rateNum = parseFloat(form.rate_per_hour)
-    if (isNaN(rateNum) || rateNum <= 0) { toast.error('Please enter a valid rate'); return }
+    if (isNaN(rateNum) || rateNum <= 0) { toast.error('Please enter a valid hourly rate'); return }
+
+    const flatFeeNum = form.flat_fee ? parseFloat(form.flat_fee) : null
+    const dailyRateNum = form.daily_rate ? parseFloat(form.daily_rate) : null
 
     if (editingRate) {
       const payload: BillingRateUpdate = {
         activity_type: form.activity_type as BillingRateInsert['activity_type'],
         rate_per_hour: rateNum,
+        flat_fee: flatFeeNum,
+        daily_rate: dailyRateNum,
         description: form.description || '',
         effective_date: form.effective_date,
         is_active: form.is_active,
@@ -104,6 +115,8 @@ export function BillingSettings() {
       const payload: BillingRateInsert = {
         activity_type: form.activity_type as BillingRateInsert['activity_type'],
         rate_per_hour: rateNum,
+        flat_fee: flatFeeNum,
+        daily_rate: dailyRateNum,
         description: form.description || '',
         effective_date: form.effective_date,
         is_active: form.is_active,
@@ -174,7 +187,9 @@ export function BillingSettings() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Activity Type</TableHead>
-                    <TableHead className="text-right">Rate</TableHead>
+                    <TableHead className="text-right">Rate/Hr</TableHead>
+                    <TableHead className="text-right">Flat Fee</TableHead>
+                    <TableHead className="text-right">Daily Rate</TableHead>
                     <TableHead>Description</TableHead>
                     <TableHead>Effective Date</TableHead>
                     <TableHead className="text-center">Active</TableHead>
@@ -189,6 +204,8 @@ export function BillingSettings() {
                       <TableRow key={rate.id} className={!isActive ? 'opacity-60' : undefined}>
                         <TableCell className="font-medium">{getLabelForValue(ACTIVITY_TYPES, rate.activity_type)}</TableCell>
                         <TableCell className="text-right font-mono">{formatCurrency(rate.rate_per_hour)}/hr</TableCell>
+                        <TableCell className="text-right font-mono">{rate.flat_fee != null ? formatCurrency(rate.flat_fee) : <span className="text-gray-300">—</span>}</TableCell>
+                        <TableCell className="text-right font-mono">{rate.daily_rate != null ? `${formatCurrency(rate.daily_rate)}/day` : <span className="text-gray-300">—</span>}</TableCell>
                         <TableCell className="max-w-[200px] truncate text-muted-foreground">{rate.description || '-'}</TableCell>
                         <TableCell>{formatDate(rate.effective_date)}</TableCell>
                         <TableCell className="text-center">
@@ -241,8 +258,18 @@ export function BillingSettings() {
               </Select>
             </div>
             <div>
-              <Label>Rate ($/hr)</Label>
+              <Label>Hourly Rate ($/hr)</Label>
               <Input type="number" min="0" step="25" placeholder="e.g. 500" value={form.rate_per_hour} onChange={(e) => setForm((p) => ({ ...p, rate_per_hour: e.target.value }))} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Flat Fee ($)</Label>
+                <Input type="number" min="0" step="50" placeholder="Optional" value={form.flat_fee} onChange={(e) => setForm((p) => ({ ...p, flat_fee: e.target.value }))} />
+              </div>
+              <div>
+                <Label>Daily Rate ($/day)</Label>
+                <Input type="number" min="0" step="50" placeholder="Optional" value={form.daily_rate} onChange={(e) => setForm((p) => ({ ...p, daily_rate: e.target.value }))} />
+              </div>
             </div>
             <div>
               <Label>Description (optional)</Label>

@@ -134,6 +134,8 @@ interface FeeScheduleItem {
   activity_type: string
   description: string
   rate_per_hour: number
+  flat_fee: number | null
+  daily_rate: number | null
 }
 
 interface DepositionPortalItem {
@@ -241,10 +243,20 @@ export function PortalView({
   // Onboarding mode: show guided stepper instead of tabs
   if (showOnboarding) {
     const onboardingSteps = (invite.onboarding_steps || {
-      sign_contract: 'pending',
+      review_fee_schedule: 'pending',
+      review_cv: 'locked',
+      enter_case_details: 'locked',
+      sign_contract: 'locked',
       retainer_payment: 'locked',
       upload_documents: 'locked',
-    }) as { sign_contract: 'pending' | 'completed' | 'locked' | 'not_applicable'; retainer_payment: 'pending' | 'completed' | 'locked' | 'not_applicable'; upload_documents: 'pending' | 'completed' | 'locked' | 'not_applicable' }
+    }) as {
+      review_fee_schedule: 'pending' | 'completed' | 'locked' | 'not_applicable'
+      review_cv: 'pending' | 'completed' | 'locked' | 'not_applicable'
+      enter_case_details: 'pending' | 'completed' | 'locked' | 'not_applicable'
+      sign_contract: 'pending' | 'completed' | 'locked' | 'not_applicable'
+      retainer_payment: 'pending' | 'completed' | 'locked' | 'not_applicable'
+      upload_documents: 'pending' | 'completed' | 'locked' | 'not_applicable'
+    }
 
     return (
       <div>
@@ -263,6 +275,7 @@ export function PortalView({
           caseName={caseData.case_name}
           contactName={contactName}
           initialSteps={onboardingSteps}
+          feeSchedule={feeSchedule}
           onComplete={() => setShowOnboarding(false)}
         />
       </div>

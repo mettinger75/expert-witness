@@ -82,7 +82,7 @@ export async function GET(
     if (invite.can_view_fee_schedule) {
       const { data } = await supabase
         .from('billing_rates')
-        .select('activity_type, description, rate_per_hour')
+        .select('activity_type, description, rate_per_hour, flat_fee, daily_rate')
         .eq('is_active', true)
         .is('end_date', null)
         .order('activity_type')

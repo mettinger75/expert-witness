@@ -102,6 +102,8 @@ interface FeeScheduleItem {
   activity_type: string
   description: string
   rate_per_hour: number
+  flat_fee: number | null
+  daily_rate: number | null
 }
 
 interface DepositionPortalItem {
