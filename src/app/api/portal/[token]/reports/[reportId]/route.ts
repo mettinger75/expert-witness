@@ -76,11 +76,29 @@ export async function GET(
       .order('revision_number', { ascending: false })
 
     // Determine if this attorney can edit
-    const canEdit = !!(
-      invite.can_edit_reports &&
-      report.status === 'attorney_review' &&
-      report.active_collaboration_invite_id === invite.id
-    )
+    // If the invite has edit access and the report is in attorney_review,
+    // auto-link the invite if not already linked (or if linked to this invite)
+    let canEdit = false
+    if (invite.can_edit_reports && report.status === 'attorney_review') {
+      if (report.active_collaboration_invite_id === invite.id) {
+        canEdit = true
+      } else if (!report.active_collaboration_invite_id) {
+        // Auto-link: set collaboration fields so editing works seamlessly
+        const collabHtml = report.collaboration_html || report.rendered_html || ''
+        await supabase
+          .from('reports')
+          .update({
+            active_collaboration_invite_id: invite.id,
+            ...(collabHtml && !report.collaboration_html ? { collaboration_html: collabHtml } : {}),
+          })
+          .eq('id', reportId)
+        report.active_collaboration_invite_id = invite.id
+        if (!report.collaboration_html && collabHtml) {
+          report.collaboration_html = collabHtml
+        }
+        canEdit = true
+      }
+    }
 
     return NextResponse.json({
       report: {
@@ -194,11 +212,23 @@ export async function PUT(
     }
 
     // Verify report is in editable state for this attorney
-    if (report.status !== 'attorney_review' || report.active_collaboration_invite_id !== invite.id) {
+    // Allow editing if invite has edit access and report is in attorney_review,
+    // even if active_collaboration_invite_id wasn't explicitly set
+    const isLinkedToThisInvite = report.active_collaboration_invite_id === invite.id
+    const canAutoLink = !report.active_collaboration_invite_id && report.status === 'attorney_review'
+    if (report.status !== 'attorney_review' || (!isLinkedToThisInvite && !canAutoLink)) {
       return NextResponse.json(
         { error: 'This report is not currently editable by you' },
         { status: 403 }
       )
+    }
+
+    // Auto-link if needed
+    if (canAutoLink) {
+      await supabase
+        .from('reports')
+        .update({ active_collaboration_invite_id: invite.id })
+        .eq('id', reportId)
     }
 
     const contact = invite.contacts as unknown as { first_name: string; last_name: string; email: string } | null
