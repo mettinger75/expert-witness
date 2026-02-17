@@ -344,7 +344,14 @@ export function PortalOnboarding({
                         {config.key === 'upload_documents' && (
                           <div className="space-y-4">
                             <PortalDocuments token={token} />
-                            <div className="flex justify-end">
+                            <div className="flex items-center justify-between">
+                              <Button
+                                variant="outline"
+                                onClick={() => updateStep('upload_documents', 'completed')}
+                                className="text-gray-500 hover:text-gray-700"
+                              >
+                                Skip — No Documents Right Now
+                              </Button>
                               <Button
                                 onClick={() => updateStep('upload_documents', 'completed')}
                                 className="bg-[#0E1F35] hover:bg-[#0E1F35]/90"

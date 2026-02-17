@@ -111,31 +111,31 @@ export async function PATCH(
     steps[step] = stepStatus
 
     // Auto-unlock next step when a step is completed (6-step chain)
+    // Cascades through any not_applicable steps to find the next locked one
     if (stepStatus === 'completed') {
-      if (step === 'review_fee_schedule' && steps.review_cv === 'locked') {
-        steps.review_cv = 'pending'
-      }
-      if (step === 'review_cv' && steps.enter_case_details === 'locked') {
-        steps.enter_case_details = 'pending'
-      }
-      if (step === 'enter_case_details' && steps.sign_contract === 'locked') {
-        steps.sign_contract = 'pending'
-      }
-      if (step === 'sign_contract' && steps.retainer_payment === 'locked') {
-        steps.retainer_payment = 'pending'
-      }
-      if (step === 'retainer_payment' && steps.upload_documents === 'locked') {
-        steps.upload_documents = 'pending'
-      }
-      // If a step is completed and the next step is not_applicable, skip to the one after
-      if (step === 'enter_case_details' && steps.sign_contract === 'not_applicable') {
-        if (steps.retainer_payment === 'locked') steps.retainer_payment = 'pending'
-        if (steps.retainer_payment === 'not_applicable' && steps.upload_documents === 'locked') {
-          steps.upload_documents = 'pending'
+      const stepOrder: (keyof typeof steps)[] = [
+        'review_fee_schedule',
+        'review_cv',
+        'enter_case_details',
+        'sign_contract',
+        'retainer_payment',
+        'upload_documents',
+      ]
+
+      const completedIndex = stepOrder.indexOf(step)
+      if (completedIndex >= 0) {
+        // Walk forward from the completed step, unlocking the next actionable one
+        for (let i = completedIndex + 1; i < stepOrder.length; i++) {
+          const nextStep = stepOrder[i]
+          if (steps[nextStep] === 'locked') {
+            steps[nextStep] = 'pending'
+            break // only unlock one step
+          }
+          if (steps[nextStep] === 'not_applicable') {
+            continue // skip over not_applicable, keep looking
+          }
+          break // stop at pending or completed steps
         }
-      }
-      if (step === 'sign_contract' && steps.retainer_payment === 'not_applicable') {
-        if (steps.upload_documents === 'locked') steps.upload_documents = 'pending'
       }
     }
 
