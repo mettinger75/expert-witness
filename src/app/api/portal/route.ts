@@ -85,6 +85,29 @@ export async function POST(request: NextRequest) {
 
     if (error) throw error
 
+    // If edit access granted, auto-link any attorney_review reports on this case
+    if (canEditReports && invite) {
+      const { data: reviewReports } = await supabase
+        .from('reports')
+        .select('id, collaboration_html, rendered_html')
+        .eq('case_id', caseId)
+        .eq('status', 'attorney_review')
+        .is('active_collaboration_invite_id', null)
+
+      if (reviewReports && reviewReports.length > 0) {
+        for (const rpt of reviewReports) {
+          const collabHtml = rpt.collaboration_html || rpt.rendered_html || ''
+          await supabase
+            .from('reports')
+            .update({
+              active_collaboration_invite_id: invite.id,
+              ...(collabHtml && !rpt.collaboration_html ? { collaboration_html: collabHtml } : {}),
+            })
+            .eq('id', rpt.id)
+        }
+      }
+    }
+
     // If a contract is attached, update the contract record
     if (contractId && canSignContract) {
       await supabase
