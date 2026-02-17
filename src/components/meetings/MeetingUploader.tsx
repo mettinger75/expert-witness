@@ -10,7 +10,7 @@ interface MeetingUploaderProps {
 
 const ACCEPTED_TYPES = ['.mp3', '.wav', '.m4a', '.webm', '.ogg']
 const ACCEPTED_MIME = ['audio/mpeg', 'audio/wav', 'audio/x-m4a', 'audio/mp4', 'audio/webm', 'audio/ogg']
-const MAX_SIZE_MB = 25
+const MAX_SIZE_MB = 500
 const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024
 
 export function MeetingUploader({ caseId, onFileSelected }: MeetingUploaderProps) {

@@ -24,6 +24,7 @@ interface PortalInvite {
   onboarding_steps: Record<string, string> | null
   expires_at: string
   view_count: number
+  tutorial_completed_at: string | null
   contact: {
     id: string
     first_name: string

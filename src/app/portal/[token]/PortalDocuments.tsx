@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -21,14 +21,20 @@ import {
   File,
   X,
   FolderOpen,
+  FileText,
+  Clock,
 } from 'lucide-react'
 
-interface UploadedDocument {
+interface CaseDocument {
   id: string
   file_name: string
-  file_size: number
-  category: string
+  original_file_name: string
+  file_size_bytes: number
+  document_type: string | null
+  description: string | null
+  source_provider: string | null
   created_at: string
+  mime_type: string | null
 }
 
 interface PortalDocumentsProps {
@@ -45,19 +51,58 @@ const CATEGORIES = [
   { value: 'other', label: 'Other' },
 ]
 
+// Map DB document_type values back to display labels
+const DOC_TYPE_LABELS: Record<string, string> = {
+  medical_record: 'Medical Record',
+  billing_record: 'Billing Record',
+  imaging: 'Imaging',
+  lab_result: 'Lab Result',
+  operative_report: 'Operative Report',
+  anesthesia_record: 'Anesthesia Record',
+  nursing_notes: 'Nursing Notes',
+  physician_notes: 'Physician Notes',
+  discharge_summary: 'Discharge Summary',
+  autopsy_report: 'Autopsy Report',
+  deposition_transcript: 'Deposition Transcript',
+  expert_report: 'Expert Report',
+  pleading: 'Pleading',
+  correspondence: 'Correspondence',
+  insurance_document: 'Insurance Document',
+  photograph: 'Photograph',
+  video: 'Video',
+  audio: 'Audio',
+  other: 'Other',
+}
+
 function formatFileSize(bytes: number): string {
-  if (bytes === 0) return '0 B'
+  if (!bytes || bytes === 0) return '0 B'
   const k = 1024
   const sizes = ['B', 'KB', 'MB', 'GB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`
 }
 
+function getDocTypeLabel(value: string | null): string {
+  if (!value) return 'Other'
+  return DOC_TYPE_LABELS[value] || value.replace(/_/g, ' ')
+}
+
 function getCategoryLabel(value: string): string {
   return (
     CATEGORIES.find((c) => c.value === value)?.label ||
+    DOC_TYPE_LABELS[value] ||
     value.replace(/_/g, ' ')
   )
+}
+
+function formatDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  })
 }
 
 export function PortalDocuments({ token }: PortalDocumentsProps) {
@@ -67,13 +112,31 @@ export function PortalDocuments({ token }: PortalDocumentsProps) {
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
-  const [uploadedDocs, setUploadedDocs] = useState<UploadedDocument[]>([])
+  const [documents, setDocuments] = useState<CaseDocument[]>([])
+  const [loadingDocs, setLoadingDocs] = useState(true)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Fetch existing documents on mount
+  useEffect(() => {
+    async function fetchDocuments() {
+      try {
+        const res = await fetch(`/api/portal/${token}/documents`)
+        if (res.ok) {
+          const data = await res.json()
+          setDocuments(data.documents || [])
+        }
+      } catch (err) {
+        console.error('Failed to fetch documents:', err)
+      } finally {
+        setLoadingDocs(false)
+      }
+    }
+    fetchDocuments()
+  }, [token])
+
   const handleFileSelect = useCallback((file: File) => {
-    // Validate file size (50MB max)
-    if (file.size > 50 * 1024 * 1024) {
-      toast.error('File size must be under 50MB')
+    if (file.size > 200 * 1024 * 1024) {
+      toast.error('File size must be under 200MB')
       return
     }
     setSelectedFile(file)
@@ -115,44 +178,79 @@ export function PortalDocuments({ token }: PortalDocumentsProps) {
     if (!selectedFile) return
 
     setUploading(true)
-    setUploadProgress(10)
+    setUploadProgress(5)
 
     try {
-      const formData = new FormData()
-      formData.append('file', selectedFile)
-      formData.append('category', category)
-      if (description.trim()) {
-        formData.append('description', description.trim())
-      }
-
-      // Simulate progress
-      const progressInterval = setInterval(() => {
-        setUploadProgress((prev) => Math.min(prev + 15, 85))
-      }, 300)
-
-      const res = await fetch(`/api/portal/${token}/documents`, {
+      // Step 1: Get a signed upload URL from our API (small JSON request)
+      const urlRes = await fetch(`/api/portal/${token}/documents`, {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'get-upload-url',
+          fileName: selectedFile.name,
+          fileType: selectedFile.type,
+        }),
       })
 
-      clearInterval(progressInterval)
-
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error || 'Upload failed')
+      if (!urlRes.ok) {
+        const errText = await urlRes.text().catch(() => '')
+        throw new Error(`Step 1 failed (${urlRes.status}): ${errText}`)
       }
 
-      const data = await res.json()
+      const { uploadUrl, storagePath } = await urlRes.json()
+      setUploadProgress(20)
+
+      // Step 2: Upload the file directly to Supabase Storage (bypasses Vercel 4.5MB body limit)
+      const uploadRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': selectedFile.type || 'application/octet-stream',
+        },
+        body: selectedFile,
+      })
+
+      if (!uploadRes.ok) {
+        const errText = await uploadRes.text().catch(() => '')
+        throw new Error(`Storage upload failed (${uploadRes.status}): ${errText}`)
+      }
+
+      setUploadProgress(70)
+
+      // Step 3: Confirm the upload and create the DB record
+      const confirmRes = await fetch(`/api/portal/${token}/documents`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'confirm-upload',
+          storagePath,
+          fileName: selectedFile.name,
+          fileSize: selectedFile.size,
+          mimeType: selectedFile.type,
+          category,
+          description: description.trim() || undefined,
+        }),
+      })
+
+      if (!confirmRes.ok) {
+        const errText = await confirmRes.text().catch(() => '')
+        throw new Error(`Record creation failed (${confirmRes.status}): ${errText}`)
+      }
+
+      const data = await confirmRes.json()
       setUploadProgress(100)
 
-      // Add to local list
-      setUploadedDocs((prev) => [
+      // Add to documents list at the top
+      setDocuments((prev) => [
         {
           id: data.document.id,
           file_name: data.document.file_name || selectedFile.name,
-          file_size: selectedFile.size,
-          category,
+          original_file_name: selectedFile.name,
+          file_size_bytes: selectedFile.size,
+          document_type: data.document.document_type || category,
+          description: data.document.description || description.trim() || null,
+          source_provider: data.document.source_provider || null,
           created_at: new Date().toISOString(),
+          mime_type: selectedFile.type || null,
         },
         ...prev,
       ])
@@ -178,7 +276,7 @@ export function PortalDocuments({ token }: PortalDocumentsProps) {
   return (
     <div className="space-y-6">
       {/* Upload area */}
-      <Card>
+      <Card data-tour="documents-upload-area">
         <CardHeader>
           <CardTitle className="text-lg text-[#0E1F35] flex items-center gap-2">
             <Upload className="h-5 w-5 text-[#C9A84C]" />
@@ -241,7 +339,7 @@ export function PortalDocuments({ token }: PortalDocumentsProps) {
                 </p>
                 <p className="text-xs text-gray-400 mt-1">
                   PDF, DOC, DOCX, XLS, XLSX, CSV, TXT, JPG, PNG, TIFF (max
-                  50MB)
+                  200MB)
                 </p>
               </>
             )}
@@ -322,45 +420,76 @@ export function PortalDocuments({ token }: PortalDocumentsProps) {
         </CardContent>
       </Card>
 
-      {/* Uploaded documents list */}
-      {uploadedDocs.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg text-[#0E1F35] flex items-center gap-2">
-              <FolderOpen className="h-5 w-5 text-[#C9A84C]" />
-              Uploaded This Session
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+      {/* All case documents */}
+      <Card data-tour="documents-list">
+        <CardHeader>
+          <CardTitle className="text-lg text-[#0E1F35] flex items-center gap-2">
+            <FolderOpen className="h-5 w-5 text-[#C9A84C]" />
+            Case Documents
+            {!loadingDocs && (
+              <Badge variant="outline" className="ml-2 text-xs">
+                {documents.length}
+              </Badge>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loadingDocs ? (
+            <div className="flex items-center justify-center py-8 text-gray-400">
+              <Loader2 className="h-5 w-5 animate-spin mr-2" />
+              Loading documents...
+            </div>
+          ) : documents.length === 0 ? (
+            <div className="text-center py-8 text-gray-400">
+              <FileText className="h-10 w-10 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">No documents uploaded yet</p>
+            </div>
+          ) : (
             <div className="space-y-3">
-              {uploadedDocs.map((doc) => (
+              {documents.map((doc) => (
                 <div
                   key={doc.id}
-                  className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg"
+                  className="flex items-center justify-between py-3 px-3 bg-gray-50 rounded-lg"
                 >
-                  <div className="flex items-center gap-3">
-                    <File className="h-4 w-4 text-[#0E1F35]" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-800">
-                        {doc.file_name}
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <File className="h-4 w-4 text-[#0E1F35] flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-800 truncate">
+                        {doc.original_file_name || doc.file_name}
                       </p>
-                      <p className="text-xs text-gray-500">
-                        {formatFileSize(doc.file_size)}
-                      </p>
+                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <span>{formatFileSize(doc.file_size_bytes)}</span>
+                        <span>·</span>
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {formatDate(doc.created_at)}
+                        </span>
+                        {doc.source_provider && (
+                          <>
+                            <span>·</span>
+                            <span>{doc.source_provider}</span>
+                          </>
+                        )}
+                      </div>
+                      {doc.description && (
+                        <p className="text-xs text-gray-400 mt-0.5 truncate">
+                          {doc.description}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <Badge
                     variant="outline"
-                    className="text-[10px] capitalize"
+                    className="text-[10px] capitalize flex-shrink-0 ml-2"
                   >
-                    {getCategoryLabel(doc.category)}
+                    {getDocTypeLabel(doc.document_type)}
                   </Badge>
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
-      )}
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }

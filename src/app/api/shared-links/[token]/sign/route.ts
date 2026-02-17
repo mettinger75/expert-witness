@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { signContract } from '@/lib/contract-signing'
 
 export async function POST(
   request: NextRequest,
@@ -59,30 +60,15 @@ export async function POST(
 
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || null
     const userAgent = request.headers.get('user-agent') || null
-    const signedAt = new Date().toISOString()
 
-    // Update the contract with signature data
-    const { error: updateError } = await supabase
-      .from('contracts')
-      .update({
-        signature_data: signatureData,
-        signed_at: signedAt,
-        signed_by: signerName,
-        signature_ip: ip,
-        signature_timestamp: signedAt,
-        signature_user_agent: userAgent,
-        status: 'signed',
-        updated_at: signedAt,
-      })
-      .eq('id', link.entity_id)
-
-    if (updateError) {
-      console.error('Contract signature update error:', updateError)
-      return NextResponse.json(
-        { error: 'Failed to record signature' },
-        { status: 500 }
-      )
-    }
+    // Sign the contract using shared utility
+    const { signedAt } = await signContract(supabase, {
+      contractId: link.entity_id,
+      signatureData,
+      signerName,
+      ip,
+      userAgent,
+    })
 
     // Deactivate the share link (one-time use for signing)
     await supabase

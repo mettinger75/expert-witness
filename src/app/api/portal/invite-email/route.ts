@@ -7,26 +7,56 @@ export async function POST(request: NextRequest) {
     const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'Dr. Mark Ettinger <onboarding@resend.dev>'
     const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'
 
-    const { portalUrl, recipientEmail, recipientName, caseName, invitationMessage, features } = await request.json()
+    const body = await request.json()
 
-    if (!portalUrl || !recipientEmail || !caseName) {
+    // Support both old param names and new ones from SendForSignatureDialog
+    const portalUrl = body.portalUrl
+    const recipientEmail = body.recipientEmail || body.contactEmail
+    const recipientName = body.recipientName || body.contactName
+    const caseName = body.caseName
+    const invitationMessage = body.invitationMessage || body.message
+    const features = body.features
+    const contractTitle = body.contractTitle
+
+    // If caseId is provided but caseName isn't, fetch it
+    let resolvedCaseName = caseName
+    if (!resolvedCaseName && body.caseId) {
+      try {
+        const { getSupabaseAdmin } = await import('@/lib/supabase-admin')
+        const supabase = getSupabaseAdmin()
+        const { data: caseData } = await supabase
+          .from('cases')
+          .select('case_name')
+          .eq('id', body.caseId)
+          .single()
+        resolvedCaseName = caseData?.case_name || 'your case'
+      } catch {
+        resolvedCaseName = 'your case'
+      }
+    }
+
+    if (!portalUrl || !recipientEmail || !resolvedCaseName) {
       return NextResponse.json(
-        { error: 'Missing required fields: portalUrl, recipientEmail, caseName' },
+        { error: 'Missing required fields: portalUrl, recipientEmail, caseName/caseId' },
         { status: 400 }
       )
     }
 
-    if (!features || !Array.isArray(features) || features.length === 0) {
-      return NextResponse.json(
-        { error: 'At least one feature must be specified' },
-        { status: 400 }
-      )
-    }
+    // Auto-build features list if not provided
+    const resolvedFeatures: string[] = features && Array.isArray(features) && features.length > 0
+      ? features
+      : [
+          ...(contractTitle ? ['Review and sign the retention agreement'] : []),
+          'View case summary and updates',
+          'Send secure messages',
+          'Upload documents and records',
+          'View fee schedule',
+        ]
 
     const greeting = recipientName ? `Dear ${recipientName},` : 'Dear Counsel,'
     const logoUrl = `${APP_URL}/logo-expert-witness.svg?v=2`
 
-    const featureListHtml = features
+    const featureListHtml = resolvedFeatures
       .map(
         (feature: string) =>
           `<tr>
@@ -37,6 +67,23 @@ export async function POST(request: NextRequest) {
           </tr>`
       )
       .join('')
+
+    // Contract-specific action required callout
+    const contractCalloutHtml = contractTitle
+      ? `
+      <div style="background-color: #fffbeb; border: 1px solid #fbbf24; border-radius: 6px; padding: 16px 20px; margin: 20px 0;">
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="padding: 0;">
+              <strong style="color: #92400e; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">&#9888; Action Required</strong>
+              <p style="color: #78350f; font-size: 14px; line-height: 1.6; margin: 8px 0 0 0;">
+                Please review and sign the <strong>${contractTitle}</strong> at your earliest convenience.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </div>`
+      : ''
 
     const htmlBody = `
 <!DOCTYPE html>
@@ -69,8 +116,10 @@ export async function POST(request: NextRequest) {
                 ${greeting}
               </p>
               <p style="color: #1e293b; font-size: 15px; line-height: 1.7; margin: 0 0 16px 0;">
-                You've been invited to access the case portal for <strong>${caseName}</strong>.
+                You've been invited to access the case portal for <strong>${resolvedCaseName}</strong>.
               </p>
+
+              ${contractCalloutHtml}
 
               ${invitationMessage ? `
               <div style="background-color: #fafaf9; border-left: 3px solid #C9A84C; padding: 12px 16px; margin: 20px 0; border-radius: 0 4px 4px 0;">
@@ -104,7 +153,7 @@ export async function POST(request: NextRequest) {
                 <tr>
                   <td align="center">
                     <a href="${portalUrl}" style="display: inline-block; background-color: #C9A84C; color: #0E1F35; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-size: 15px; font-weight: 600; letter-spacing: 0.3px;">
-                      Access Case Portal
+                      ${contractTitle ? 'Review &amp; Sign Agreement' : 'Access Case Portal'}
                     </a>
                   </td>
                 </tr>
@@ -132,7 +181,9 @@ export async function POST(request: NextRequest) {
 </body>
 </html>`
 
-    const subject = `Case Portal Invitation \u2014 ${caseName}`
+    const subject = contractTitle
+      ? `Action Required: Sign Agreement \u2014 ${resolvedCaseName}`
+      : `Case Portal Invitation \u2014 ${resolvedCaseName}`
 
     const { data, error } = await resend.emails.send({
       from: FROM_EMAIL,

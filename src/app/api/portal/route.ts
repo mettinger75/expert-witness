@@ -35,11 +35,24 @@ export async function POST(request: NextRequest) {
     expiresAt.setDate(expiresAt.getDate() + expiresInDays)
 
     // Build onboarding steps if onboarding mode is enabled (6-step flow)
+    // Check if case details are already filled — if so, skip that step
+    let caseDetailsAlreadyFilled = false
+    if (onboardingMode) {
+      const { data: caseData } = await supabase
+        .from('cases')
+        .select('case_name, case_type, side, patient_name')
+        .eq('id', caseId)
+        .single()
+      if (caseData?.case_name && caseData?.case_type && caseData?.side && caseData?.patient_name) {
+        caseDetailsAlreadyFilled = true
+      }
+    }
+
     const onboardingSteps = onboardingMode
       ? {
           review_fee_schedule: 'pending',
           review_cv: 'locked',
-          enter_case_details: 'locked',
+          enter_case_details: caseDetailsAlreadyFilled ? 'not_applicable' : 'locked',
           sign_contract: canSignContract && contractId ? 'locked' : 'not_applicable',
           retainer_payment: canSignContract && contractId ? 'locked' : 'not_applicable',
           upload_documents: canUploadDocuments ? 'locked' : 'not_applicable',

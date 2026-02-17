@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,7 @@ import {
   DollarSign,
   Gavel,
   FileSignature,
+  HelpCircle,
 } from 'lucide-react'
 import { PortalSummary } from './PortalSummary'
 import { PortalTimeline } from './PortalTimeline'
@@ -29,6 +30,7 @@ import { PortalFeeSchedule } from './PortalFeeSchedule'
 import { PortalDepositions } from './PortalDepositions'
 import { PortalContract } from './PortalContract'
 import { PortalOnboarding } from './PortalOnboarding'
+import { PortalTutorial } from './PortalTutorial'
 
 interface PortalInvite {
   id: string
@@ -49,6 +51,7 @@ interface PortalInvite {
   onboarding_steps: Record<string, string> | null
   expires_at: string
   view_count: number
+  tutorial_completed_at: string | null
   contact: {
     id: string
     first_name: string
@@ -181,6 +184,14 @@ export function PortalView({
   const [showWelcome, setShowWelcome] = useState(invite.view_count === 1 && !invite.onboarding_mode)
   const [contractSigned, setContractSigned] = useState(contractStatus?.status === 'signed')
   const [showOnboarding, setShowOnboarding] = useState(invite.onboarding_mode)
+  const [showTutorial, setShowTutorial] = useState(false)
+  const [tutorialCompleted, setTutorialCompleted] = useState(!!invite.tutorial_completed_at)
+
+  const launchTutorial = useCallback(() => {
+    if (!tutorialCompleted) {
+      setTimeout(() => setShowTutorial(true), 500)
+    }
+  }, [tutorialCompleted])
 
   const tabs: TabConfig[] = [
     {
@@ -276,7 +287,10 @@ export function PortalView({
           contactName={contactName}
           initialSteps={onboardingSteps}
           feeSchedule={feeSchedule}
-          onComplete={() => setShowOnboarding(false)}
+          onComplete={() => {
+            setShowOnboarding(false)
+            launchTutorial()
+          }}
         />
       </div>
     )
@@ -335,6 +349,7 @@ export function PortalView({
                 } else if (invite.can_upload_documents) {
                   setActiveTab('documents')
                 }
+                launchTutorial()
               }}
               className="bg-[#0E1F35] hover:bg-[#0E1F35]/90"
             >
@@ -344,7 +359,10 @@ export function PortalView({
                   ? 'Upload Documents'
                   : 'Get Started'}
             </Button>
-            <Button variant="outline" onClick={() => setShowWelcome(false)}>
+            <Button variant="outline" onClick={() => {
+              setShowWelcome(false)
+              launchTutorial()
+            }}>
               Explore Portal
             </Button>
           </DialogFooter>
@@ -352,23 +370,33 @@ export function PortalView({
       </Dialog>
 
       {/* Case header */}
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-[#0E1F35]">
-          {caseData.case_name}
-        </h2>
-        <p className="text-sm text-gray-500 mt-1">
-          {caseData.case_number} &middot; Portal for {contactName}
-          {invite.contact?.organization_name &&
-            ` (${invite.contact.organization_name})`}
-        </p>
+      <div className="mb-6 flex items-start justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-[#0E1F35]">
+            {caseData.case_name}
+          </h2>
+          <p className="text-sm text-gray-500 mt-1">
+            {caseData.case_number} &middot; Portal for {contactName}
+            {invite.contact?.organization_name &&
+              ` (${invite.contact.organization_name})`}
+          </p>
+        </div>
+        <button
+          onClick={() => setShowTutorial(true)}
+          className="text-gray-400 hover:text-[#C9A84C] transition-colors p-1.5 rounded-lg hover:bg-gray-100"
+          title="Portal tutorial"
+        >
+          <HelpCircle className="h-5 w-5" />
+        </button>
       </div>
 
       {/* Tab navigation - Meridian style */}
       <div className="border-b border-gray-200 mb-6">
-        <nav className="flex gap-1 -mb-px" aria-label="Portal tabs">
+        <nav className="flex gap-1 -mb-px" aria-label="Portal tabs" data-tour="portal-tabs">
           {enabledTabs.map((tab) => (
             <button
               key={tab.id}
+              data-tour={`tab-${tab.id}`}
               onClick={() => setActiveTab(tab.id)}
               className={`
                 flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors
@@ -416,6 +444,7 @@ export function PortalView({
         )}
         {activeTab === 'reports' && (
           <PortalReports
+            token={token}
             caseReports={caseReports}
           />
         )}
@@ -427,6 +456,19 @@ export function PortalView({
           <PortalDepositions depositions={depositions} />
         )}
       </div>
+
+      {/* Spotlight Tutorial */}
+      {showTutorial && (
+        <PortalTutorial
+          token={token}
+          enabledTabs={enabledTabs.map((t) => t.id)}
+          onSwitchTab={(tabId) => setActiveTab(tabId)}
+          onComplete={() => {
+            setShowTutorial(false)
+            setTutorialCompleted(true)
+          }}
+        />
+      )}
     </div>
   )
 }

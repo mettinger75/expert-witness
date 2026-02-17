@@ -3,6 +3,13 @@ import { documentsService, type DocumentFilters } from '@/services/documents.ser
 import type { DocumentInsert, DocumentUpdate } from '@/types/database.types'
 import { toast } from 'sonner'
 
+export function useAllDocuments(filters?: DocumentFilters) {
+  return useQuery({
+    queryKey: ['documents', 'all', filters],
+    queryFn: () => documentsService.getAll(filters),
+  })
+}
+
 export function useDocuments(caseId: string, filters?: DocumentFilters, options?: { refetchInterval?: number }) {
   return useQuery({
     queryKey: ['documents', 'case', caseId, filters],
@@ -81,28 +88,61 @@ export function useUploadDocument() {
       description?: string
       folderId?: string | null
     }) => {
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('caseId', caseId)
-      formData.append('category', category || 'medical_record')
-      if (description) formData.append('description', description)
-      if (folderId) formData.append('folderId', folderId)
-
-      const response = await fetch('/api/documents/upload', {
+      // Step 1: Get a signed upload URL (small JSON request — no file data)
+      const urlRes = await fetch('/api/documents/upload', {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'get-upload-url',
+          caseId,
+          fileName: file.name,
+          folderId: folderId || undefined,
+        }),
       })
 
-      if (!response.ok) {
-        let errorMsg = `Upload failed (${response.status})`
-        try {
-          const err = await response.json()
-          errorMsg = err.error || errorMsg
-        } catch { /* non-JSON */ }
-        throw new Error(errorMsg)
+      if (!urlRes.ok) {
+        const err = await urlRes.json().catch(() => ({ error: 'Failed to get upload URL' }))
+        throw new Error(err.error || `Upload URL request failed (${urlRes.status})`)
       }
 
-      return response.json()
+      const { uploadUrl, storagePath } = await urlRes.json()
+
+      // Step 2: Upload file directly to Supabase Storage (bypasses Vercel body limit)
+      const uploadRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': file.type || 'application/octet-stream',
+        },
+        body: file,
+      })
+
+      if (!uploadRes.ok) {
+        throw new Error(`Storage upload failed (${uploadRes.status})`)
+      }
+
+      // Step 3: Confirm upload and create DB record
+      const confirmRes = await fetch('/api/documents/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'confirm-upload',
+          storagePath,
+          caseId,
+          fileName: file.name,
+          fileSize: file.size,
+          mimeType: file.type,
+          category: category || 'medical_record',
+          description: description || undefined,
+          folderId: folderId || undefined,
+        }),
+      })
+
+      if (!confirmRes.ok) {
+        const err = await confirmRes.json().catch(() => ({ error: 'Failed to create record' }))
+        throw new Error(err.error || `Record creation failed (${confirmRes.status})`)
+      }
+
+      return confirmRes.json()
     },
     onSuccess: (data) => {
       const caseId = data?.document?.case_id

@@ -4,23 +4,17 @@ import { useState } from 'react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { EmptyState } from '@/components/shared/EmptyState'
+import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
+import { DocumentViewer } from '@/components/documents/DocumentViewer'
 import { DOCUMENT_CATEGORIES, getLabelForValue } from '@/lib/constants'
 import { formatDate } from '@/lib/formatters'
+import { useAllDocuments } from '@/hooks/useDocuments'
+import type { DocumentRow } from '@/types/database.types'
 import { Search, FileText, Filter } from 'lucide-react'
-
-// Placeholder data for the global documents browser
-const placeholderDocs = [
-  { id: '1', file_name: 'Anesthesia Record - 03/15/2025.pdf', case_name: 'Smith v. General Hospital', category: 'anesthesia_record', date_of_document: '2025-03-15', file_size: 2400000 },
-  { id: '2', file_name: 'Operative Report.pdf', case_name: 'Smith v. General Hospital', category: 'operative_report', date_of_document: '2025-03-15', file_size: 890000 },
-  { id: '3', file_name: 'Expert Report - Johnson Case.pdf', case_name: 'Johnson v. Metro Clinic', category: 'expert_report', date_of_document: '2025-06-20', file_size: 3200000 },
-  { id: '4', file_name: 'Deposition Transcript - Dr. Lee.pdf', case_name: 'Williams v. St. Mary Hospital', category: 'deposition', date_of_document: '2025-07-10', file_size: 5600000 },
-  { id: '5', file_name: 'Consent Form - Pre-Op.pdf', case_name: 'Smith v. General Hospital', category: 'consent_form', date_of_document: '2025-03-14', file_size: 340000 },
-]
 
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -31,15 +25,14 @@ function formatFileSize(bytes: number): string {
 export default function DocumentsPage() {
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
+  const [viewerOpen, setViewerOpen] = useState(false)
+  const [viewingDoc, setViewingDoc] = useState<DocumentRow | null>(null)
 
-  const filteredDocs = placeholderDocs.filter((doc) => {
-    if (categoryFilter !== 'all' && doc.category !== categoryFilter) return false
-    if (search) {
-      const term = search.toLowerCase()
-      return doc.file_name.toLowerCase().includes(term) || doc.case_name.toLowerCase().includes(term)
-    }
-    return true
-  })
+  const filters = {
+    category: categoryFilter !== 'all' ? categoryFilter : undefined,
+    search: search || undefined,
+  }
+  const { data: documents = [], isLoading } = useAllDocuments(filters)
 
   return (
     <div>
@@ -74,7 +67,9 @@ export default function DocumentsPage() {
       </div>
 
       {/* Documents Table */}
-      {filteredDocs.length === 0 ? (
+      {isLoading ? (
+        <LoadingSpinner className="py-12" />
+      ) : documents.length === 0 ? (
         <EmptyState
           icon={FileText}
           title="No documents found"
@@ -94,21 +89,36 @@ export default function DocumentsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredDocs.map((doc) => (
-                  <TableRow key={doc.id} className="cursor-pointer hover:bg-muted/50">
+                {documents.map((doc) => (
+                  <TableRow
+                    key={doc.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => {
+                      setViewingDoc(doc as DocumentRow)
+                      setViewerOpen(true)
+                    }}
+                  >
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <span className="font-medium text-sm">{doc.file_name}</span>
+                        <span className="font-medium text-sm">
+                          {doc.original_file_name || doc.file_name}
+                        </span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{doc.case_name}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {doc.cases?.case_name ?? '—'}
+                    </TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="text-xs">
                         {getLabelForValue(DOCUMENT_CATEGORIES, doc.category)}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-sm">{formatDate(doc.date_of_document)}</TableCell>
+                    <TableCell className="text-sm">
+                      {doc.date_of_document
+                        ? formatDate(doc.date_of_document)
+                        : formatDate(doc.created_at)}
+                    </TableCell>
                     <TableCell className="text-right text-sm text-muted-foreground">
                       {formatFileSize(doc.file_size)}
                     </TableCell>
@@ -119,6 +129,13 @@ export default function DocumentsPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Document Viewer with PDF reader, annotations, AI analysis */}
+      <DocumentViewer
+        document={viewingDoc}
+        open={viewerOpen}
+        onOpenChange={setViewerOpen}
+      />
     </div>
   )
 }

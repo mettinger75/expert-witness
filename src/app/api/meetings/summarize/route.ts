@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 
+export const maxDuration = 120 // 2 minutes for AI summarization
+
 export async function POST(request: NextRequest) {
   try {
     const apiKey = process.env.ANTHROPIC_API_KEY
@@ -65,7 +67,7 @@ ${meeting.transcript_text}`
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
-        'anthropic-version': '2024-10-22',
+        'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-5-20250929',
@@ -78,9 +80,17 @@ ${meeting.transcript_text}`
 
     if (!response.ok) {
       const errorText = await response.text()
-      console.error('Claude API error:', errorText)
+      console.error('Claude API error:', response.status, errorText)
+      // Surface the actual Anthropic error for debugging
+      let detail = ''
+      try {
+        const errJson = JSON.parse(errorText)
+        detail = errJson?.error?.message || errorText.substring(0, 200)
+      } catch {
+        detail = errorText.substring(0, 200)
+      }
       return NextResponse.json(
-        { error: `AI summarization failed (${response.status})` },
+        { error: `AI summarization failed (${response.status}): ${detail}` },
         { status: 500 }
       )
     }

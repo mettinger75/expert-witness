@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { AI_CONFIG, MODEL_BY_TASK, SYSTEM_PROMPTS, assembleContext } from '@/lib/ai'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 
+export const maxDuration = 180 // 3 minutes for report generation
+
 const ETTINGER_SYSTEM_PROMPT = `You are ghostwriting an expert witness report for Mark Ettinger, M.D., a board-certified anesthesiologist and critical care physician who serves as Chair and Medical Director of the Department of Anesthesiology at Medical City Arlington, a high-volume Level II trauma center in Texas.
 
 WRITING STYLE GUIDELINES (based on Dr. Ettinger's actual reports):

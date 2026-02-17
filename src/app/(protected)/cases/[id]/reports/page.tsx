@@ -27,6 +27,7 @@ import { DocxImportButton } from '@/components/editor/DocxImportButton'
 import { ShareDialog } from '@/components/sharing/ShareDialog'
 import { RedlineView } from '@/components/editor/RedlineView'
 import { toast } from 'sonner'
+import { SendToAttorneyDialog } from '@/components/reports/SendToAttorneyDialog'
 import {
   Plus,
   FileCheck,
@@ -48,13 +49,17 @@ import {
   Trash2,
   FilePlus,
   StickyNote,
+  Send,
+  Gavel,
+  RotateCcw,
 } from 'lucide-react'
 
 const REPORT_STATUSES = [
   { value: 'draft', label: 'Draft', color: 'slate' },
   { value: 'in_progress', label: 'In Progress', color: 'yellow' },
   { value: 'ai_generating', label: 'Generating', color: 'yellow' },
-  { value: 'review', label: 'In Review', color: 'orange' },
+  { value: 'review', label: 'Edits Submitted', color: 'orange' },
+  { value: 'attorney_review', label: 'With Attorney', color: 'yellow' },
   { value: 'revision', label: 'Revision', color: 'yellow' },
   { value: 'final', label: 'Final', color: 'green' },
   { value: 'sent', label: 'Sent', color: 'blue' },
@@ -467,6 +472,96 @@ export default function CaseReportsPage() {
     closeRedline()
   }, [closeRedline])
 
+  // Attorney review state
+  interface AttorneyRevision {
+    id: string
+    revision_number: number
+    submitted_by: string
+    submitted_by_name: string
+    submitted_html: string
+    base_html: string
+    notes: string | null
+    status: string
+    reviewer_notes: string | null
+    reviewed_at: string | null
+    created_at: string
+  }
+  const [reviewReportId, setReviewReportId] = useState<string | null>(null)
+  const [reviewRevisions, setReviewRevisions] = useState<AttorneyRevision[]>([])
+  const [reviewLoading, setReviewLoading] = useState(false)
+  const [reviewDecisionPending, setReviewDecisionPending] = useState(false)
+  const reviewRef = useRef<HTMLDivElement>(null)
+
+  const fetchAttorneyRevisions = useCallback(async (reportId: string) => {
+    setReviewLoading(true)
+    try {
+      const res = await fetch(`/api/reports/${reportId}/revisions`)
+      if (!res.ok) throw new Error('Failed to fetch')
+      const data = await res.json()
+      setReviewRevisions(data.revisions || [])
+      setReviewReportId(reportId)
+      setTimeout(() => {
+        reviewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 100)
+    } catch {
+      toast.error('Failed to load attorney revisions')
+      setReviewRevisions([])
+    } finally {
+      setReviewLoading(false)
+    }
+  }, [])
+
+  const closeReview = useCallback(() => {
+    setReviewReportId(null)
+    setReviewRevisions([])
+  }, [])
+
+  const handleReviewDecision = useCallback(async (action: 'approve' | 'request_changes' | 'approve_with_modifications', revisionId: string, modifiedHtml?: string, reviewNotes?: string) => {
+    if (!reviewReportId) return
+    setReviewDecisionPending(true)
+    try {
+      const res = await fetch(`/api/reports/${reviewReportId}/review-decision`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action,
+          revisionId,
+          modifiedHtml: modifiedHtml || null,
+          notes: reviewNotes || null,
+        }),
+      })
+      if (!res.ok) throw new Error('Failed to submit decision')
+      const actionLabels = { approve: 'approved', request_changes: 'sent back for changes', approve_with_modifications: 'approved with modifications' }
+      toast.success(`Report ${actionLabels[action]}`)
+      closeReview()
+    } catch {
+      toast.error('Failed to submit review decision')
+    } finally {
+      setReviewDecisionPending(false)
+    }
+  }, [reviewReportId, closeReview])
+
+  // Unfinalize report
+  const [unfinalizingId, setUnfinalizingId] = useState<string | null>(null)
+
+  const handleUnfinalize = useCallback(async (reportId: string) => {
+    setUnfinalizingId(reportId)
+    try {
+      await updateReport.mutateAsync({
+        id: reportId,
+        data: {
+          status: 'review' as ReportUpdate['status'],
+          approved_at: null,
+        },
+      })
+      toast.success('Report unfinalized — you can now re-send it')
+    } catch {
+      toast.error('Failed to unfinalize report')
+    } finally {
+      setUnfinalizingId(null)
+    }
+  }, [updateReport])
+
   // Report rename state
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
@@ -820,6 +915,100 @@ export default function CaseReportsPage() {
         </div>
       )}
 
+      {/* Attorney Review section — when attorney has submitted edits (status = review) */}
+      {reviewReportId && (
+        <div className="mb-8" ref={reviewRef}>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Gavel className="h-5 w-5 text-[#C9A84C]" />
+              <h3 className="font-semibold">Review Attorney Edits</h3>
+              {reviewRevisions.length === 0 && !reviewLoading && (
+                <span className="text-sm text-muted-foreground">&mdash; No revisions found</span>
+              )}
+            </div>
+            <Button variant="ghost" size="sm" onClick={closeReview}>
+              <X className="h-4 w-4 mr-1" />
+              Close
+            </Button>
+          </div>
+
+          {reviewLoading && (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+            </div>
+          )}
+
+          {!reviewLoading && reviewRevisions.length > 0 && (() => {
+            const pending = reviewRevisions.find((r) => r.status === 'pending_review' && r.submitted_by === 'attorney')
+            const latestRevision = pending || reviewRevisions[0]
+            return (
+              <div className="space-y-4">
+                <div className="p-4 bg-amber-50 border border-[#C9A84C]/30 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <h4 className="text-sm font-semibold text-[#0E1F35]">
+                      Round {latestRevision.revision_number} from {latestRevision.submitted_by_name}
+                    </h4>
+                    <Badge variant="secondary" className="text-xs">
+                      {latestRevision.status.replace(/_/g, ' ')}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Submitted {formatDate(latestRevision.created_at)}
+                  </p>
+                  {latestRevision.notes && (
+                    <div className="mt-2 flex items-start gap-2">
+                      <StickyNote className="h-4 w-4 text-[#C9A84C] shrink-0 mt-0.5" />
+                      <p className="text-sm text-gray-700">{latestRevision.notes}</p>
+                    </div>
+                  )}
+                </div>
+
+                {latestRevision.base_html && latestRevision.submitted_html && (
+                  <RedlineView
+                    originalHtml={latestRevision.base_html}
+                    editedHtml={latestRevision.submitted_html}
+                    editorName={latestRevision.submitted_by_name}
+                  />
+                )}
+
+                {latestRevision.status === 'pending_review' && (
+                  <div className="flex items-center justify-end gap-3 p-4 bg-gray-50 rounded-lg border">
+                    <span className="text-sm text-muted-foreground mr-auto">
+                      How would you like to proceed with {latestRevision.submitted_by_name}&apos;s edits?
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const reviewNotes = prompt('Add notes for the attorney (optional):')
+                        handleReviewDecision('request_changes', latestRevision.id, undefined, reviewNotes || undefined)
+                      }}
+                      disabled={reviewDecisionPending}
+                    >
+                      <RefreshCw className="h-4 w-4 mr-1 text-orange-500" />
+                      Send Back with Changes
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => handleReviewDecision('approve', latestRevision.id)}
+                      disabled={reviewDecisionPending}
+                      className="bg-green-700 hover:bg-green-800 text-white"
+                    >
+                      {reviewDecisionPending ? (
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      ) : (
+                        <Check className="h-4 w-4 mr-1" />
+                      )}
+                      Approve &amp; Finalize
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )
+          })()}
+        </div>
+      )}
+
       {/* Redline view — shown above reports for visibility */}
       {redlineReportId && (
         <div className="mb-8" ref={redlineRef}>
@@ -969,6 +1158,31 @@ export default function CaseReportsPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
+                    {/* Send to Attorney — show when report is in draft/review/revision/final state */}
+                    {['draft', 'in_progress', 'review', 'revision', 'final'].includes(report.status) && (
+                      <SendToAttorneyDialog
+                        reportId={report.id}
+                        reportName={report.report_name}
+                        caseId={caseId}
+                      />
+                    )}
+                    {/* Review Attorney Edits — show when status is 'review' (attorney submitted edits) */}
+                    {report.status === 'review' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fetchAttorneyRevisions(report.id)}
+                        disabled={reviewLoading && reviewReportId === report.id}
+                        className="text-orange-700 border-orange-300 hover:bg-orange-50"
+                      >
+                        {reviewLoading && reviewReportId === report.id ? (
+                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        ) : (
+                          <Gavel className="h-4 w-4 mr-1" />
+                        )}
+                        Review Edits
+                      </Button>
+                    )}
                     <Button
                       variant="outline"
                       size="sm"
@@ -995,6 +1209,23 @@ export default function CaseReportsPage() {
                       <Pencil className="h-4 w-4 mr-1" />
                       Edit
                     </Button>
+                    {/* Unfinalize — only for final/sent reports */}
+                    {['final', 'sent'].includes(report.status) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleUnfinalize(report.id)}
+                        disabled={unfinalizingId === report.id}
+                        className="text-amber-700 border-amber-300 hover:bg-amber-50"
+                      >
+                        {unfinalizingId === report.id ? (
+                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        ) : (
+                          <RotateCcw className="h-4 w-4 mr-1" />
+                        )}
+                        Unfinalize
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="sm"

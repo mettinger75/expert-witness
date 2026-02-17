@@ -8,6 +8,24 @@ export interface DocumentFilters {
 }
 
 export const documentsService = {
+  async getAll(filters?: DocumentFilters) {
+    let query = supabase
+      .from('documents')
+      .select('*, cases!inner(case_name)')
+      .order('created_at', { ascending: false })
+
+    if (filters?.category) query = query.eq('category', filters.category)
+    if (filters?.search) {
+      query = query.or(
+        `file_name.ilike.%${filters.search}%,original_file_name.ilike.%${filters.search}%`
+      )
+    }
+
+    const { data, error } = await query
+    if (error) throw error
+    return (data ?? []) as (DocumentRow & { cases: { case_name: string } })[]
+  },
+
   async getByCaseId(caseId: string, filters?: DocumentFilters) {
     let query = supabase
       .from('documents')

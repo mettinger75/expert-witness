@@ -28,6 +28,67 @@ export async function GET(
   }
 }
 
+// DELETE: Delete a contact
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    const supabase = getSupabaseAdmin()
+
+    // Check for linked cases
+    const { count: caseCount } = await supabase
+      .from('case_contacts')
+      .select('*', { count: 'exact', head: true })
+      .eq('contact_id', id)
+
+    // Check for active portal invites
+    const { count: portalCount } = await supabase
+      .from('portal_invites')
+      .select('*', { count: 'exact', head: true })
+      .eq('contact_id', id)
+      .eq('is_active', true)
+
+    // Allow force delete via query param
+    const force = request.nextUrl.searchParams.get('force') === 'true'
+
+    if (!force && ((caseCount ?? 0) > 0 || (portalCount ?? 0) > 0)) {
+      return NextResponse.json({
+        error: 'Contact has linked records',
+        linkedCases: caseCount ?? 0,
+        activePortalInvites: portalCount ?? 0,
+        message: `This contact is linked to ${caseCount ?? 0} case(s) and has ${portalCount ?? 0} active portal invite(s). Use force=true to delete anyway.`,
+      }, { status: 409 })
+    }
+
+    // Deactivate portal invites first (if force)
+    if ((portalCount ?? 0) > 0) {
+      await supabase
+        .from('portal_invites')
+        .update({ is_active: false, updated_at: new Date().toISOString() })
+        .eq('contact_id', id)
+        .eq('is_active', true)
+    }
+
+    // Delete the contact (case_contacts will cascade, invoices/comm logs will SET NULL)
+    const { error } = await supabase
+      .from('contacts')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      console.error('Contact delete error:', error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Contact DELETE error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
 // PUT: Update a contact
 export async function PUT(
   request: NextRequest,

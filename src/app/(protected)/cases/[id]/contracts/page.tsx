@@ -24,7 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { EmptyState } from '@/components/shared/EmptyState'
-import { ShareDialog } from '@/components/sharing/ShareDialog'
+import { SendForSignatureDialog } from '@/components/contracts/SendForSignatureDialog'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import {
@@ -36,6 +36,7 @@ import {
 import { formatDate, formatCurrency } from '@/lib/formatters'
 import { useContracts, useCreateContract, useUpdateContract } from '@/hooks/useContracts'
 import { useCaseContacts } from '@/hooks/useCaseContacts'
+import { usePortalInvites } from '@/hooks/usePortal'
 import type { ContractInsert, ContractRow } from '@/types/database.types'
 import {
   Plus,
@@ -47,6 +48,7 @@ import {
   Pencil,
   Building,
   DollarSign,
+  Send,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -101,31 +103,53 @@ function ContractPreviewDialog({
   open,
   onOpenChange,
   onExportPDF,
+  isSigned,
+  signedBy,
+  signedAt,
+  loading,
 }: {
   html: string
   open: boolean
   onOpenChange: (open: boolean) => void
   onExportPDF: () => void
+  isSigned?: boolean
+  signedBy?: string | null
+  signedAt?: string | null
+  loading?: boolean
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between pr-8">
-            <span>Contract Preview</span>
-            <Button size="sm" variant="outline" onClick={onExportPDF}>
+            <div className="flex items-center gap-3">
+              <span>Contract Preview</span>
+              {isSigned && (
+                <Badge className="bg-green-100 text-green-800 border-green-200 text-xs">
+                  ✓ Signed{signedBy ? ` by ${signedBy}` : ''}
+                  {signedAt ? ` on ${formatDate(signedAt)}` : ''}
+                </Badge>
+              )}
+            </div>
+            <Button size="sm" variant="outline" onClick={onExportPDF} disabled={loading || !html}>
               <Download className="h-4 w-4 mr-2" />
               Export PDF
             </Button>
           </DialogTitle>
         </DialogHeader>
         <div className="border rounded-lg overflow-hidden bg-white">
-          <iframe
-            srcDoc={html}
-            className="w-full border-0"
-            style={{ height: '80vh' }}
-            title="Contract Preview"
-          />
+          {loading ? (
+            <div className="flex items-center justify-center py-24">
+              <Loader2 className="h-8 w-8 animate-spin text-[#0E1F35]" />
+            </div>
+          ) : (
+            <iframe
+              srcDoc={html}
+              className="w-full border-0"
+              style={{ height: '80vh' }}
+              title="Contract Preview"
+            />
+          )}
         </div>
       </DialogContent>
     </Dialog>
@@ -136,17 +160,25 @@ export default function CaseContractsPage() {
   const params = useParams()
   const caseId = params.id as string
 
-  const { data: contracts, isLoading } = useContracts(caseId)
+  const { data: contracts, isLoading, refetch: refetchContracts } = useContracts(caseId)
   const { data: caseContacts = [] } = useCaseContacts(caseId)
+  const { data: portalInvites = [] } = usePortalInvites(caseId)
   const createContract = useCreateContract()
   const updateContract = useUpdateContract()
 
   const [createOpen, setCreateOpen] = useState(false)
   const [previewOpen, setPreviewOpen] = useState(false)
   const [previewHtml, setPreviewHtml] = useState('')
+  const [previewLoading, setPreviewLoading] = useState(false)
+  const [previewSigned, setPreviewSigned] = useState(false)
+  const [previewSignedBy, setPreviewSignedBy] = useState<string | null>(null)
+  const [previewSignedAt, setPreviewSignedAt] = useState<string | null>(null)
   const [form, setForm] = useState<ContractFormState>(initialFormState)
   const [generating, setGenerating] = useState(false)
   const [editingContractId, setEditingContractId] = useState<string | null>(null)
+  const [signDialogOpen, setSignDialogOpen] = useState(false)
+  const [signContractId, setSignContractId] = useState<string>('')
+  const [signContractTitle, setSignContractTitle] = useState<string>('')
 
   // Auto-populate from first retaining attorney contact
   function populateFromContacts() {
@@ -279,12 +311,42 @@ export default function CaseContractsPage() {
     }
   }
 
-  function handleViewContract(contract: ContractRow) {
-    if (contract.rendered_html) {
+  async function handleViewContract(contract: ContractRow) {
+    if (!contract.rendered_html) {
+      toast.info('No preview available. Edit and generate this contract first.')
+      return
+    }
+
+    setPreviewSignedBy(contract.signed_by || null)
+    setPreviewSignedAt(contract.signed_at || null)
+
+    if (contract.signed_at && contract.signature_data) {
+      // Fetch signed version with embedded signature
+      setPreviewSigned(true)
+      setPreviewLoading(true)
+      setPreviewOpen(true)
+      try {
+        const res = await fetch('/api/contracts/export-signed-pdf', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contractId: contract.id }),
+        })
+        if (res.ok) {
+          const { html } = await res.json()
+          setPreviewHtml(html)
+        } else {
+          // Fall back to unsigned HTML
+          setPreviewHtml(contract.rendered_html)
+        }
+      } catch {
+        setPreviewHtml(contract.rendered_html)
+      } finally {
+        setPreviewLoading(false)
+      }
+    } else {
+      setPreviewSigned(false)
       setPreviewHtml(contract.rendered_html)
       setPreviewOpen(true)
-    } else {
-      toast.info('No preview available. Edit and generate this contract first.')
     }
   }
 
@@ -344,6 +406,12 @@ export default function CaseContractsPage() {
                         Signed {formatDate(contract.signed_at)} by {contract.signed_by}
                       </span>
                     )}
+                    {contract.sent_via_portal && !contract.signed_at && (
+                      <span className="flex items-center gap-1 text-xs text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
+                        <Send className="h-3 w-3" />
+                        Sent via Portal
+                      </span>
+                    )}
                     {contract.firm_name && (
                       <span className="flex items-center gap-1 text-sm text-muted-foreground">
                         <Building className="h-3 w-3" />
@@ -360,32 +428,39 @@ export default function CaseContractsPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
-                  {contract.rendered_html && (
-                    <>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleViewContract(contract)}
-                      >
-                        <Eye className="h-4 w-4 mr-1" />
-                        View
-                      </Button>
-                      <ShareDialog
-                        entityType="contract"
-                        entityId={contract.id}
-                        entityName={contract.title}
-                        defaultPermission="sign"
-                      />
-                    </>
-                  )}
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleEditContract(contract)}
+                    onClick={() => handleViewContract(contract)}
+                    disabled={!contract.rendered_html}
                   >
-                    <Pencil className="h-4 w-4 mr-1" />
-                    Edit
+                    <Eye className="h-4 w-4 mr-1" />
+                    {contract.signed_at ? 'View Signed' : 'Preview'}
                   </Button>
+                  {contract.rendered_html && contract.status !== 'signed' && (
+                    <Button
+                      size="sm"
+                      className="bg-[#C9A84C] hover:bg-[#C9A84C]/90 text-[#0E1F35]"
+                      onClick={() => {
+                        setSignContractId(contract.id)
+                        setSignContractTitle(contract.title)
+                        setSignDialogOpen(true)
+                      }}
+                    >
+                      <Send className="h-4 w-4 mr-1" />
+                      Send for Signature
+                    </Button>
+                  )}
+                  {contract.status !== 'signed' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEditContract(contract)}
+                    >
+                      <Pencil className="h-4 w-4 mr-1" />
+                      Edit
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -641,6 +716,22 @@ export default function CaseContractsPage() {
         open={previewOpen}
         onOpenChange={setPreviewOpen}
         onExportPDF={handleExportPDF}
+        isSigned={previewSigned}
+        signedBy={previewSignedBy}
+        signedAt={previewSignedAt}
+        loading={previewLoading}
+      />
+
+      {/* Send for Signature Dialog */}
+      <SendForSignatureDialog
+        open={signDialogOpen}
+        onOpenChange={setSignDialogOpen}
+        contractId={signContractId}
+        contractTitle={signContractTitle}
+        caseId={caseId}
+        caseContacts={caseContacts}
+        portalInvites={portalInvites as Array<{ id: string; contact_id: string; is_active: boolean; can_sign_contract: boolean; contract_id: string | null }>}
+        onSent={() => refetchContracts()}
       />
     </div>
   )

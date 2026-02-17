@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 
+export const maxDuration = 120 // 2 minutes for agentic AI tool-use loops
+
 const TOOLS = [
   {
     name: 'query_database',

@@ -1,16 +1,23 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams, useSearchParams } from 'next/navigation'
+import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
-import { useContact, useUpdateContact } from '@/hooks/useContacts'
+import { useContact, useUpdateContact, useDeleteContact } from '@/hooks/useContacts'
 import { useContactCases } from '@/hooks/useCaseContacts'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { CONTACT_TYPES, getLabelForValue } from '@/lib/constants'
@@ -18,17 +25,21 @@ import { formatPhoneNumber, formatDate, formatCurrency } from '@/lib/formatters'
 import { supabase } from '@/lib/supabase'
 import {
   Mail, Phone, Building, MapPin,
-  Briefcase, User, FileText, DollarSign, MessageSquare,
+  Briefcase, User, FileText, DollarSign, MessageSquare, Trash2, AlertTriangle,
 } from 'lucide-react'
 
 export default function ContactOverviewPage() {
   const params = useParams()
   const searchParams = useSearchParams()
   const contactId = params.id as string
+  const router = useRouter()
   const { data: contact, isLoading } = useContact(contactId)
   const { data: linkedCases, isLoading: casesLoading } = useContactCases(contactId)
   const updateContact = useUpdateContact()
+  const deleteContact = useDeleteContact()
   const [editOpen, setEditOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleteError, setDeleteError] = useState<{ linkedCases?: number; activePortalInvites?: number; message?: string } | null>(null)
   const [editForm, setEditForm] = useState({
     first_name: '',
     last_name: '',
@@ -120,6 +131,28 @@ export default function ContactOverviewPage() {
     )
   }
 
+  function handleDeleteContact(force = false) {
+    deleteContact.mutate(
+      { id: contactId, force },
+      {
+        onSuccess: () => {
+          setDeleteOpen(false)
+          router.push('/contacts')
+        },
+        onError: (error: unknown) => {
+          const err = error as { linkedCases?: number; activePortalInvites?: number; details?: string; message?: string }
+          if (err.linkedCases || err.activePortalInvites) {
+            setDeleteError({
+              linkedCases: err.linkedCases,
+              activePortalInvites: err.activePortalInvites,
+              message: err.details || err.message,
+            })
+          }
+        },
+      }
+    )
+  }
+
   if (isLoading || !contact) {
     return <LoadingSpinner className="py-12" />
   }
@@ -192,11 +225,28 @@ export default function ContactOverviewPage() {
 
       {/* Contact Information Card */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-lg flex items-center gap-2">
             <User className="h-5 w-5" />
             Contact Information
           </CardTitle>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+              Edit
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              onClick={() => {
+                setDeleteError(null)
+                setDeleteOpen(true)
+              }}
+            >
+              <Trash2 className="h-4 w-4 mr-1" />
+              Delete
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -340,6 +390,65 @@ export default function ContactOverviewPage() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <Trash2 className="h-5 w-5" />
+              Delete Contact
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to permanently delete{' '}
+              <strong>{contact.first_name} {contact.last_name}</strong>? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          {deleteError && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                <div className="text-sm">
+                  <p className="font-medium text-amber-800">This contact has linked records:</p>
+                  <ul className="mt-1 space-y-1 text-amber-700">
+                    {(deleteError.linkedCases ?? 0) > 0 && (
+                      <li>Linked to {deleteError.linkedCases} case(s) — will be unlinked</li>
+                    )}
+                    {(deleteError.activePortalInvites ?? 0) > 0 && (
+                      <li>{deleteError.activePortalInvites} active portal invite(s) — will be deactivated</li>
+                    )}
+                  </ul>
+                  <p className="mt-2 text-amber-800 font-medium">Delete anyway?</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setDeleteOpen(false)}>
+              Cancel
+            </Button>
+            {deleteError ? (
+              <Button
+                variant="destructive"
+                onClick={() => handleDeleteContact(true)}
+                disabled={deleteContact.isPending}
+              >
+                {deleteContact.isPending ? 'Deleting...' : 'Delete Anyway'}
+              </Button>
+            ) : (
+              <Button
+                variant="destructive"
+                onClick={() => handleDeleteContact(false)}
+                disabled={deleteContact.isPending}
+              >
+                {deleteContact.isPending ? 'Deleting...' : 'Delete Contact'}
+              </Button>
+            )}
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

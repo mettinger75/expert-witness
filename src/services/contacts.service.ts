@@ -60,6 +60,20 @@ export const contactsService = {
     return contactsService.update(id, { is_active: false })
   },
 
+  async delete(id: string, force = false) {
+    const url = force ? `/api/contacts/${id}?force=true` : `/api/contacts/${id}`
+    const res = await fetch(url, { method: 'DELETE' })
+    if (!res.ok) {
+      const err = await res.json()
+      throw Object.assign(new Error(err.error || 'Failed to delete contact'), {
+        linkedCases: err.linkedCases,
+        activePortalInvites: err.activePortalInvites,
+        details: err.message,
+      })
+    }
+    return (await res.json()) as { success: boolean }
+  },
+
   async search(query: string) {
     const params = new URLSearchParams({
       search: query,

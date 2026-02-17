@@ -150,6 +150,7 @@ export async function GET(
         onboarding_steps: invite.onboarding_steps,
         expires_at: invite.expires_at,
         view_count: invite.view_count + 1,
+        tutorial_completed_at: invite.tutorial_completed_at ?? null,
         contact: invite.contacts,
       },
       contractStatus,

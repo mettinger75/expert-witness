@@ -61,3 +61,18 @@ export function useArchiveContact() {
     },
   })
 }
+
+export function useDeleteContact() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, force }: { id: string; force?: boolean }) =>
+      contactsService.delete(id, force),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contacts'] })
+      toast.success('Contact deleted')
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to delete contact: ${error.message}`)
+    },
+  })
+}
