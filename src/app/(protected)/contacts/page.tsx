@@ -6,14 +6,20 @@ import { useContacts } from '@/hooks/useContacts'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { CONTACT_TYPES, getLabelForValue } from '@/lib/constants'
 import { formatPhoneNumber } from '@/lib/formatters'
-import { Plus, Search, Users, Mail, Phone, Building } from 'lucide-react'
+import { Plus, Search, Users } from 'lucide-react'
+
+interface CaseContactJoin {
+  case_id: string
+  role: string
+  cases: { case_name: string; case_number: string } | null
+}
 
 export default function ContactsPage() {
   const [search, setSearch] = useState('')
@@ -63,7 +69,7 @@ export default function ContactsPage() {
         </Select>
       </div>
 
-      {/* Contacts Grid */}
+      {/* Contacts Table */}
       {isLoading ? (
         <LoadingSpinner className="py-12" />
       ) : !contacts?.length ? (
@@ -81,45 +87,73 @@ export default function ContactsPage() {
           }
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {contacts.map((contact) => (
-            <Link key={contact.id} href={`/contacts/${contact.id}`}>
-              <Card className="hover:bg-muted/50 transition-colors cursor-pointer h-full">
-                <CardContent className="pt-6">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="min-w-0 flex-1">
-                      <h3 className="font-semibold truncate">
+        <div className="bg-white border border-[#D8DCE3] rounded-xl overflow-hidden shadow-sm">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-[#091525] hover:bg-[#091525]">
+                <TableHead className="text-white/80 font-semibold">Name</TableHead>
+                <TableHead className="text-white/80 font-semibold">Type</TableHead>
+                <TableHead className="text-white/80 font-semibold">Organization</TableHead>
+                <TableHead className="text-white/80 font-semibold">Email</TableHead>
+                <TableHead className="text-white/80 font-semibold">Phone</TableHead>
+                <TableHead className="text-white/80 font-semibold">Cases</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {contacts.map((contact) => {
+                const caseContacts = (contact as unknown as { case_contacts?: CaseContactJoin[] }).case_contacts ?? []
+                return (
+                  <TableRow
+                    key={contact.id}
+                    className="cursor-pointer hover:bg-[#C9A84C]/5 transition-colors"
+                    onClick={() => window.location.href = `/contacts/${contact.id}`}
+                  >
+                    <TableCell>
+                      <p className="font-medium text-[#0E1F35]">
                         {contact.first_name} {contact.last_name}
-                      </h3>
-                      {contact.organization_name && (
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground mt-0.5">
-                          <Building className="h-3 w-3 shrink-0" />
-                          <span className="truncate">{contact.organization_name}</span>
+                      </p>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="text-xs">
+                        {getLabelForValue(CONTACT_TYPES, contact.contact_type)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {contact.organization_name || '—'}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {contact.email || '—'}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {contact.phone_primary ? formatPhoneNumber(contact.phone_primary) : '—'}
+                    </TableCell>
+                    <TableCell>
+                      {caseContacts.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {caseContacts.slice(0, 2).map((cc) => (
+                            <Badge
+                              key={cc.case_id}
+                              variant="outline"
+                              className="text-xs max-w-[160px] truncate"
+                            >
+                              {cc.cases?.case_name || cc.case_id}
+                            </Badge>
+                          ))}
+                          {caseContacts.length > 2 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{caseContacts.length - 2} more
+                            </Badge>
+                          )}
                         </div>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">—</span>
                       )}
-                    </div>
-                    <Badge variant="secondary" className="shrink-0 ml-2">
-                      {getLabelForValue(CONTACT_TYPES, contact.contact_type)}
-                    </Badge>
-                  </div>
-                  <div className="space-y-1.5">
-                    {contact.email && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Mail className="h-3.5 w-3.5 shrink-0" />
-                        <span className="truncate">{contact.email}</span>
-                      </div>
-                    )}
-                    {contact.phone_primary && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Phone className="h-3.5 w-3.5 shrink-0" />
-                        <span>{formatPhoneNumber(contact.phone_primary)}</span>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
         </div>
       )}
     </div>

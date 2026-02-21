@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from('contacts')
-      .select('*')
+      .select('*, case_contacts(case_id, role, cases(case_name, case_number))')
       .order('last_name', { ascending: true })
       .order('first_name', { ascending: true })
 

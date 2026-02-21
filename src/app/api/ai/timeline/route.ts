@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { caseId } = body
+    const { caseId, documentIds } = body
 
     if (!caseId) {
       return NextResponse.json({ error: 'Missing required field: caseId' }, { status: 400 })
@@ -29,15 +29,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Case not found' }, { status: 404 })
     }
 
-    // Fetch case documents (medical records, operative reports, anesthesia records, nursing notes)
-    const { data: documents, error: docsError } = await supabase
+    // Fetch case documents — either specific IDs or all medical categories
+    let docsQuery = supabase
       .from('documents')
       .select('id, file_name, category, description, ocr_text, ai_summary, date_of_document')
       .eq('case_id', caseId)
-      .in('category', [
+
+    if (Array.isArray(documentIds) && documentIds.length > 0) {
+      docsQuery = docsQuery.in('id', documentIds)
+    } else {
+      docsQuery = docsQuery.in('category', [
         'medical_record', 'anesthesia_record', 'operative_report',
         'nursing_notes', 'lab_results', 'imaging', 'pharmacy', 'consent_form',
       ])
+    }
+
+    const { data: documents, error: docsError } = await docsQuery
       .order('date_of_document', { ascending: true })
 
     if (docsError) {

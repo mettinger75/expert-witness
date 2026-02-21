@@ -7,8 +7,7 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
@@ -81,7 +80,7 @@ export default function CasesPage() {
         </Select>
       </div>
 
-      {/* Cases List */}
+      {/* Cases Table */}
       {isLoading ? (
         <LoadingSpinner className="py-12" />
       ) : !cases?.length ? (
@@ -99,45 +98,70 @@ export default function CasesPage() {
           }
         />
       ) : (
-        <div className="space-y-3">
-          {cases.map((c) => (
-            <Link key={c.id} href={`/cases/${c.id}`}>
-              <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
-                <CardContent className="flex items-center gap-4 py-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-mono text-muted-foreground">
-                        {c.case_number}
+        <div className="bg-white border border-[#D8DCE3] rounded-xl overflow-hidden shadow-sm">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-[#091525] hover:bg-[#091525]">
+                <TableHead className="text-white/80 font-semibold">Case</TableHead>
+                <TableHead className="text-white/80 font-semibold">Type</TableHead>
+                <TableHead className="text-white/80 font-semibold">Side</TableHead>
+                <TableHead className="text-white/80 font-semibold">Status</TableHead>
+                <TableHead className="text-white/80 font-semibold">Priority</TableHead>
+                <TableHead className="text-white/80 font-semibold">Patient</TableHead>
+                <TableHead className="text-white/80 font-semibold">Referred</TableHead>
+                <TableHead className="text-white/80 font-semibold text-right">Balance</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {cases.map((c) => (
+                <TableRow
+                  key={c.id}
+                  className="cursor-pointer hover:bg-[#C9A84C]/5 transition-colors"
+                  onClick={() => window.location.href = `/cases/${c.id}`}
+                >
+                  <TableCell>
+                    <div>
+                      <p className="font-medium text-[#0E1F35]">{c.case_name}</p>
+                      <p className="text-xs font-mono text-muted-foreground">{c.case_number}</p>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {getLabel(OPTION_KEYS.CASE_TYPES, c.case_type)}
+                  </TableCell>
+                  <TableCell className="text-sm capitalize text-muted-foreground">
+                    {c.side}
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge
+                      label={getLabel(OPTION_KEYS.CASE_STATUSES, c.status)}
+                      color={getColor(OPTION_KEYS.CASE_STATUSES, c.status)}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge
+                      label={getLabel(OPTION_KEYS.CASE_PRIORITIES, c.priority)}
+                      color={getColor(OPTION_KEYS.CASE_PRIORITIES, c.priority)}
+                    />
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {c.patient_name || '—'}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {formatDate(c.date_of_referral)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {c.outstanding_balance > 0 ? (
+                      <span className="text-sm font-medium text-amber-700">
+                        {formatCurrency(c.outstanding_balance)}
                       </span>
-                      <StatusBadge
-                        label={getLabel(OPTION_KEYS.CASE_STATUSES, c.status)}
-                        color={getColor(OPTION_KEYS.CASE_STATUSES, c.status)}
-                      />
-                      <StatusBadge
-                        label={getLabel(OPTION_KEYS.CASE_PRIORITIES, c.priority)}
-                        color={getColor(OPTION_KEYS.CASE_PRIORITIES, c.priority)}
-                      />
-                    </div>
-                    <h3 className="font-semibold truncate">{c.case_name}</h3>
-                    <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-                      <span>{getLabel(OPTION_KEYS.CASE_TYPES, c.case_type)}</span>
-                      <span className="capitalize">{c.side}</span>
-                      {c.patient_name && <span>Patient: {c.patient_name}</span>}
-                    </div>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <div className="text-sm text-muted-foreground">Referred</div>
-                    <div className="text-sm font-medium">{formatDate(c.date_of_referral)}</div>
-                    {c.outstanding_balance > 0 && (
-                      <Badge variant="outline" className="mt-1 text-amber-700 border-amber-200 bg-amber-50">
-                        {formatCurrency(c.outstanding_balance)} due
-                      </Badge>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">—</span>
                     )}
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       )}
     </div>

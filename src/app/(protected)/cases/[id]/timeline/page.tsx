@@ -11,13 +11,15 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
+import { Checkbox } from '@/components/ui/checkbox'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { TIMELINE_EVENT_TYPES, getLabelForValue } from '@/lib/constants'
 import { formatDateTime } from '@/lib/formatters'
 import { useTimeline, useCreateTimelineEntry } from '@/hooks/useTimeline'
+import { useDocuments } from '@/hooks/useDocuments'
 import type { TimelineEventType } from '@/types/enums'
-import { Plus, Clock, Filter, AlertCircle, FileText, Loader2, Sparkles } from 'lucide-react'
+import { Plus, Clock, Filter, AlertCircle, FileText, Loader2, Sparkles, CheckSquare } from 'lucide-react'
 import { toast } from 'sonner'
 
 function getDotColor(eventType: string, isSignificant: boolean): string {
@@ -44,11 +46,16 @@ export default function CaseTimelinePage() {
 
   // AI generation state
   const [generating, setGenerating] = useState(false)
+  const [selectRecordsOpen, setSelectRecordsOpen] = useState(false)
+  const [selectedDocIds, setSelectedDocIds] = useState<string[]>([])
 
   // Real data
   const filters = eventTypeFilter !== 'all' ? { event_type: eventTypeFilter } : undefined
   const { data: entries = [], isLoading } = useTimeline(caseId, filters)
   const createMutation = useCreateTimelineEntry()
+
+  // Fetch case documents for record selection
+  const { data: caseDocuments = [] } = useDocuments(caseId)
 
   function resetForm() {
     setFormTitle('')
@@ -81,13 +88,40 @@ export default function CaseTimelinePage() {
     setAddOpen(false)
   }
 
+  function handleOpenRecordSelector() {
+    setSelectedDocIds([])
+    setSelectRecordsOpen(true)
+  }
+
+  function toggleDocSelection(docId: string) {
+    setSelectedDocIds((prev) =>
+      prev.includes(docId) ? prev.filter((id) => id !== docId) : [...prev, docId]
+    )
+  }
+
+  function toggleSelectAll() {
+    const medicalDocs = caseDocuments.filter(
+      (d) => d.ocr_text || d.ai_summary || d.description
+    )
+    if (selectedDocIds.length === medicalDocs.length) {
+      setSelectedDocIds([])
+    } else {
+      setSelectedDocIds(medicalDocs.map((d) => d.id))
+    }
+  }
+
   async function handleGenerateFromRecords() {
+    if (selectedDocIds.length === 0) {
+      toast.error('Select at least one record to generate from')
+      return
+    }
+    setSelectRecordsOpen(false)
     setGenerating(true)
     try {
       const res = await fetch('/api/ai/timeline', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ caseId }),
+        body: JSON.stringify({ caseId, documentIds: selectedDocIds }),
       })
       if (!res.ok) {
         let errorMsg = `Failed to generate timeline (${res.status})`
@@ -95,7 +129,7 @@ export default function CaseTimelinePage() {
         throw new Error(errorMsg)
       }
       const result = await res.json()
-      toast.success(`Generated ${result.count} timeline entries from records`)
+      toast.success(`Generated ${result.count} timeline entries from ${selectedDocIds.length} record(s)`)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Generation failed'
       toast.error(message)
@@ -117,7 +151,7 @@ export default function CaseTimelinePage() {
         <div className="flex items-center gap-3">
           <Button
             variant="outline"
-            onClick={handleGenerateFromRecords}
+            onClick={handleOpenRecordSelector}
             disabled={generating}
           >
             {generating ? (
@@ -127,6 +161,101 @@ export default function CaseTimelinePage() {
             )}
             Generate from Records
           </Button>
+
+          {/* Record Selection Dialog */}
+          <Dialog open={selectRecordsOpen} onOpenChange={setSelectRecordsOpen}>
+            <DialogContent className="max-w-2xl max-h-[80vh]">
+              <DialogHeader>
+                <DialogTitle>Select Records for Timeline Generation</DialogTitle>
+                <p className="text-sm text-muted-foreground">
+                  Choose which medical records to extract timeline events from. Only records with extractable text are shown.
+                </p>
+              </DialogHeader>
+              <div className="space-y-3 overflow-y-auto max-h-[50vh] pr-1">
+                {(() => {
+                  const availableDocs = caseDocuments.filter(
+                    (d) => d.ocr_text || d.ai_summary || d.description
+                  )
+                  if (availableDocs.length === 0) {
+                    return (
+                      <div className="py-8 text-center text-sm text-muted-foreground">
+                        No records with extractable text found. Upload and process medical records first.
+                      </div>
+                    )
+                  }
+                  return (
+                    <>
+                      <div className="flex items-center gap-2 pb-2 border-b">
+                        <Checkbox
+                          id="select-all"
+                          checked={selectedDocIds.length === availableDocs.length && availableDocs.length > 0}
+                          onCheckedChange={toggleSelectAll}
+                        />
+                        <Label htmlFor="select-all" className="text-sm font-medium cursor-pointer">
+                          Select All ({availableDocs.length} records)
+                        </Label>
+                      </div>
+                      {availableDocs.map((doc) => (
+                        <div
+                          key={doc.id}
+                          className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                            selectedDocIds.includes(doc.id)
+                              ? 'border-[#C9A84C] bg-[#C9A84C]/5'
+                              : 'border-border hover:bg-muted/50'
+                          }`}
+                          onClick={() => toggleDocSelection(doc.id)}
+                        >
+                          <Checkbox
+                            checked={selectedDocIds.includes(doc.id)}
+                            onCheckedChange={() => toggleDocSelection(doc.id)}
+                            className="mt-0.5"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                              <span className="text-sm font-medium truncate">{doc.file_name}</span>
+                            </div>
+                            <div className="flex items-center gap-2 mt-1">
+                              {doc.category && (
+                                <Badge variant="secondary" className="text-xs">
+                                  {doc.category.replace(/_/g, ' ')}
+                                </Badge>
+                              )}
+                              {doc.ocr_status === 'completed' && (
+                                <Badge variant="outline" className="text-xs text-green-700 border-green-200">
+                                  OCR Complete
+                                </Badge>
+                              )}
+                              {doc.ai_summary && (
+                                <Badge variant="outline" className="text-xs text-blue-700 border-blue-200">
+                                  AI Analyzed
+                                </Badge>
+                              )}
+                            </div>
+                            {doc.description && (
+                              <p className="text-xs text-muted-foreground mt-1 truncate">{doc.description}</p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </>
+                  )
+                })()}
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setSelectRecordsOpen(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleGenerateFromRecords}
+                  disabled={selectedDocIds.length === 0}
+                >
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Generate from {selectedDocIds.length} Record{selectedDocIds.length !== 1 ? 's' : ''}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
           <Select value={eventTypeFilter} onValueChange={setEventTypeFilter}>
             <SelectTrigger className="w-[200px]">
               <Filter className="h-4 w-4 mr-2" />
@@ -258,7 +387,7 @@ export default function CaseTimelinePage() {
           description="Add events manually or generate a timeline from uploaded medical records."
           action={
             <div className="flex gap-2">
-              <Button variant="outline" onClick={handleGenerateFromRecords} disabled={generating}>
+              <Button variant="outline" onClick={handleOpenRecordSelector} disabled={generating}>
                 <Sparkles className="h-4 w-4 mr-2" />
                 Generate from Records
               </Button>

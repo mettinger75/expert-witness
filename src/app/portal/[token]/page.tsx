@@ -18,6 +18,7 @@ interface PortalInvite {
   can_upload_documents: boolean
   can_view_fee_schedule: boolean
   can_view_depositions: boolean
+  can_view_billing: boolean
   can_sign_contract: boolean
   contract_id: string | null
   onboarding_mode: boolean

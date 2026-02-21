@@ -2,14 +2,14 @@
 
 import { useMemo } from 'react'
 import Link from 'next/link'
+import { useQuery } from '@tanstack/react-query'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { useCases } from '@/hooks/useCases'
-import { useInvoices } from '@/hooks/useInvoices'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { CASE_STATUSES, getLabelForValue, getColorForValue, OPTION_KEYS } from '@/lib/constants'
 import { useAppOptions } from '@/components/providers/OptionsProvider'
-import { formatDate, formatCurrency } from '@/lib/formatters'
-import { Briefcase, Clock, DollarSign, AlertTriangle, ArrowRight } from 'lucide-react'
+import { formatDate, formatCurrency, formatDuration } from '@/lib/formatters'
+import { Briefcase, Clock, DollarSign, AlertTriangle, ArrowRight, Activity } from 'lucide-react'
 
 interface DashboardWidget {
   widget: string
@@ -18,31 +18,51 @@ interface DashboardWidget {
   sort_order: number
 }
 
+interface DashboardDeadline {
+  id: string
+  case_id: string
+  milestone_name: string
+  milestone_type: string
+  target_date: string
+  status: string
+  days_until: number
+  is_overdue: boolean
+}
+
+interface DashboardData {
+  unbilledHours: number
+  unbilledAmount: number
+  outstandingBalance: number
+  invoiceBalance: number
+  chargesBalance: number
+  upcomingDeadlines: DashboardDeadline[]
+  caseActivity: Record<string, { description: string; timestamp: string }>
+}
+
+function useDashboardData() {
+  return useQuery<DashboardData>({
+    queryKey: ['dashboard'],
+    queryFn: async () => {
+      const res = await fetch('/api/dashboard')
+      if (!res.ok) throw new Error('Failed to fetch dashboard data')
+      return res.json()
+    },
+  })
+}
+
 export default function DashboardPage() {
   const { getOptions } = useAppOptions()
   const { data: activeCases = [] } = useCases({ is_closed: false })
-  const { data: allInvoices = [] } = useInvoices()
+  const { data: dashData } = useDashboardData()
 
   // Get dashboard layout from settings
   const dashLayout = getOptions(OPTION_KEYS.DASHBOARD_LAYOUT) as unknown as DashboardWidget[]
 
-  const outstandingBalance = allInvoices
-    .filter((i) => ['sent', 'overdue', 'partial'].includes(i.status))
-    .reduce((sum, i) => sum + (i.balance_due || 0), 0)
-
-  const casesWithDeadlines = activeCases.filter((c) => c.deadline_next)
-  const upcomingDeadlines = casesWithDeadlines.filter((c) => {
-    const deadline = new Date(c.deadline_next!)
-    const now = new Date()
-    const diffDays = (deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-    return diffDays <= 30 && diffDays >= -7
-  })
-
   const allStats = [
     { key: 'stat_active_cases', title: 'Active Cases', value: String(activeCases.length), icon: Briefcase, href: '/cases' },
-    { key: 'stat_pending_deadlines', title: 'Upcoming Deadlines', value: String(upcomingDeadlines.length), icon: AlertTriangle, href: '/cases' },
-    { key: 'stat_unbilled_hours', title: 'Unbilled Hours', value: '—', icon: Clock, href: '/billing' },
-    { key: 'stat_outstanding_invoices', title: 'Outstanding Balance', value: formatCurrency(outstandingBalance), icon: DollarSign, href: '/billing' },
+    { key: 'stat_pending_deadlines', title: 'Upcoming Deadlines', value: String(dashData?.upcomingDeadlines?.length ?? 0), icon: AlertTriangle, href: '/cases' },
+    { key: 'stat_unbilled_hours', title: 'Unbilled Hours', value: dashData ? formatDuration(dashData.unbilledHours) : '—', icon: Clock, href: '/billing' },
+    { key: 'stat_outstanding_invoices', title: 'Outstanding Balance', value: dashData ? formatCurrency(dashData.outstandingBalance) : '—', icon: DollarSign, href: '/billing' },
   ]
 
   // Filter and sort stats based on dashboard layout
@@ -64,25 +84,28 @@ export default function DashboardPage() {
     return w ? w.is_visible : true
   }
 
-  // Sort bottom widgets
-  const bottomWidgets = useMemo(() => {
-    const widgets = [
-      { key: 'recent_cases', sort: 4 },
-      { key: 'upcoming_deadlines', sort: 5 },
-    ]
-    if (dashLayout && dashLayout.length > 0) {
-      return widgets
-        .map((w) => {
-          const layout = dashLayout.find((d) => d.widget === w.key)
-          return { ...w, sort: layout?.sort_order ?? w.sort, visible: layout?.is_visible ?? true }
-        })
-        .filter((w) => w.visible)
-        .sort((a, b) => a.sort - b.sort)
-    }
-    return widgets.map((w) => ({ ...w, visible: true }))
-  }, [dashLayout])
-
   const recentCases = activeCases.slice(0, 5)
+
+  // Build a case ID → name map for deadline display
+  const caseNameMap = useMemo(() => {
+    const map: Record<string, { name: string; number: string }> = {}
+    for (const c of activeCases) {
+      map[c.id] = { name: c.case_name, number: c.case_number }
+    }
+    return map
+  }, [activeCases])
+
+  function getRelativeTime(timestamp: string): string {
+    const diff = Date.now() - new Date(timestamp).getTime()
+    const mins = Math.floor(diff / 60000)
+    if (mins < 60) return `${mins}m ago`
+    const hours = Math.floor(mins / 60)
+    if (hours < 24) return `${hours}h ago`
+    const days = Math.floor(hours / 24)
+    if (days === 1) return 'Yesterday'
+    if (days < 7) return `${days}d ago`
+    return formatDate(timestamp)
+  }
 
   return (
     <div className="space-y-8 pb-12">
@@ -113,13 +136,11 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Cases */}
+        {/* Recent Cases with Last Activity */}
         {isWidgetVisible('recent_cases') && (
         <div className="bg-white border border-[#D8DCE3] rounded-xl overflow-hidden shadow-sm">
           <div className="px-6 py-3 flex items-center justify-between" style={{ backgroundColor: '#091525' }}>
-            <h2
-              className="text-sm font-semibold tracking-wide text-white"
-            >
+            <h2 className="text-sm font-semibold tracking-wide text-white">
               Recent Cases
             </h2>
             <Link href="/cases" className="text-xs flex items-center gap-1" style={{ color: '#C9A84C' }}>
@@ -133,32 +154,46 @@ export default function DashboardPage() {
                 <p className="text-sm text-neutral-500">No cases yet. Create your first case to get started.</p>
               </div>
             ) : (
-              recentCases.map((c) => (
-                <Link key={c.id} href={`/cases/${c.id}`} className="block px-6 py-3 hover:bg-neutral-50 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-neutral-800 truncate">{c.case_name}</p>
-                      <p className="text-xs text-neutral-500">{c.case_number}</p>
+              recentCases.map((c) => {
+                const activity = dashData?.caseActivity?.[c.id]
+                return (
+                  <Link key={c.id} href={`/cases/${c.id}`} className="block px-6 py-3 hover:bg-neutral-50 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium text-neutral-800 truncate">{c.case_name}</p>
+                          <StatusBadge
+                            label={getLabelForValue(CASE_STATUSES, c.status)}
+                            color={getColorForValue(CASE_STATUSES, c.status)}
+                          />
+                        </div>
+                        <p className="text-xs text-neutral-500">{c.case_number}</p>
+                        {activity && (
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <Activity className="h-3 w-3 text-[#C9A84C]" />
+                            <span className="text-xs text-neutral-500 truncate">
+                              {activity.description}
+                            </span>
+                            <span className="text-xs text-neutral-400 shrink-0">
+                              {getRelativeTime(activity.timestamp)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <StatusBadge
-                      label={getLabelForValue(CASE_STATUSES, c.status)}
-                      color={getColorForValue(CASE_STATUSES, c.status)}
-                    />
-                  </div>
-                </Link>
-              ))
+                  </Link>
+                )
+              })
             )}
           </div>
         </div>
         )}
 
-        {/* Upcoming Deadlines */}
+        {/* Upcoming Deadlines - from case_milestones */}
         {isWidgetVisible('upcoming_deadlines') && (
         <div className="bg-white border border-[#D8DCE3] rounded-xl overflow-hidden shadow-sm">
           <div className="px-6 py-3 flex items-center justify-between" style={{ backgroundColor: '#091525' }}>
-            <h2
-              className="text-sm font-semibold tracking-wide text-white"
-            >
+            <h2 className="text-sm font-semibold tracking-wide text-white">
               Upcoming Deadlines
             </h2>
             <Link href="/cases" className="text-xs flex items-center gap-1" style={{ color: '#C9A84C' }}>
@@ -167,33 +202,32 @@ export default function DashboardPage() {
           </div>
           <div style={{ height: 2, background: 'linear-gradient(90deg, #C9A84C, #DFC06A, #C9A84C)' }} />
           <div className="divide-y" style={{ borderColor: '#F0F1F4' }}>
-            {upcomingDeadlines.length === 0 ? (
+            {(!dashData?.upcomingDeadlines || dashData.upcomingDeadlines.length === 0) ? (
               <div className="p-6">
                 <p className="text-sm text-neutral-500">No upcoming deadlines.</p>
               </div>
             ) : (
-              upcomingDeadlines.map((c) => {
-                const deadline = new Date(c.deadline_next!)
-                const now = new Date()
-                const daysUntil = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-                const isOverdue = daysUntil < 0
+              dashData.upcomingDeadlines.slice(0, 8).map((d) => {
+                const caseMeta = caseNameMap[d.case_id]
                 return (
-                  <Link key={c.id} href={`/cases/${c.id}`} className="block px-6 py-3 hover:bg-neutral-50 transition-colors">
+                  <Link key={d.id} href={`/cases/${d.case_id}`} className="block px-6 py-3 hover:bg-neutral-50 transition-colors">
                     <div className="flex items-center justify-between">
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-neutral-800 truncate">{c.case_name}</p>
+                        <p className="text-sm font-medium text-neutral-800 truncate">
+                          {d.milestone_name}
+                        </p>
                         <p className="text-xs text-neutral-500">
-                          {c.deadline_description || 'Deadline'}: {formatDate(c.deadline_next!)}
+                          {caseMeta?.name || 'Case'} &middot; {formatDate(d.target_date)}
                         </p>
                       </div>
                       <span
                         className="text-xs px-2 py-0.5 rounded-full font-medium shrink-0"
                         style={{
-                          backgroundColor: isOverdue ? '#FEF2F2' : daysUntil <= 7 ? '#FEF2F2' : '#ECFDF5',
-                          color: isOverdue ? '#DC2626' : daysUntil <= 7 ? '#DC2626' : '#059669',
+                          backgroundColor: d.is_overdue ? '#FEF2F2' : d.days_until <= 7 ? '#FEF2F2' : '#ECFDF5',
+                          color: d.is_overdue ? '#DC2626' : d.days_until <= 7 ? '#DC2626' : '#059669',
                         }}
                       >
-                        {isOverdue ? `${Math.abs(daysUntil)}d overdue` : `${daysUntil}d left`}
+                        {d.is_overdue ? `${Math.abs(d.days_until)}d overdue` : `${d.days_until}d left`}
                       </span>
                     </div>
                   </Link>

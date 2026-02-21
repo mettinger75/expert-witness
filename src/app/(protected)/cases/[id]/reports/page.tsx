@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { useParams } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -52,6 +53,8 @@ import {
   Send,
   Gavel,
   RotateCcw,
+  Shield,
+  Bell,
 } from 'lucide-react'
 
 const REPORT_STATUSES = [
@@ -561,6 +564,30 @@ export default function CaseReportsPage() {
       setUnfinalizingId(null)
     }
   }, [updateReport])
+
+  // Finalize report
+  const [finalizingId, setFinalizingId] = useState<string | null>(null)
+  const queryClient = useQueryClient()
+
+  const handleFinalize = useCallback(async (reportId: string) => {
+    setFinalizingId(reportId)
+    try {
+      const res = await fetch(`/api/reports/${reportId}/finalize`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || 'Failed to finalize')
+      }
+      toast.success('Report finalized — attorney has been notified')
+      queryClient.invalidateQueries({ queryKey: ['reports', 'case', caseId] })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to finalize report')
+    } finally {
+      setFinalizingId(null)
+    }
+  }, [caseId, queryClient])
 
   // Report rename state
   const [renamingId, setRenamingId] = useState<string | null>(null)
@@ -1151,6 +1178,17 @@ export default function CaseReportsPage() {
                         label={getReportStatusLabel(report.status)}
                         color={getReportStatusColor(report.status)}
                       />
+                      {!!(report as Record<string, unknown>).finalization_requested_at && !['final', 'sent'].includes(report.status) && (
+                        <Badge className="bg-amber-100 text-amber-800 border border-amber-200">
+                          <Bell className="h-3 w-3 mr-1" />
+                          Finalization Requested
+                          {(report as Record<string, unknown>).finalization_requested_by ? (
+                            <span className="ml-1 font-normal">
+                              by {String((report as Record<string, unknown>).finalization_requested_by)}
+                            </span>
+                          ) : null}
+                        </Badge>
+                      )}
                     </div>
                     <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
                       <span>{formatDate(report.created_at)}</span>
@@ -1158,6 +1196,22 @@ export default function CaseReportsPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
+                    {/* Finalize — show when finalization has been requested or report is in attorney_review */}
+                    {!!(report as Record<string, unknown>).finalization_requested_at && !['final', 'sent'].includes(report.status) && (
+                      <Button
+                        size="sm"
+                        onClick={() => handleFinalize(report.id)}
+                        disabled={finalizingId === report.id}
+                        className="bg-emerald-700 hover:bg-emerald-800 text-white"
+                      >
+                        {finalizingId === report.id ? (
+                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        ) : (
+                          <Shield className="h-4 w-4 mr-1" />
+                        )}
+                        Finalize
+                      </Button>
+                    )}
                     {/* Send to Attorney — show when report is in draft/review/revision/final state */}
                     {['draft', 'in_progress', 'review', 'revision', 'final'].includes(report.status) && (
                       <SendToAttorneyDialog

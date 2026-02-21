@@ -40,3 +40,11 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .env*.local
+
+# Large case files and imports
+/Case Import/
+/Brian Mize Case/
+*.mp4
+
+# Session reports
+SESSION_REPORT_*.md

@@ -36,6 +36,7 @@ export function CreatePortalInviteDialog({ caseId, contactId, contactName, conta
   const [canUploadDocuments, setCanUploadDocuments] = useState(true)
   const [canViewFeeSchedule, setCanViewFeeSchedule] = useState(true)
   const [canViewDepositions, setCanViewDepositions] = useState(true)
+  const [canViewBilling, setCanViewBilling] = useState(true)
   const [expiresInDays, setExpiresInDays] = useState('90')
   const [invitationMessage, setInvitationMessage] = useState('')
 
@@ -101,6 +102,7 @@ export function CreatePortalInviteDialog({ caseId, contactId, contactName, conta
           canUploadDocuments,
           canViewFeeSchedule,
           canViewDepositions,
+          canViewBilling,
           canSignContract: attachContract,
           contractId,
           onboardingMode: true,
@@ -142,6 +144,7 @@ export function CreatePortalInviteDialog({ caseId, contactId, contactName, conta
       if (canViewReports) features.push('Access shared reports')
       if (canUploadDocuments) features.push('Upload documents and records')
       if (canViewFeeSchedule) features.push('View fee schedule')
+      if (canViewBilling) features.push('View invoices and billing')
       if (canViewDepositions) features.push('Review depositions')
       if (attachContract) features.push('Review and sign retention agreement')
 
@@ -348,6 +351,7 @@ export function CreatePortalInviteDialog({ caseId, contactId, contactName, conta
                   { label: 'Edit Reports', checked: canEditReports && canViewReports, onChange: setCanEditReports, disabled: !canViewReports },
                   { label: 'Upload Documents', checked: canUploadDocuments, onChange: setCanUploadDocuments },
                   { label: 'Fee Schedule', checked: canViewFeeSchedule, onChange: setCanViewFeeSchedule },
+                  { label: 'Billing & Invoices', checked: canViewBilling, onChange: setCanViewBilling },
                   { label: 'Depositions', checked: canViewDepositions, onChange: setCanViewDepositions },
                 ].map((item) => (
                   <div key={item.label} className="flex items-center gap-2">

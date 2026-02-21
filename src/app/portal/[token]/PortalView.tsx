@@ -20,6 +20,7 @@ import {
   Gavel,
   FileSignature,
   HelpCircle,
+  Receipt,
 } from 'lucide-react'
 import { PortalSummary } from './PortalSummary'
 import { PortalTimeline } from './PortalTimeline'
@@ -28,6 +29,7 @@ import { PortalReports } from './PortalReports'
 import { PortalDocuments } from './PortalDocuments'
 import { PortalFeeSchedule } from './PortalFeeSchedule'
 import { PortalDepositions } from './PortalDepositions'
+import { PortalBilling } from './PortalBilling'
 import { PortalContract } from './PortalContract'
 import { PortalOnboarding } from './PortalOnboarding'
 import { PortalTutorial } from './PortalTutorial'
@@ -45,6 +47,7 @@ interface PortalInvite {
   can_upload_documents: boolean
   can_view_fee_schedule: boolean
   can_view_depositions: boolean
+  can_view_billing: boolean
   can_sign_contract: boolean
   contract_id: string | null
   onboarding_mode: boolean
@@ -237,6 +240,12 @@ export function PortalView({
       enabled: invite.can_view_fee_schedule,
     },
     {
+      id: 'billing',
+      label: 'Billing',
+      icon: <Receipt className="h-4 w-4" />,
+      enabled: invite.can_view_billing,
+    },
+    {
       id: 'depositions',
       label: 'Depositions',
       icon: <Gavel className="h-4 w-4" />,
@@ -325,6 +334,9 @@ export function PortalView({
               {invite.can_view_reports && <li>Access shared reports</li>}
               {invite.can_upload_documents && (
                 <li>Upload documents and records</li>
+              )}
+              {invite.can_view_billing && (
+                <li>View invoices and billing</li>
               )}
               {invite.can_view_fee_schedule && (
                 <li>View the fee schedule</li>
@@ -449,6 +461,7 @@ export function PortalView({
           />
         )}
         {activeTab === 'documents' && <PortalDocuments token={token} />}
+        {activeTab === 'billing' && <PortalBilling token={token} />}
         {activeTab === 'fee-schedule' && (
           <PortalFeeSchedule feeSchedule={feeSchedule} />
         )}

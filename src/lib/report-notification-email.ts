@@ -125,6 +125,31 @@ export function changesRequestedEmail(opts: {
   }
 }
 
+/** Attorney requests finalization → email to Dr. Ettinger */
+export function finalizationRequestedEmail(opts: {
+  attorneyName: string
+  caseName: string
+  caseNumber: string
+  reportName: string
+  caseId: string
+  notes?: string
+}): { subject: string; html: string } {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'
+  return {
+    subject: `Finalization Requested — ${opts.caseName}`,
+    html: buildReportNotificationEmail({
+      recipientName: 'Dr. Ettinger',
+      caseName: opts.caseName,
+      caseNumber: opts.caseNumber,
+      reportName: opts.reportName,
+      actionText: 'Finalization Requested',
+      bodyText: `<strong>${opts.attorneyName}</strong> has completed their review of <strong>${opts.reportName}</strong> and is requesting finalization.${opts.notes ? ` Their note: "${opts.notes}"` : ''} Please review and finalize the report when ready.`,
+      ctaText: 'Review & Finalize',
+      ctaUrl: `${appUrl}/cases/${opts.caseId}/reports`,
+    }),
+  }
+}
+
 /** Report finalized → email to attorney */
 export function reportFinalizedEmail(opts: {
   attorneyName: string

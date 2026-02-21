@@ -144,6 +144,7 @@ export async function GET(
         can_upload_documents: invite.can_upload_documents,
         can_view_fee_schedule: invite.can_view_fee_schedule,
         can_view_depositions: invite.can_view_depositions,
+        can_view_billing: invite.can_view_billing,
         can_sign_contract: invite.can_sign_contract,
         contract_id: invite.contract_id,
         onboarding_mode: invite.onboarding_mode,

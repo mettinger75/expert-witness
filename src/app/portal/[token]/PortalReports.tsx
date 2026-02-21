@@ -20,6 +20,7 @@ import {
   Info,
   Clock,
   Shield,
+  Send,
 } from 'lucide-react'
 import { PortalReportEditor } from './PortalReportEditor'
 import { RevisionTimeline } from './RevisionTimeline'
@@ -72,6 +73,8 @@ interface ReportContent {
   renderedText: string | null
   collaborationHtml: string | null
   updatedAt: string
+  finalizationRequestedAt: string | null
+  finalizationRequestedBy: string | null
 }
 
 interface PortalReportsProps {
@@ -259,8 +262,10 @@ export function PortalReports({ token, caseReports }: PortalReportsProps) {
   const [activeRevisionId, setActiveRevisionId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [accepting, setAccepting] = useState(false)
   const [downloadingPdf, setDownloadingPdf] = useState(false)
+  const [requestingFinalization, setRequestingFinalization] = useState(false)
+  const [showFinalizationDialog, setShowFinalizationDialog] = useState(false)
+  const [finalizationNotes, setFinalizationNotes] = useState('')
 
   const activeRevision = useMemo(
     () => revisions.find((r) => r.id === activeRevisionId) || null,
@@ -314,33 +319,6 @@ export function PortalReports({ token, caseReports }: PortalReportsProps) {
     setActiveRevisionId(null)
   }
 
-  async function handleAcceptFinal() {
-    if (!viewingReport) return
-    setAccepting(true)
-    setError(null)
-    try {
-      const res = await fetch(
-        `/api/reports/${viewingReport.id}/accept-final`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token }),
-        }
-      )
-      if (!res.ok) {
-        const err = await res.json()
-        setError(err.error || 'Failed to accept report')
-        return
-      }
-      // Refetch to get updated status
-      await fetchReport(viewingReport.id)
-    } catch {
-      setError('Failed to accept report. Please try again.')
-    } finally {
-      setAccepting(false)
-    }
-  }
-
   async function handleDownloadPdf() {
     if (!viewingReport) return
     setDownloadingPdf(true)
@@ -370,6 +348,38 @@ export function PortalReports({ token, caseReports }: PortalReportsProps) {
     }
   }
 
+  async function handleRequestFinalization() {
+    if (!viewingReport) return
+    setRequestingFinalization(true)
+    setError(null)
+    try {
+      const res = await fetch(
+        `/api/reports/${viewingReport.id}/request-finalization`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            token,
+            notes: finalizationNotes.trim() || undefined,
+          }),
+        }
+      )
+      if (!res.ok) {
+        const err = await res.json()
+        setError(err.error || 'Failed to request finalization')
+        return
+      }
+      setShowFinalizationDialog(false)
+      setFinalizationNotes('')
+      // Refetch to get updated status
+      await fetchReport(viewingReport.id)
+    } catch {
+      setError('Failed to request finalization. Please try again.')
+    } finally {
+      setRequestingFinalization(false)
+    }
+  }
+
   // ────────── Empty state ──────────
   if (caseReports.length === 0) {
     return (
@@ -392,6 +402,8 @@ export function PortalReports({ token, caseReports }: PortalReportsProps) {
     const isUnderReview = viewingReport.status === 'review'
     const isFinalOrSent =
       viewingReport.status === 'final' || viewingReport.status === 'sent'
+    const hasRequestedFinalization =
+      !!viewingReport.finalizationRequestedAt
 
     const displayHtml =
       viewingReport.collaborationHtml || viewingReport.renderedHtml
@@ -420,14 +432,23 @@ export function PortalReports({ token, caseReports }: PortalReportsProps) {
         </div>
 
         {/* Workflow state banner */}
-        {isAttorneyReview && (
+        {isAttorneyReview && !hasRequestedFinalization && (
           <div className="flex items-start gap-3 p-4 bg-[#C9A84C]/10 border border-[#C9A84C]/30 rounded-lg">
             <Info className="h-5 w-5 text-[#C9A84C] shrink-0 mt-0.5" />
             <div className="text-sm text-[#0E1F35]">
               <strong>Dr. Ettinger has sent this report for your review.</strong>{' '}
               {canEdit
-                ? 'You can edit and submit changes, or accept the report as final.'
-                : 'Review the report and accept it as final when ready.'}
+                ? 'You can edit and submit changes, or request finalization when you are satisfied.'
+                : 'Review the report and request finalization when ready.'}
+            </div>
+          </div>
+        )}
+        {isAttorneyReview && hasRequestedFinalization && (
+          <div className="flex items-start gap-3 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+            <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+            <div className="text-sm text-emerald-800">
+              <strong>Finalization requested.</strong>{' '}
+              Dr. Ettinger has been notified that you have completed your review and are ready for finalization. You will receive an email when the report is finalized.
             </div>
           </div>
         )}
@@ -479,21 +500,21 @@ export function PortalReports({ token, caseReports }: PortalReportsProps) {
 
           {/* Action buttons */}
           <div className="flex items-center gap-2">
-            {isAttorneyReview && (
+            {isAttorneyReview && !hasRequestedFinalization && (
               <Button
-                variant="outline"
                 size="sm"
-                onClick={handleAcceptFinal}
-                disabled={accepting}
-                className="text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+                onClick={() => setShowFinalizationDialog(true)}
+                className="bg-[#0E1F35] hover:bg-[#0E1F35]/90 text-white"
               >
-                {accepting ? (
-                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                ) : (
-                  <CheckCircle2 className="h-4 w-4 mr-1" />
-                )}
-                Accept Report as Final
+                <Send className="h-4 w-4 mr-1" />
+                Request Finalization
               </Button>
+            )}
+            {isAttorneyReview && hasRequestedFinalization && (
+              <Badge className="bg-emerald-100 text-emerald-800 border border-emerald-200 py-1.5 px-3">
+                <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                Finalization Requested
+              </Badge>
             )}
             {isFinalOrSent && (
               <Button
@@ -633,6 +654,64 @@ export function PortalReports({ token, caseReports }: PortalReportsProps) {
                   Select a revision from the timeline to view its redline.
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* ──── Request Finalization Dialog ──── */}
+        {showFinalizationDialog && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+              <div className="bg-[#0E1F35] px-6 py-4">
+                <h3 className="text-lg font-semibold text-white">
+                  Request Finalization
+                </h3>
+              </div>
+              <div className="p-6 space-y-4">
+                <p className="text-sm text-gray-600">
+                  This will notify Dr. Ettinger that you have completed your review of{' '}
+                  <strong>{viewingReport.reportName}</strong> and are ready for the report
+                  to be finalized and signed.
+                </p>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Notes (optional)
+                  </label>
+                  <textarea
+                    value={finalizationNotes}
+                    onChange={(e) => setFinalizationNotes(e.target.value)}
+                    placeholder="Any final notes or comments for Dr. Ettinger..."
+                    rows={3}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#C9A84C] focus:border-transparent resize-none"
+                  />
+                </div>
+                <div className="flex justify-end gap-3 pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setShowFinalizationDialog(false)
+                      setFinalizationNotes('')
+                    }}
+                    disabled={requestingFinalization}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleRequestFinalization}
+                    disabled={requestingFinalization}
+                    className="bg-[#0E1F35] hover:bg-[#0E1F35]/90 text-white"
+                  >
+                    {requestingFinalization ? (
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4 mr-1" />
+                    )}
+                    Request Finalization
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         )}

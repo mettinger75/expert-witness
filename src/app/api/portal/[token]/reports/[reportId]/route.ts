@@ -45,7 +45,7 @@ export async function GET(
     // Fetch the report — must belong to the same case
     const { data: report, error: reportError } = await supabase
       .from('reports')
-      .select('id, report_name, report_type, status, version, is_latest_version, rendered_html, rendered_text, collaboration_html, active_collaboration_invite_id, created_at, updated_at')
+      .select('id, report_name, report_type, status, version, is_latest_version, rendered_html, rendered_text, collaboration_html, active_collaboration_invite_id, finalization_requested_at, finalization_requested_by, created_at, updated_at')
       .eq('id', reportId)
       .eq('case_id', invite.case_id)
       .single()
@@ -111,6 +111,8 @@ export async function GET(
         renderedHtml: report.rendered_html,
         renderedText: report.rendered_text,
         collaborationHtml: report.collaboration_html,
+        finalizationRequestedAt: report.finalization_requested_at,
+        finalizationRequestedBy: report.finalization_requested_by,
         createdAt: report.created_at,
         updatedAt: report.updated_at,
       },
