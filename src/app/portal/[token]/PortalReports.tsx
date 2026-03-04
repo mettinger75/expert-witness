@@ -468,6 +468,15 @@ export function PortalReports({ token, caseReports }: PortalReportsProps) {
             </p>
           </div>
         )}
+        {canEdit && !isAttorneyReview && !isUnderReview && !isFinalOrSent && (
+          <div className="flex items-start gap-3 p-4 bg-[#C9A84C]/10 border border-[#C9A84C]/30 rounded-lg">
+            <Pencil className="h-5 w-5 text-[#C9A84C] shrink-0 mt-0.5" />
+            <div className="text-sm text-[#0E1F35]">
+              <strong>You have edit access to this report.</strong>{' '}
+              Use the Edit tab to make changes and submit them to Dr. Ettinger for review.
+            </div>
+          </div>
+        )}
 
         {/* Error */}
         {error && (

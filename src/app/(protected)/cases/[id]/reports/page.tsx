@@ -27,6 +27,7 @@ import { TiptapEditor } from '@/components/editor/TiptapEditor'
 import { DocxImportButton } from '@/components/editor/DocxImportButton'
 import { ShareDialog } from '@/components/sharing/ShareDialog'
 import { RedlineView } from '@/components/editor/RedlineView'
+import { InteractiveRedlineReview } from '@/components/editor/InteractiveRedlineReview'
 import { toast } from 'sonner'
 import { SendToAttorneyDialog } from '@/components/reports/SendToAttorneyDialog'
 import {
@@ -55,6 +56,7 @@ import {
   RotateCcw,
   Shield,
   Bell,
+  FileDown,
 } from 'lucide-react'
 
 const REPORT_STATUSES = [
@@ -488,6 +490,7 @@ export default function CaseReportsPage() {
     reviewer_notes: string | null
     reviewed_at: string | null
     created_at: string
+    review_state: { changes: Array<{ id: number; status: string; modifiedHtml?: string }> } | null
   }
   const [reviewReportId, setReviewReportId] = useState<string | null>(null)
   const [reviewRevisions, setReviewRevisions] = useState<AttorneyRevision[]>([])
@@ -726,29 +729,63 @@ export default function CaseReportsPage() {
     }
   }, [activeReportId, reports])
 
-  const handleExportPdf = useCallback(() => {
-    if (!activeReportId) return
-    // Open the report HTML in a new window for print-to-PDF
-    const reportData = monolithicHtml
-      ? monolithicHtml
-      : activeReport
-        ? (() => {
-            const sections = sectionOrder
-              .filter((key) => activeReport.sections[key])
-              .map((key) => `<h2>${activeReport.sections[key].title}</h2>${activeReport.sections[key].content}`)
-              .join('')
-            return `<div style="font-family: Georgia, serif; max-width: 8.5in; margin: 0 auto; padding: 1in;">
-              <div style="text-align: center; border-bottom: 2px solid #0E1F35; padding-bottom: 1rem; margin-bottom: 2rem; font-weight: bold; white-space: pre-line;">${activeReport.header}</div>
-              ${sections}
-              <div style="border-top: 2px solid #0E1F35; padding-top: 1rem; margin-top: 2rem; white-space: pre-line;">${activeReport.footer}</div>
-            </div>`
-          })()
-        : ''
-    const w = window.open('', '_blank')
-    if (w) {
-      w.document.write(`<!DOCTYPE html><html><head><title>Report</title></head><body>${reportData}</body></html>`)
-      w.document.close()
-      w.print()
+  const [exportingPdf, setExportingPdf] = useState(false)
+
+  const handleExportPdf = useCallback(async (reportId?: string, includeSignature = false) => {
+    const idToExport = reportId || activeReportId
+    if (!idToExport) return
+
+    setExportingPdf(true)
+    try {
+      const res = await fetch('/api/reports/export-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reportId: idToExport, includeSignature }),
+      })
+
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || 'Failed to generate PDF')
+      }
+
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = res.headers.get('Content-Disposition')?.split('filename="')[1]?.replace('"', '') || 'report.pdf'
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      toast.success(includeSignature ? 'Signed PDF downloaded' : 'PDF downloaded')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to export PDF')
+      // Fallback to browser print
+      const reportData = monolithicHtml
+        ? monolithicHtml
+        : activeReport
+          ? (() => {
+              const sections = sectionOrder
+                .filter((key) => activeReport.sections[key])
+                .map((key) => `<h2>${activeReport.sections[key].title}</h2>${activeReport.sections[key].content}`)
+                .join('')
+              return `<div style="font-family: Georgia, serif; max-width: 8.5in; margin: 0 auto; padding: 1in;">
+                <div style="text-align: center; border-bottom: 2px solid #0E1F35; padding-bottom: 1rem; margin-bottom: 2rem; font-weight: bold; white-space: pre-line;">${activeReport.header}</div>
+                ${sections}
+                <div style="border-top: 2px solid #0E1F35; padding-top: 1rem; margin-top: 2rem; white-space: pre-line;">${activeReport.footer}</div>
+              </div>`
+            })()
+          : ''
+      if (reportData) {
+        const w = window.open('', '_blank')
+        if (w) {
+          w.document.write(`<!DOCTYPE html><html><head><title>Report</title></head><body>${reportData}</body></html>`)
+          w.document.close()
+          w.print()
+        }
+      }
+    } finally {
+      setExportingPdf(false)
     }
   }, [activeReportId, activeReport, monolithicHtml])
 
@@ -786,8 +823,8 @@ export default function CaseReportsPage() {
                 <Download className="h-4 w-4 mr-2" />
                 Export DOCX
               </Button>
-              <Button variant="outline" size="sm" onClick={handleExportPdf}>
-                <FileText className="h-4 w-4 mr-2" />
+              <Button variant="outline" size="sm" onClick={() => handleExportPdf()} disabled={exportingPdf}>
+                {exportingPdf ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileText className="h-4 w-4 mr-2" />}
                 Export PDF
               </Button>
               <Button
@@ -990,45 +1027,35 @@ export default function CaseReportsPage() {
                   )}
                 </div>
 
-                {latestRevision.base_html && latestRevision.submitted_html && (
+                {/* Interactive redline review — per-change accept/reject/modify */}
+                {latestRevision.base_html && latestRevision.submitted_html && latestRevision.status === 'pending_review' && reviewReportId && (
+                  <InteractiveRedlineReview
+                    originalHtml={latestRevision.base_html}
+                    editedHtml={latestRevision.submitted_html}
+                    editorName={latestRevision.submitted_by_name}
+                    reportId={reviewReportId}
+                    revisionId={latestRevision.id}
+                    savedReviewState={latestRevision.review_state as any}
+                    finalizing={reviewDecisionPending}
+                    onFinalize={(resultHtml) => {
+                      const reviewNotes = prompt('Add review notes (optional):')
+                      handleReviewDecision('approve_with_modifications', latestRevision.id, resultHtml, reviewNotes || undefined)
+                    }}
+                    onSendBack={(resultHtml) => {
+                      const reviewNotes = prompt('Add notes for the attorney (optional):')
+                      handleReviewDecision('request_changes', latestRevision.id, resultHtml, reviewNotes || undefined)
+                    }}
+                    onCancel={closeReview}
+                  />
+                )}
+
+                {/* Fallback: read-only redline for already-resolved revisions */}
+                {latestRevision.base_html && latestRevision.submitted_html && latestRevision.status !== 'pending_review' && (
                   <RedlineView
                     originalHtml={latestRevision.base_html}
                     editedHtml={latestRevision.submitted_html}
                     editorName={latestRevision.submitted_by_name}
                   />
-                )}
-
-                {latestRevision.status === 'pending_review' && (
-                  <div className="flex items-center justify-end gap-3 p-4 bg-gray-50 rounded-lg border">
-                    <span className="text-sm text-muted-foreground mr-auto">
-                      How would you like to proceed with {latestRevision.submitted_by_name}&apos;s edits?
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const reviewNotes = prompt('Add notes for the attorney (optional):')
-                        handleReviewDecision('request_changes', latestRevision.id, undefined, reviewNotes || undefined)
-                      }}
-                      disabled={reviewDecisionPending}
-                    >
-                      <RefreshCw className="h-4 w-4 mr-1 text-orange-500" />
-                      Send Back with Changes
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => handleReviewDecision('approve', latestRevision.id)}
-                      disabled={reviewDecisionPending}
-                      className="bg-green-700 hover:bg-green-800 text-white"
-                    >
-                      {reviewDecisionPending ? (
-                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                      ) : (
-                        <Check className="h-4 w-4 mr-1" />
-                      )}
-                      Approve &amp; Finalize
-                    </Button>
-                  </div>
                 )}
               </div>
             )
@@ -1196,8 +1223,8 @@ export default function CaseReportsPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
-                    {/* Finalize — show when finalization has been requested or report is in attorney_review */}
-                    {!!(report as Record<string, unknown>).finalization_requested_at && !['final', 'sent'].includes(report.status) && (
+                    {/* Finalize & Sign — show for all non-final/non-sent reports */}
+                    {!['final', 'sent', 'superseded', 'ai_generating'].includes(report.status) && (
                       <Button
                         size="sm"
                         onClick={() => handleFinalize(report.id)}
@@ -1210,6 +1237,22 @@ export default function CaseReportsPage() {
                           <Shield className="h-4 w-4 mr-1" />
                         )}
                         Finalize
+                      </Button>
+                    )}
+                    {/* Download Signed PDF — show for finalized reports */}
+                    {['final', 'sent'].includes(report.status) && (
+                      <Button
+                        size="sm"
+                        onClick={() => handleExportPdf(report.id, true)}
+                        disabled={exportingPdf}
+                        className="bg-[#0E1F35] hover:bg-[#0E1F35]/90 text-white"
+                      >
+                        {exportingPdf ? (
+                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        ) : (
+                          <FileDown className="h-4 w-4 mr-1" />
+                        )}
+                        Signed PDF
                       </Button>
                     )}
                     {/* Send to Attorney — show when report is in draft/review/revision/final state */}

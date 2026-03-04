@@ -145,6 +145,7 @@ export async function GET(
         can_view_fee_schedule: invite.can_view_fee_schedule,
         can_view_depositions: invite.can_view_depositions,
         can_view_billing: invite.can_view_billing,
+        can_book_scheduling: invite.can_book_scheduling,
         can_sign_contract: invite.can_sign_contract,
         contract_id: invite.contract_id,
         onboarding_mode: invite.onboarding_mode,
@@ -152,6 +153,7 @@ export async function GET(
         expires_at: invite.expires_at,
         view_count: invite.view_count + 1,
         tutorial_completed_at: invite.tutorial_completed_at ?? null,
+        onboarding_completed_at: invite.onboarding_completed_at ?? null,
         contact: invite.contacts,
       },
       contractStatus,
@@ -184,5 +186,46 @@ export async function GET(
   } catch (error) {
     console.error('Portal validation error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+// PATCH: Update portal invite (e.g. mark onboarding complete)
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ token: string }> }
+) {
+  try {
+    const { token } = await params
+    const body = await request.json()
+    const supabase = getSupabaseAdmin()
+
+    const { data: invite, error } = await supabase
+      .from('portal_invites')
+      .select('id')
+      .eq('token', token)
+      .eq('is_active', true)
+      .single()
+
+    if (error || !invite) {
+      return NextResponse.json({ error: 'Portal link not found' }, { status: 404 })
+    }
+
+    const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
+
+    if (body.onboardingCompleted) {
+      updates.onboarding_completed_at = new Date().toISOString()
+    }
+
+    const { error: updateError } = await supabase
+      .from('portal_invites')
+      .update(updates)
+      .eq('id', invite.id)
+
+    if (updateError) throw updateError
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Portal invite update error:', error)
+    return NextResponse.json({ error: 'Failed to update portal invite' }, { status: 500 })
   }
 }

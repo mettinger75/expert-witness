@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { editsSubmittedEmail, sendReportNotification } from '@/lib/report-notification-email'
 
+// Statuses in which an attorney with can_edit_reports may edit
+const ATTORNEY_EDITABLE_STATUSES = ['draft', 'in_progress', 'review', 'attorney_review', 'revision']
+
 // GET: Fetch report content for portal viewing
 export async function GET(
   request: NextRequest,
@@ -76,10 +79,10 @@ export async function GET(
       .order('revision_number', { ascending: false })
 
     // Determine if this attorney can edit
-    // If the invite has edit access and the report is in attorney_review,
+    // If the invite has edit access and the report is in an editable status,
     // auto-link the invite if not already linked (or if linked to this invite)
     let canEdit = false
-    if (invite.can_edit_reports && report.status === 'attorney_review') {
+    if (invite.can_edit_reports && ATTORNEY_EDITABLE_STATUSES.includes(report.status)) {
       if (report.active_collaboration_invite_id === invite.id) {
         canEdit = true
       } else if (!report.active_collaboration_invite_id) {
@@ -201,7 +204,7 @@ export async function PUT(
     // Fetch report
     const { data: report, error: reportError } = await supabase
       .from('reports')
-      .select('id, report_name, collaboration_html, status, active_collaboration_invite_id, case_id')
+      .select('id, report_name, rendered_html, collaboration_html, status, active_collaboration_invite_id, case_id')
       .eq('id', reportId)
       .eq('case_id', invite.case_id)
       .single()
@@ -214,23 +217,28 @@ export async function PUT(
     }
 
     // Verify report is in editable state for this attorney
-    // Allow editing if invite has edit access and report is in attorney_review,
-    // even if active_collaboration_invite_id wasn't explicitly set
     const isLinkedToThisInvite = report.active_collaboration_invite_id === invite.id
-    const canAutoLink = !report.active_collaboration_invite_id && report.status === 'attorney_review'
-    if (report.status !== 'attorney_review' || (!isLinkedToThisInvite && !canAutoLink)) {
+    const canAutoLink = !report.active_collaboration_invite_id && ATTORNEY_EDITABLE_STATUSES.includes(report.status)
+    if (!ATTORNEY_EDITABLE_STATUSES.includes(report.status) || (!isLinkedToThisInvite && !canAutoLink)) {
       return NextResponse.json(
         { error: 'This report is not currently editable by you' },
         { status: 403 }
       )
     }
 
-    // Auto-link if needed
+    // Auto-link if needed, and initialize collaboration_html from rendered_html
     if (canAutoLink) {
+      const collabHtml = report.collaboration_html || report.rendered_html || ''
       await supabase
         .from('reports')
-        .update({ active_collaboration_invite_id: invite.id })
+        .update({
+          active_collaboration_invite_id: invite.id,
+          ...(collabHtml && !report.collaboration_html ? { collaboration_html: collabHtml } : {}),
+        })
         .eq('id', reportId)
+      if (!report.collaboration_html && collabHtml) {
+        report.collaboration_html = collabHtml
+      }
     }
 
     const contact = invite.contacts as unknown as { first_name: string; last_name: string; email: string } | null
@@ -317,7 +325,7 @@ export async function PUT(
       })
 
       await sendReportNotification({
-        to: 'dr.ettinger@gmail.com',
+        to: 'markettingermd@gmail.com',
         subject: email.subject,
         html: email.html,
       })

@@ -201,7 +201,7 @@ export async function POST(
           },
           body: JSON.stringify({
             from: 'Expert Witness <noreply@meridian-anesthesia.com>',
-            to: 'dr.ettinger@gmail.com',
+            to: 'markettingermd@gmail.com',
             subject: `Contract Signed: ${caseData?.case_name || 'Unknown Case'}`,
             html: `
               <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto;">

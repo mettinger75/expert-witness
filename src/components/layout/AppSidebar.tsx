@@ -19,6 +19,7 @@ import {
   LogOut,
   Timer,
   Inbox,
+  Calendar,
   ChevronDown,
   ChevronRight,
 } from 'lucide-react'
@@ -48,6 +49,7 @@ const navItems: NavItem[] = [
     ],
   },
   { title: 'Inbox', href: '/inbox', icon: Inbox },
+  { title: 'Calendar', href: '/calendar', icon: Calendar },
   {
     title: 'Contacts',
     href: '/contacts',

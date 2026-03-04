@@ -19,6 +19,7 @@ interface PortalInvite {
   can_view_fee_schedule: boolean
   can_view_depositions: boolean
   can_view_billing: boolean
+  can_book_scheduling: boolean
   can_sign_contract: boolean
   contract_id: string | null
   onboarding_mode: boolean
@@ -26,6 +27,7 @@ interface PortalInvite {
   expires_at: string
   view_count: number
   tutorial_completed_at: string | null
+  onboarding_completed_at: string | null
   contact: {
     id: string
     first_name: string

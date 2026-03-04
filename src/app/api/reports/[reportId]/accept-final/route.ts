@@ -135,7 +135,7 @@ export async function POST(
       })
 
       await sendReportNotification({
-        to: 'dr.ettinger@gmail.com',
+        to: 'markettingermd@gmail.com',
         subject: `Report Accepted — ${caseData.case_name}`,
         html: emailHtml,
       })

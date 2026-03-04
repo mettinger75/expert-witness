@@ -19,6 +19,7 @@ export async function POST(request: NextRequest) {
       canViewFeeSchedule = true,
       canViewDepositions = true,
       canViewBilling = true,
+      canBookScheduling = true,
       canSignContract = false,
       contractId = null,
       onboardingMode = false,
@@ -75,6 +76,7 @@ export async function POST(request: NextRequest) {
         can_view_fee_schedule: canViewFeeSchedule,
         can_view_depositions: canViewDepositions,
         can_view_billing: canViewBilling,
+        can_book_scheduling: canBookScheduling,
         can_sign_contract: canSignContract,
         contract_id: contractId || null,
         onboarding_mode: onboardingMode,
@@ -87,13 +89,13 @@ export async function POST(request: NextRequest) {
 
     if (error) throw error
 
-    // If edit access granted, auto-link any attorney_review reports on this case
+    // If edit access granted, auto-link any editable reports on this case
     if (canEditReports && invite) {
       const { data: reviewReports } = await supabase
         .from('reports')
-        .select('id, collaboration_html, rendered_html')
+        .select('id, collaboration_html, rendered_html, status')
         .eq('case_id', caseId)
-        .eq('status', 'attorney_review')
+        .in('status', ['draft', 'in_progress', 'review', 'attorney_review', 'revision'])
         .is('active_collaboration_invite_id', null)
 
       if (reviewReports && reviewReports.length > 0) {
@@ -134,21 +136,28 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET: List portal invites for a case
+// GET: List portal invites for a case (optionally filtered by contactId)
 export async function GET(request: NextRequest) {
   try {
     const caseId = request.nextUrl.searchParams.get('caseId')
+    const contactId = request.nextUrl.searchParams.get('contactId')
     if (!caseId) {
       return NextResponse.json({ error: 'Missing caseId' }, { status: 400 })
     }
 
     const supabase = getSupabaseAdmin()
-    const { data: invites, error } = await supabase
+    let query = supabase
       .from('portal_invites')
       .select('*, contacts(*)')
       .eq('case_id', caseId)
       .eq('is_active', true)
       .order('created_at', { ascending: false })
+
+    if (contactId) {
+      query = query.eq('contact_id', contactId)
+    }
+
+    const { data: invites, error } = await query
 
     if (error) throw error
 

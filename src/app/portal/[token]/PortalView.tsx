@@ -21,6 +21,7 @@ import {
   FileSignature,
   HelpCircle,
   Receipt,
+  CalendarClock,
 } from 'lucide-react'
 import { PortalSummary } from './PortalSummary'
 import { PortalTimeline } from './PortalTimeline'
@@ -30,6 +31,7 @@ import { PortalDocuments } from './PortalDocuments'
 import { PortalFeeSchedule } from './PortalFeeSchedule'
 import { PortalDepositions } from './PortalDepositions'
 import { PortalBilling } from './PortalBilling'
+import { PortalBooking } from './PortalBooking'
 import { PortalContract } from './PortalContract'
 import { PortalOnboarding } from './PortalOnboarding'
 import { PortalTutorial } from './PortalTutorial'
@@ -48,6 +50,7 @@ interface PortalInvite {
   can_view_fee_schedule: boolean
   can_view_depositions: boolean
   can_view_billing: boolean
+  can_book_scheduling: boolean
   can_sign_contract: boolean
   contract_id: string | null
   onboarding_mode: boolean
@@ -55,6 +58,7 @@ interface PortalInvite {
   expires_at: string
   view_count: number
   tutorial_completed_at: string | null
+  onboarding_completed_at: string | null
   contact: {
     id: string
     first_name: string
@@ -186,7 +190,7 @@ export function PortalView({
   const [unreadCount, setUnreadCount] = useState(initialUnreadCount)
   const [showWelcome, setShowWelcome] = useState(invite.view_count === 1 && !invite.onboarding_mode)
   const [contractSigned, setContractSigned] = useState(contractStatus?.status === 'signed')
-  const [showOnboarding, setShowOnboarding] = useState(invite.onboarding_mode)
+  const [showOnboarding, setShowOnboarding] = useState(invite.onboarding_mode && !invite.onboarding_completed_at)
   const [showTutorial, setShowTutorial] = useState(false)
   const [tutorialCompleted, setTutorialCompleted] = useState(!!invite.tutorial_completed_at)
 
@@ -251,6 +255,12 @@ export function PortalView({
       icon: <Gavel className="h-4 w-4" />,
       enabled: invite.can_view_depositions,
     },
+    {
+      id: 'booking',
+      label: 'Booking',
+      icon: <CalendarClock className="h-4 w-4" />,
+      enabled: invite.can_book_scheduling,
+    },
   ]
 
   const enabledTabs = tabs.filter((t) => t.enabled)
@@ -298,6 +308,12 @@ export function PortalView({
           feeSchedule={feeSchedule}
           onComplete={() => {
             setShowOnboarding(false)
+            // Persist onboarding completion
+            fetch(`/api/portal/${token}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ onboardingCompleted: true }),
+            }).catch(() => {})
             launchTutorial()
           }}
         />
@@ -343,6 +359,9 @@ export function PortalView({
               )}
               {invite.can_view_depositions && (
                 <li>Review depositions</li>
+              )}
+              {invite.can_book_scheduling && (
+                <li>Book expert calls and depositions</li>
               )}
             </ul>
             {invite.can_upload_documents && (
@@ -468,6 +487,7 @@ export function PortalView({
         {activeTab === 'depositions' && (
           <PortalDepositions depositions={depositions} />
         )}
+        {activeTab === 'booking' && <PortalBooking />}
       </div>
 
       {/* Spotlight Tutorial */}
