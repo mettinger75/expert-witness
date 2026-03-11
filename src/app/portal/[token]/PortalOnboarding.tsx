@@ -13,6 +13,7 @@ import {
   FileText,
   ClipboardList,
   Download,
+  CalendarClock,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -35,6 +36,7 @@ interface OnboardingSteps {
   review_fee_schedule: StepStatus
   review_cv: StepStatus
   enter_case_details: StepStatus
+  schedule_call?: StepStatus
   sign_contract: StepStatus
   retainer_payment: StepStatus
   upload_documents: StepStatus
@@ -74,6 +76,12 @@ const STEP_CONFIGS: StepConfig[] = [
     label: 'Enter Case Details',
     description: 'Provide case information, patient details, and questions to be addressed',
     icon: <ClipboardList className="h-5 w-5" />,
+  },
+  {
+    key: 'schedule_call',
+    label: 'Schedule Consultation',
+    description: 'Book a consultation call with Dr. Ettinger to discuss your case',
+    icon: <CalendarClock className="h-5 w-5" />,
   },
   {
     key: 'sign_contract',
@@ -205,7 +213,14 @@ export function PortalOnboarding({
     )
   }
 
-  const applicableSteps = STEP_CONFIGS.filter((c) => steps[c.key] !== 'not_applicable')
+  // Filter out not_applicable and undefined (for backward compat with old invites missing new step keys)
+  const applicableSteps = STEP_CONFIGS.filter((c) => {
+    const status = steps[c.key]
+    return status !== undefined && status !== 'not_applicable'
+  })
+
+  // Detect inquiry mode: schedule_call exists and is not not_applicable
+  const isInquiryMode = steps.schedule_call !== undefined && steps.schedule_call !== 'not_applicable'
   const completedCount = applicableSteps.filter((c) => steps[c.key] === 'completed').length
   const totalSteps = applicableSteps.length
   const allComplete = completedCount === totalSteps && totalSteps > 0
@@ -218,8 +233,9 @@ export function PortalOnboarding({
           Welcome, {contactName}
         </h2>
         <p className="text-gray-600">
-          Complete the following steps to get started with{' '}
-          <span className="font-medium">{caseName}</span>
+          {isInquiryMode
+            ? 'Complete the following steps to explore a potential expert witness engagement.'
+            : <>Complete the following steps to get started with{' '}<span className="font-medium">{caseName}</span></>}
         </p>
         {/* Progress bar */}
         <div className="mt-4 max-w-md mx-auto">
@@ -260,7 +276,7 @@ export function PortalOnboarding({
       {!allComplete && (
         <div className="space-y-0">
           {applicableSteps.map((config, index) => {
-            const status = steps[config.key]
+            const status = steps[config.key] || 'locked' as StepStatus
             const isActive = activeStep === config.key
             const isLast = index === applicableSteps.length - 1
 
@@ -314,6 +330,7 @@ export function PortalOnboarding({
                         {config.key === 'review_fee_schedule' && (
                           <FeeScheduleReviewStep
                             feeSchedule={feeSchedule}
+                            requireAgreement={isInquiryMode}
                             onReviewed={() => updateStep('review_fee_schedule', 'completed')}
                           />
                         )}
@@ -328,6 +345,12 @@ export function PortalOnboarding({
                           <CaseDetailsStep
                             token={token}
                             onComplete={() => updateStep('enter_case_details', 'completed')}
+                          />
+                        )}
+
+                        {config.key === 'schedule_call' && (
+                          <ScheduleCallStep
+                            onComplete={() => updateStep('schedule_call', 'completed')}
                           />
                         )}
 
@@ -374,14 +397,18 @@ export function PortalOnboarding({
   )
 }
 
-/** Step 1: Fee Schedule Review */
+/** Step 1: Fee Schedule Review (with optional agreement for inquiry mode) */
 function FeeScheduleReviewStep({
   feeSchedule,
+  requireAgreement = false,
   onReviewed,
 }: {
   feeSchedule: FeeScheduleItem[]
+  requireAgreement?: boolean
   onReviewed: () => void
 }) {
+  const [agreed, setAgreed] = useState(false)
+
   return (
     <div className="space-y-4">
       <p className="text-sm text-gray-600">
@@ -389,13 +416,30 @@ function FeeScheduleReviewStep({
         rendered in connection with your case.
       </p>
       <PortalFeeSchedule feeSchedule={feeSchedule} />
+      {requireAgreement && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={agreed}
+              onChange={(e) => setAgreed(e.target.checked)}
+              className="mt-1 h-4 w-4 rounded border-gray-300 text-[#C9A84C] focus:ring-[#C9A84C]"
+            />
+            <span className="text-sm text-gray-700">
+              I have reviewed and agree to the fee schedule and rates listed above for expert
+              witness services provided by Mark Ettinger, M.D.
+            </span>
+          </label>
+        </div>
+      )}
       <div className="flex justify-end">
         <Button
           onClick={onReviewed}
+          disabled={requireAgreement && !agreed}
           className="bg-[#0E1F35] hover:bg-[#0E1F35]/90"
         >
           <CheckCircle2 className="h-4 w-4 mr-2" />
-          I&apos;ve Reviewed the Fee Schedule
+          {requireAgreement ? 'I Agree to the Fee Schedule' : "I've Reviewed the Fee Schedule"}
         </Button>
       </div>
     </div>
@@ -643,6 +687,42 @@ function CaseDetailsStep({
         </Button>
       </div>
     </form>
+  )
+}
+
+/** Schedule Call Step — embeds Morgen booking iframe */
+function ScheduleCallStep({ onComplete }: { onComplete: () => void }) {
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-gray-600">
+        Schedule a consultation call with Dr. Ettinger to discuss your case and determine
+        whether his expertise is a good fit.
+      </p>
+      <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
+        <iframe
+          src="https://book.morgen.so/markettingermd/expertcall"
+          className="w-full border-0"
+          style={{ height: '600px' }}
+          title="Schedule Consultation Call"
+          allow="payment"
+        />
+      </div>
+      <div className="flex items-center justify-between">
+        <Button
+          variant="outline"
+          onClick={onComplete}
+          className="text-gray-500 hover:text-gray-700"
+        >
+          Skip &mdash; I&apos;ll Schedule Later
+        </Button>
+        <Button
+          onClick={onComplete}
+          className="bg-[#0E1F35] hover:bg-[#0E1F35]/90"
+        >
+          I&apos;ve Scheduled My Call
+        </Button>
+      </div>
+    </div>
   )
 }
 

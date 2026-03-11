@@ -272,21 +272,26 @@ export function PortalView({
 
   // Onboarding mode: show guided stepper instead of tabs
   if (showOnboarding) {
+    type StepStatus = 'pending' | 'completed' | 'locked' | 'not_applicable'
     const onboardingSteps = (invite.onboarding_steps || {
       review_fee_schedule: 'pending',
       review_cv: 'locked',
       enter_case_details: 'locked',
+      schedule_call: 'locked',
       sign_contract: 'locked',
       retainer_payment: 'locked',
       upload_documents: 'locked',
     }) as {
-      review_fee_schedule: 'pending' | 'completed' | 'locked' | 'not_applicable'
-      review_cv: 'pending' | 'completed' | 'locked' | 'not_applicable'
-      enter_case_details: 'pending' | 'completed' | 'locked' | 'not_applicable'
-      sign_contract: 'pending' | 'completed' | 'locked' | 'not_applicable'
-      retainer_payment: 'pending' | 'completed' | 'locked' | 'not_applicable'
-      upload_documents: 'pending' | 'completed' | 'locked' | 'not_applicable'
+      review_fee_schedule: StepStatus
+      review_cv: StepStatus
+      enter_case_details: StepStatus
+      schedule_call?: StepStatus
+      sign_contract: StepStatus
+      retainer_payment: StepStatus
+      upload_documents: StepStatus
     }
+
+    const isInquiry = caseData.status === 'inquiry'
 
     return (
       <div>
@@ -297,7 +302,9 @@ export function PortalView({
             <span className="text-white/40">|</span>
             <span>{caseData.case_number}</span>
           </div>
-          <h1 className="text-2xl font-bold text-[#0E1F35]">{caseData.case_name}</h1>
+          <h1 className="text-2xl font-bold text-[#0E1F35]">
+            {isInquiry ? 'Expert Witness Consultation' : caseData.case_name}
+          </h1>
         </div>
 
         <PortalOnboarding

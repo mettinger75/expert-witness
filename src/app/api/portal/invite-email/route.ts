@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
     const invitationMessage = body.invitationMessage || body.message
     const features = body.features
     const contractTitle = body.contractTitle
+    const isInquiry = body.isInquiry === true
 
     // If caseId is provided but caseName isn't, fetch it
     let resolvedCaseName = caseName
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (!portalUrl || !recipientEmail || !resolvedCaseName) {
+    if (!portalUrl || !recipientEmail || (!resolvedCaseName && !isInquiry)) {
       return NextResponse.json(
         { error: 'Missing required fields: portalUrl, recipientEmail, caseName/caseId' },
         { status: 400 }
@@ -45,13 +46,20 @@ export async function POST(request: NextRequest) {
     // Auto-build features list if not provided
     const resolvedFeatures: string[] = features && Array.isArray(features) && features.length > 0
       ? features
-      : [
-          ...(contractTitle ? ['Review and sign the retention agreement'] : []),
-          'View case summary and updates',
-          'Send secure messages',
-          'Upload documents and records',
-          'View fee schedule',
-        ]
+      : isInquiry
+        ? [
+            'Review fee schedule and rates',
+            'Review qualifications and curriculum vitae',
+            'Provide case details for initial evaluation',
+            'Schedule a consultation call',
+          ]
+        : [
+            ...(contractTitle ? ['Review and sign the retention agreement'] : []),
+            'View case summary and updates',
+            'Send secure messages',
+            'Upload documents and records',
+            'View fee schedule',
+          ]
 
     const greeting = recipientName ? `Dear ${recipientName},` : 'Dear Counsel,'
     const logoUrl = `${APP_URL}/logo-expert-witness.svg?v=2`
@@ -116,7 +124,9 @@ export async function POST(request: NextRequest) {
                 ${greeting}
               </p>
               <p style="color: #1e293b; font-size: 15px; line-height: 1.7; margin: 0 0 16px 0;">
-                You've been invited to access the case portal for <strong>${resolvedCaseName}</strong>.
+                ${isInquiry
+                  ? 'Mark Ettinger, M.D. would like to invite you to review his qualifications and fee schedule for a potential expert witness engagement in anesthesiology.'
+                  : `You've been invited to access the case portal for <strong>${resolvedCaseName}</strong>.`}
               </p>
 
               ${contractCalloutHtml}
@@ -136,7 +146,7 @@ export async function POST(request: NextRequest) {
               <table width="100%" cellpadding="0" cellspacing="0" style="margin: 20px 0; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden;">
                 <tr>
                   <td style="background-color: #f8fafc; padding: 12px 20px; border-bottom: 1px solid #e2e8f0;">
-                    <strong style="color: #0E1F35; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">Portal Features</strong>
+                    <strong style="color: #0E1F35; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">${isInquiry ? 'Getting Started' : 'Portal Features'}</strong>
                   </td>
                 </tr>
                 <tr>
@@ -153,7 +163,7 @@ export async function POST(request: NextRequest) {
                 <tr>
                   <td align="center">
                     <a href="${portalUrl}" style="display: inline-block; background-color: #C9A84C; color: #0E1F35; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-size: 15px; font-weight: 600; letter-spacing: 0.3px;">
-                      ${contractTitle ? 'Review &amp; Sign Agreement' : 'Access Case Portal'}
+                      ${contractTitle ? 'Review &amp; Sign Agreement' : isInquiry ? 'Review &amp; Get Started' : 'Access Case Portal'}
                     </a>
                   </td>
                 </tr>
@@ -183,7 +193,9 @@ export async function POST(request: NextRequest) {
 
     const subject = contractTitle
       ? `Action Required: Sign Agreement \u2014 ${resolvedCaseName}`
-      : `Case Portal Invitation \u2014 ${resolvedCaseName}`
+      : isInquiry
+        ? `Expert Witness Consultation \u2014 Dr. Mark Ettinger`
+        : `Case Portal Invitation \u2014 ${resolvedCaseName}`
 
     const { data, error } = await resend.emails.send({
       from: FROM_EMAIL,

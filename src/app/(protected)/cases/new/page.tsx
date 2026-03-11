@@ -13,7 +13,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DOCUMENT_CATEGORIES } from '@/lib/constants'
 import type { CaseInsert } from '@/types/database.types'
 import type { DocumentCategory } from '@/types/enums'
-import { Upload, FileText, X, Loader2, Sparkles, FileUp, PenLine } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Upload, FileText, X, Loader2, Sparkles, FileUp, PenLine, Send, Copy, Check, ExternalLink } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface FileEntry {
@@ -27,11 +29,27 @@ export default function NewCasePage() {
   const uploadMutation = useUploadDocument()
   const createDocMutation = useCreateDocument()
 
-  const [mode, setMode] = useState<'manual' | 'documents'>('manual')
+  const [mode, setMode] = useState<'manual' | 'documents' | 'inquiry'>('manual')
   const [files, setFiles] = useState<FileEntry[]>([])
   const [extracting, setExtracting] = useState(false)
   const [extractedData, setExtractedData] = useState<Partial<CaseInsert> | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Inquiry mode state
+  const [inquiryForm, setInquiryForm] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    organizationName: '',
+    invitationMessage: '',
+  })
+  const [inquirySending, setInquirySending] = useState(false)
+  const [inquiryResult, setInquiryResult] = useState<{
+    portalUrl: string
+    caseNumber: string
+    caseId: string
+  } | null>(null)
+  const [copied, setCopied] = useState(false)
 
   async function handleManualSubmit(data: CaseInsert) {
     const result = await createCase.mutateAsync(data)
@@ -131,6 +149,42 @@ export default function NewCasePage() {
     }
   }
 
+  async function handleInquirySubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!inquiryForm.firstName || !inquiryForm.lastName || !inquiryForm.email) {
+      toast.error('Please fill in all required fields')
+      return
+    }
+    setInquirySending(true)
+    try {
+      const res = await fetch('/api/portal/inquiry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(inquiryForm),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || 'Failed to create inquiry')
+      }
+      const result = await res.json()
+      setInquiryResult(result)
+      toast.success('Portal invite created and sent!')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to create inquiry')
+    } finally {
+      setInquirySending(false)
+    }
+  }
+
+  function copyPortalUrl() {
+    if (inquiryResult) {
+      navigator.clipboard.writeText(inquiryResult.portalUrl)
+      setCopied(true)
+      toast.success('Portal URL copied')
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
   function formatFileSize(bytes: number) {
     if (bytes < 1024) return `${bytes} B`
     if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`
@@ -160,14 +214,140 @@ export default function NewCasePage() {
           <FileUp className="h-4 w-4 mr-2" />
           Create from Documents
         </Button>
+        <Button
+          variant={mode === 'inquiry' ? 'default' : 'outline'}
+          onClick={() => { setMode('inquiry'); setExtractedData(null) }}
+        >
+          <Send className="h-4 w-4 mr-2" />
+          Send Portal Invite
+        </Button>
       </div>
 
-      {mode === 'manual' ? (
+      {mode === 'manual' && (
         <CaseForm
           onSubmit={handleManualSubmit}
           isSubmitting={createCase.isPending}
         />
-      ) : (
+      )}
+
+      {mode === 'inquiry' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Send Portal Invite</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {inquiryResult ? (
+              <div className="space-y-4">
+                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-5">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Check className="h-5 w-5 text-emerald-600" />
+                    <p className="font-semibold text-emerald-800">Invite Sent</p>
+                  </div>
+                  <p className="text-sm text-emerald-700">
+                    Portal invite sent to <strong>{inquiryForm.email}</strong>
+                  </p>
+                  <p className="text-sm text-emerald-600 mt-1">
+                    Case <strong>{inquiryResult.caseNumber}</strong> created
+                  </p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-sm text-muted-foreground">Portal URL</Label>
+                  <div className="flex items-center gap-2">
+                    <Input value={inquiryResult.portalUrl} readOnly className="text-sm" />
+                    <Button variant="outline" size="sm" onClick={copyPortalUrl}>
+                      {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <Button onClick={() => router.push(`/cases/${inquiryResult.caseId}`)}>
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    View Case
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setInquiryResult(null)
+                      setInquiryForm({ firstName: '', lastName: '', email: '', organizationName: '', invitationMessage: '' })
+                    }}
+                  >
+                    Send Another
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleInquirySubmit} className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Enter the attorney&apos;s information below. They&apos;ll receive a portal link to review your
+                  qualifications and fee schedule, provide case details, and schedule a consultation call.
+                </p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>First Name *</Label>
+                    <Input
+                      value={inquiryForm.firstName}
+                      onChange={(e) => setInquiryForm(prev => ({ ...prev, firstName: e.target.value }))}
+                      placeholder="Jane"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Last Name *</Label>
+                    <Input
+                      value={inquiryForm.lastName}
+                      onChange={(e) => setInquiryForm(prev => ({ ...prev, lastName: e.target.value }))}
+                      placeholder="Smith"
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Email *</Label>
+                  <Input
+                    type="email"
+                    value={inquiryForm.email}
+                    onChange={(e) => setInquiryForm(prev => ({ ...prev, email: e.target.value }))}
+                    placeholder="jane.smith@lawfirm.com"
+                    required
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Firm / Organization</Label>
+                  <Input
+                    value={inquiryForm.organizationName}
+                    onChange={(e) => setInquiryForm(prev => ({ ...prev, organizationName: e.target.value }))}
+                    placeholder="Smith & Associates"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Personal Message (optional)</Label>
+                  <Textarea
+                    value={inquiryForm.invitationMessage}
+                    onChange={(e) => setInquiryForm(prev => ({ ...prev, invitationMessage: e.target.value }))}
+                    rows={3}
+                    placeholder="Add a personal note to the invitation email..."
+                  />
+                </div>
+                <Button type="submit" disabled={inquirySending} className="w-full">
+                  {inquirySending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Creating &amp; Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4 mr-2" />
+                      Create Case &amp; Send Invite
+                    </>
+                  )}
+                </Button>
+              </form>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {mode === 'documents' && (
         <div className="space-y-6">
           {/* Document Upload Section */}
           <Card>
@@ -263,3 +443,4 @@ export default function NewCasePage() {
     </div>
   )
 }
+
