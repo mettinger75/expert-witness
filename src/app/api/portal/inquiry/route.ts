@@ -76,6 +76,40 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create case' }, { status: 500 })
     }
 
+    // 3b. Send new-case notification to Dr. Ettinger
+    const resendKey = process.env.RESEND_API_KEY
+    if (resendKey) {
+      const caseName = `Inquiry — ${firstName} ${lastName}`
+      const notifyAppUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'
+      fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${resendKey}` },
+        body: JSON.stringify({
+          from: 'Expert Witness <noreply@meridian-anesthesia.com>',
+          to: 'markettingermd@gmail.com',
+          subject: `New Inquiry Case Created: ${caseName}`,
+          html: `
+            <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto;">
+              <div style="background-color: #0E1F35; color: white; padding: 24px 32px;">
+                <h1 style="margin: 0; font-size: 20px; color: #C9A84C;">New Inquiry Case</h1>
+              </div>
+              <div style="padding: 32px; border: 1px solid #e5e7eb; border-top: none;">
+                <p style="color: #374151; font-size: 15px; line-height: 1.6;">
+                  A portal invite was sent to <strong>${firstName} ${lastName}</strong>${organizationName ? ` (${organizationName})` : ''} at <strong>${email}</strong>.
+                </p>
+                <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                  <tr><td style="padding: 8px 0; color: #6b7280; font-size: 14px; width: 120px;">Case:</td><td style="padding: 8px 0; font-size: 14px; font-weight: 600;">${caseName}</td></tr>
+                  <tr><td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Number:</td><td style="padding: 8px 0; font-size: 14px;">${caseNumber}</td></tr>
+                </table>
+                <div style="text-align: center; margin: 28px 0;">
+                  <a href="${notifyAppUrl}/cases/${newCase.id}" style="display: inline-block; background-color: #0E1F35; color: white; text-decoration: none; padding: 12px 32px; border-radius: 6px; font-size: 14px; font-weight: 600;">View Case</a>
+                </div>
+              </div>
+            </div>`,
+        }),
+      }).catch(err => console.error('Inquiry notification email error:', err))
+    }
+
     // 4. Link contact to case
     const { error: linkError } = await supabase
       .from('case_contacts')

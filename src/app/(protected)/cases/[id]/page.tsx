@@ -1,7 +1,7 @@
 'use client'
 
-import { useParams } from 'next/navigation'
-import { useCase, useUpdateCase, useSynthesizeCase, useNotionPull, useNotionPush } from '@/hooks/useCases'
+import { useParams, useRouter } from 'next/navigation'
+import { useCase, useUpdateCase, useDeleteCase, useSynthesizeCase, useNotionPull, useNotionPush } from '@/hooks/useCases'
 import { useCaseContacts } from '@/hooks/useCaseContacts'
 import { useMilestones } from '@/hooks/useMilestones'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
@@ -14,21 +14,24 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { CASE_STATUSES, CASE_TYPES, CASE_PRIORITIES, SPECIALTY_AREAS, CASE_CONTACT_ROLES, getLabelForValue, getColorForValue } from '@/lib/constants'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { formatDate, formatCurrency, formatDuration } from '@/lib/formatters'
-import { Calendar, DollarSign, Clock, Scale, User, MapPin, Edit, Users, CheckSquare, Mail, Phone, Building, Brain, RefreshCw, Loader2, AlertTriangle, ExternalLink, ArrowDownToLine, ArrowUpFromLine, Link2 } from 'lucide-react'
+import { Calendar, DollarSign, Clock, Scale, User, MapPin, Edit, Users, CheckSquare, Mail, Phone, Building, Brain, RefreshCw, Loader2, AlertTriangle, ExternalLink, ArrowDownToLine, ArrowUpFromLine, Link2, Trash2 } from 'lucide-react'
 import type { CaseStatus } from '@/types/enums'
 import { useState } from 'react'
 import Link from 'next/link'
 import { useToggleMilestone } from '@/hooks/useMilestones'
 import { CreatePortalInviteDialog } from '@/components/portal/CreatePortalInviteDialog'
 import { PortalMessagesPanel } from '@/components/portal/PortalMessagesPanel'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 
 export default function CaseOverviewPage() {
   const params = useParams()
+  const router = useRouter()
   const caseId = params.id as string
   const { data: caseData, isLoading } = useCase(caseId)
   const { data: caseContacts = [] } = useCaseContacts(caseId)
   const { data: milestones = [] } = useMilestones(caseId)
   const updateCase = useUpdateCase()
+  const deleteCase = useDeleteCase()
   const synthesizeCase = useSynthesizeCase()
   const notionPull = useNotionPull()
   const notionPush = useNotionPush()
@@ -37,6 +40,9 @@ export default function CaseOverviewPage() {
   const [editingDeadline, setEditingDeadline] = useState(false)
   const [deadlineDate, setDeadlineDate] = useState('')
   const [deadlineDesc, setDeadlineDesc] = useState('')
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [linkedCounts, setLinkedCounts] = useState<Record<string, number> | null>(null)
+  const [deleteChecking, setDeleteChecking] = useState(false)
   const [portalInviteOpen, setPortalInviteOpen] = useState(false)
   const [portalContactId, setPortalContactId] = useState<string | undefined>()
   const [portalContactName, setPortalContactName] = useState<string | undefined>()
@@ -80,6 +86,34 @@ export default function CaseOverviewPage() {
     setEditingDeadline(false)
   }
 
+  async function handleDeleteClick() {
+    setDeleteChecking(true)
+    try {
+      const res = await fetch(`/api/cases/${caseId}`, { method: 'DELETE' })
+      if (res.status === 409) {
+        const data = await res.json()
+        setLinkedCounts(data.linkedCounts)
+      } else {
+        setLinkedCounts({})
+      }
+      setDeleteDialogOpen(true)
+    } catch {
+      setLinkedCounts({})
+      setDeleteDialogOpen(true)
+    } finally {
+      setDeleteChecking(false)
+    }
+  }
+
+  function handleDeleteConfirm() {
+    deleteCase.mutate(caseId, {
+      onSuccess: () => {
+        setDeleteDialogOpen(false)
+        router.push('/cases')
+      },
+    })
+  }
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Main Content - Left 2 columns */}
@@ -88,12 +122,27 @@ export default function CaseOverviewPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg">Case Details</CardTitle>
-            <Link href={`/cases/${caseId}/edit`}>
-              <Button variant="outline" size="sm">
-                <Edit className="h-4 w-4 mr-1" />
-                Edit
+            <div className="flex items-center gap-2">
+              <Link href={`/cases/${caseId}/edit`}>
+                <Button variant="outline" size="sm">
+                  <Edit className="h-4 w-4 mr-1" />
+                  Edit
+                </Button>
+              </Link>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                onClick={handleDeleteClick}
+                disabled={deleteChecking}
+              >
+                {deleteChecking ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
               </Button>
-            </Link>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -646,6 +695,53 @@ export default function CaseOverviewPage() {
         open={portalInviteOpen}
         onOpenChange={setPortalInviteOpen}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Case Permanently?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>
+                  This will permanently delete <strong>{caseData.case_name}</strong> ({caseData.case_number}) and all associated records. This action cannot be undone.
+                </p>
+                {linkedCounts && Object.values(linkedCounts).some(c => c > 0) && (
+                  <div className="bg-red-50 border border-red-200 rounded-md p-3 text-sm text-red-800">
+                    <p className="font-medium mb-1">The following records will be permanently deleted:</p>
+                    <ul className="list-disc list-inside space-y-0.5">
+                      {(linkedCounts.documents ?? 0) > 0 && <li>{linkedCounts.documents} document(s)</li>}
+                      {(linkedCounts.reports ?? 0) > 0 && <li>{linkedCounts.reports} report(s)</li>}
+                      {(linkedCounts.invoices ?? 0) > 0 && <li>{linkedCounts.invoices} invoice(s)</li>}
+                      {(linkedCounts.timeEntries ?? 0) > 0 && <li>{linkedCounts.timeEntries} time entry(ies)</li>}
+                      {(linkedCounts.portalInvites ?? 0) > 0 && <li>{linkedCounts.portalInvites} portal invite(s)</li>}
+                      {(linkedCounts.milestones ?? 0) > 0 && <li>{linkedCounts.milestones} milestone(s)</li>}
+                      {(linkedCounts.notes ?? 0) > 0 && <li>{linkedCounts.notes} note(s)</li>}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700 text-white"
+              onClick={handleDeleteConfirm}
+              disabled={deleteCase.isPending}
+            >
+              {deleteCase.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete Permanently'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

@@ -29,9 +29,10 @@ export function useCreateCase() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (input: CaseInsert) => casesService.create(input),
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['cases'] })
       toast.success('Case created successfully')
+      sendCaseNotification('created', result.id, result.case_name, result.case_number)
     },
     onError: (error: Error) => {
       toast.error(`Failed to create case: ${error.message}`)
@@ -44,10 +45,12 @@ export function useUpdateCase() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: CaseUpdate }) =>
       casesService.update(id, data),
-    onSuccess: (_, { id }) => {
+    onSuccess: (result, { data }) => {
       queryClient.invalidateQueries({ queryKey: ['cases'] })
-      queryClient.invalidateQueries({ queryKey: ['cases', id] })
+      queryClient.invalidateQueries({ queryKey: ['cases', result.id] })
       toast.success('Case updated successfully')
+      const changedFields = Object.keys(data).filter(k => k !== 'updated_at')
+      sendCaseNotification('updated', result.id, result.case_name, result.case_number, changedFields)
     },
     onError: (error: Error) => {
       toast.error(`Failed to update case: ${error.message}`)
@@ -67,6 +70,38 @@ export function useArchiveCase() {
       toast.error(`Failed to archive case: ${error.message}`)
     },
   })
+}
+
+export function useDeleteCase() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await fetch(`/api/cases/${id}?force=true`, {
+        method: 'DELETE',
+      })
+      if (!response.ok) {
+        const err = await response.json()
+        throw new Error(err.error || `Delete failed (${response.status})`)
+      }
+      return response.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cases'] })
+      toast.success('Case permanently deleted')
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to delete case: ${error.message}`)
+    },
+  })
+}
+
+// Fire-and-forget notification helper (does not block UI)
+function sendCaseNotification(event: 'created' | 'updated', caseId: string, caseName: string, caseNumber: string, changedFields?: string[]) {
+  fetch('/api/cases/notify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ event, caseId, caseName, caseNumber, changedFields }),
+  }).catch(() => { /* silent — notification failure should never affect UX */ })
 }
 
 export function useNotionPull() {
