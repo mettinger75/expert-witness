@@ -1,0 +1,24 @@
+{
+  "rewrites": [
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "markettingermd.com"
+        }
+      ],
+      "destination": "/site"
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.markettingermd.com"
+        }
+      ],
+      "destination": "/site"
+    }
+  ]
+}
