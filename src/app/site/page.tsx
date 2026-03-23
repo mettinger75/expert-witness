@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Shield,
   BookOpen,
@@ -740,37 +740,37 @@ function FeeSchedule() {
 
 // ─── CASE HISTORY ───────────────────────────────────────────────────────────────
 
+interface CaseData {
+  year: string
+  side: string
+  specialty: string
+  caseType: string
+  involvement: string
+}
+
+interface CaseStats {
+  total: number
+  plaintiff: number
+  defense: number
+  depositionsAndTrials: number
+}
+
 function CaseHistory() {
   const [expanded, setExpanded] = useState(false)
+  const [cases, setCases] = useState<CaseData[]>([])
+  const [stats, setStats] = useState<CaseStats>({ total: 0, plaintiff: 0, defense: 0, depositionsAndTrials: 0 })
+  const [loading, setLoading] = useState(true)
 
-  // 25 representative cases based on real practice data, with dates adjusted
-  const cases = [
-    { year: '2026', side: 'Plaintiff', specialty: 'General Anesthesia', issue: 'Anesthesia awareness during surgical procedure', involvement: 'Report & Deposition', caseType: 'Medical Malpractice' },
-    { year: '2026', side: 'Defense', specialty: 'General Anesthesia', issue: 'Aspiration during emergency intubation', involvement: 'Report & Deposition', caseType: 'Medical Malpractice' },
-    { year: '2026', side: 'Plaintiff', specialty: 'Critical Care', issue: 'Delayed recognition of postoperative hemorrhage', involvement: 'Report', caseType: 'Medical Malpractice' },
-    { year: '2026', side: 'Plaintiff', specialty: 'Obstetric Anesthesia', issue: 'Epidural-related nerve injury during labor', involvement: 'Report & Trial', caseType: 'Medical Malpractice' },
-    { year: '2025', side: 'Defense', specialty: 'General Anesthesia', issue: 'Malignant hyperthermia management', involvement: 'Report & Deposition', caseType: 'Medical Malpractice' },
-    { year: '2025', side: 'Plaintiff', specialty: 'General Anesthesia', issue: 'Failure to secure airway in ambulatory surgery center', involvement: 'Report & Deposition', caseType: 'Medical Malpractice' },
-    { year: '2025', side: 'Plaintiff', specialty: 'Critical Care', issue: 'Inadequate monitoring leading to cardiac arrest', involvement: 'Report & Deposition', caseType: 'Medical Malpractice' },
-    { year: '2025', side: 'Plaintiff', specialty: 'Neuroanesthesia', issue: 'Positioning injury during spinal surgery', involvement: 'Report', caseType: 'Medical Malpractice' },
-    { year: '2025', side: 'Plaintiff', specialty: 'General Anesthesia', issue: 'Medication error — wrong drug administered', involvement: 'Report & Deposition', caseType: 'Medical Malpractice' },
-    { year: '2025', side: 'Defense', specialty: 'General Anesthesia', issue: 'Dental injury during intubation', involvement: 'Report', caseType: 'Medical Malpractice' },
-    { year: '2025', side: 'Plaintiff', specialty: 'Pain Management', issue: 'Epidural steroid injection complication', involvement: 'Report & Trial', caseType: 'Medical Malpractice' },
-    { year: '2025', side: 'Plaintiff', specialty: 'General Anesthesia', issue: 'Failure to perform adequate preanesthetic evaluation', involvement: 'Report & Deposition', caseType: 'Medical Malpractice' },
-    { year: '2025', side: 'Plaintiff', specialty: 'Critical Care', issue: 'Wrongful death — delayed intubation in ICU', involvement: 'Report & Trial', caseType: 'Personal Injury' },
-    { year: '2025', side: 'Defense', specialty: 'General Anesthesia', issue: 'Postoperative cognitive dysfunction claim', involvement: 'Report & Deposition', caseType: 'Medical Malpractice' },
-    { year: '2025', side: 'Plaintiff', specialty: 'General Anesthesia', issue: 'Anaphylaxis management during surgery', involvement: 'Report', caseType: 'Medical Malpractice' },
-    { year: '2025', side: 'Plaintiff', specialty: 'Neuroanesthesia', issue: 'Spinal cord injury during epidural placement', involvement: 'Report & Deposition', caseType: 'Medical Malpractice' },
-    { year: '2025', side: 'Defense', specialty: 'Critical Care', issue: 'Standard of care in trauma resuscitation', involvement: 'Report & Deposition', caseType: 'Medical Malpractice' },
-    { year: '2025', side: 'Plaintiff', specialty: 'General Anesthesia', issue: 'Inadequate ventilation during sedation', involvement: 'Report & Deposition', caseType: 'Medical Malpractice' },
-    { year: '2025', side: 'Plaintiff', specialty: 'General Anesthesia', issue: 'Hypotension management during surgery', involvement: 'Report', caseType: 'Medical Malpractice' },
-    { year: '2025', side: 'Plaintiff', specialty: 'Pain Management', issue: 'Chronic pain mismanagement — nerve block complication', involvement: 'Report & Deposition', caseType: 'Medical Malpractice' },
-    { year: '2025', side: 'Plaintiff', specialty: 'Critical Care', issue: 'Failure to recognize and treat sepsis postoperatively', involvement: 'Report & Deposition', caseType: 'Medical Malpractice' },
-    { year: '2025', side: 'Defense', specialty: 'General Anesthesia', issue: 'Informed consent for anesthesia risks', involvement: 'Report', caseType: 'Medical Malpractice' },
-    { year: '2025', side: 'Plaintiff', specialty: 'General Anesthesia', issue: 'Bronchospasm during induction', involvement: 'Report & Deposition', caseType: 'Medical Malpractice' },
-    { year: '2025', side: 'Plaintiff', specialty: 'Regional Anesthesia', issue: 'Peripheral nerve injury following nerve block', involvement: 'Report & Trial', caseType: 'Medical Malpractice' },
-    { year: '2025', side: 'Plaintiff', specialty: 'General Anesthesia', issue: 'Opioid-related respiratory depression in PACU', involvement: 'Report & Deposition', caseType: 'Medical Malpractice' },
-  ]
+  useEffect(() => {
+    fetch('/api/site/cases')
+      .then((res) => res.json())
+      .then((data) => {
+        setCases(data.cases || [])
+        setStats(data.stats || { total: 0, plaintiff: 0, defense: 0, depositionsAndTrials: 0 })
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
+  }, [])
 
   const displayCases = expanded ? cases : cases.slice(0, 10)
 
@@ -786,24 +786,24 @@ function CaseHistory() {
             Recent Expert Witness Cases
           </h2>
           <p className="mt-4 text-gray-500 max-w-2xl mx-auto">
-            Representative sample of recent cases. Case names and identifying details are
-            confidential. Cases shown reflect the range of issues and subspecialties addressed.
+            Cases shown are drawn directly from Dr. Ettinger&apos;s active practice. Case names
+            and identifying details are confidential.
           </p>
         </div>
 
         {/* Summary stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-10">
           {[
-            { label: 'Total Cases Shown', value: '25' },
-            { label: 'Plaintiff', value: '19' },
-            { label: 'Defense', value: '6' },
-            { label: 'Depositions & Trials', value: '18' },
+            { label: 'Total Cases', value: String(stats.total) },
+            { label: 'Plaintiff', value: String(stats.plaintiff) },
+            { label: 'Defense', value: String(stats.defense) },
+            { label: 'Depositions & Trials', value: String(stats.depositionsAndTrials) },
           ].map((s) => (
             <div
               key={s.label}
               className="bg-[#F8F9FB] rounded-xl p-4 text-center border border-gray-100"
             >
-              <div className="text-2xl font-bold text-[#091525]">{s.value}</div>
+              <div className="text-2xl font-bold text-[#091525]">{loading ? '—' : s.value}</div>
               <div className="text-xs text-gray-400 mt-1">{s.label}</div>
             </div>
           ))}
@@ -814,73 +814,74 @@ function CaseHistory() {
           {/* Desktop header */}
           <div className="hidden sm:grid sm:grid-cols-12 bg-[#091525] px-6 py-3 gap-4">
             <span className="col-span-1 text-white text-xs font-semibold tracking-wider">YEAR</span>
-            <span className="col-span-1 text-white text-xs font-semibold tracking-wider">SIDE</span>
-            <span className="col-span-2 text-white text-xs font-semibold tracking-wider">SPECIALTY</span>
-            <span className="col-span-5 text-white text-xs font-semibold tracking-wider">ISSUE</span>
-            <span className="col-span-2 text-white text-xs font-semibold tracking-wider">INVOLVEMENT</span>
-            <span className="col-span-1 text-white text-xs font-semibold tracking-wider">TYPE</span>
+            <span className="col-span-2 text-white text-xs font-semibold tracking-wider">SIDE</span>
+            <span className="col-span-3 text-white text-xs font-semibold tracking-wider">SPECIALTY</span>
+            <span className="col-span-3 text-white text-xs font-semibold tracking-wider">INVOLVEMENT</span>
+            <span className="col-span-3 text-white text-xs font-semibold tracking-wider">TYPE</span>
           </div>
 
-          <div className="divide-y divide-gray-100">
-            {displayCases.map((c, i) => (
-              <div
-                key={i}
-                className={`px-6 py-3.5 ${i % 2 === 1 ? 'bg-[#FAFBFC]' : ''}`}
-              >
-                {/* Desktop */}
-                <div className="hidden sm:grid sm:grid-cols-12 gap-4 items-center">
-                  <span className="col-span-1 text-sm text-gray-500 font-medium">
-                    {c.year}
-                  </span>
-                  <span className="col-span-1">
-                    <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
-                        c.side === 'Plaintiff'
-                          ? 'bg-blue-50 text-blue-700'
-                          : 'bg-orange-50 text-orange-700'
-                      }`}
-                    >
-                      {c.side}
+          {loading ? (
+            <div className="px-6 py-12 text-center text-gray-400">Loading cases...</div>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {displayCases.map((c, i) => (
+                <div
+                  key={i}
+                  className={`px-6 py-3.5 ${i % 2 === 1 ? 'bg-[#FAFBFC]' : ''}`}
+                >
+                  {/* Desktop */}
+                  <div className="hidden sm:grid sm:grid-cols-12 gap-4 items-center">
+                    <span className="col-span-1 text-sm text-gray-500 font-medium">
+                      {c.year}
                     </span>
-                  </span>
-                  <span className="col-span-2 text-sm text-[#091525] font-medium">
-                    {c.specialty}
-                  </span>
-                  <span className="col-span-5 text-sm text-gray-600">{c.issue}</span>
-                  <span className="col-span-2 text-sm text-gray-500">{c.involvement}</span>
-                  <span className="col-span-1 text-xs text-gray-400">{c.caseType === 'Medical Malpractice' ? 'Med Mal' : 'PI'}</span>
-                </div>
-
-                {/* Mobile */}
-                <div className="sm:hidden space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
-                        c.side === 'Plaintiff'
-                          ? 'bg-blue-50 text-blue-700'
-                          : 'bg-orange-50 text-orange-700'
-                      }`}
-                    >
-                      {c.side}
+                    <span className="col-span-2">
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
+                          c.side === 'Plaintiff'
+                            ? 'bg-blue-50 text-blue-700'
+                            : 'bg-orange-50 text-orange-700'
+                        }`}
+                      >
+                        {c.side}
+                      </span>
                     </span>
-                    <span className="text-xs text-gray-400">{c.year}</span>
+                    <span className="col-span-3 text-sm text-[#091525] font-medium">
+                      {c.specialty}
+                    </span>
+                    <span className="col-span-3 text-sm text-gray-500">{c.involvement}</span>
+                    <span className="col-span-3 text-xs text-gray-400">{c.caseType}</span>
                   </div>
-                  <div className="text-sm text-[#091525] font-medium">{c.specialty}</div>
-                  <div className="text-sm text-gray-500">{c.issue}</div>
-                  <div className="text-xs text-gray-400">{c.involvement}</div>
+
+                  {/* Mobile */}
+                  <div className="sm:hidden space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
+                          c.side === 'Plaintiff'
+                            ? 'bg-blue-50 text-blue-700'
+                            : 'bg-orange-50 text-orange-700'
+                        }`}
+                      >
+                        {c.side}
+                      </span>
+                      <span className="text-xs text-gray-400">{c.year}</span>
+                    </div>
+                    <div className="text-sm text-[#091525] font-medium">{c.specialty}</div>
+                    <div className="text-xs text-gray-400">{c.involvement} &bull; {c.caseType}</div>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {!expanded && (
+        {!expanded && cases.length > 10 && (
           <div className="text-center mt-8">
             <button
               onClick={() => setExpanded(true)}
               className="inline-flex items-center gap-2 px-6 py-3 border border-gray-300 text-[#091525] font-medium rounded-xl hover:bg-gray-50 transition-colors"
             >
-              Show All 25 Cases
+              Show All {cases.length} Cases
               <ChevronDown className="w-4 h-4" />
             </button>
           </div>
