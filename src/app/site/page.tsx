@@ -40,7 +40,6 @@ function SiteNav() {
     { href: '#about', label: 'About' },
     { href: '#qualifications', label: 'Qualifications' },
     { href: '#portal', label: 'Attorney Portal' },
-    { href: '#fees', label: 'Fee Schedule' },
     { href: '#cases', label: 'Case History' },
     { href: '#contact', label: 'Contact' },
   ]
@@ -269,6 +268,11 @@ function About() {
                 desc: 'Medical Director for Faith in Practice mission trips in Guatemala since 2014, providing surgical care to underserved communities.',
               },
               {
+                icon: Stethoscope,
+                title: 'Professional Sports Anesthesiologist',
+                desc: 'Primary anesthesiologist for the Texas Rangers Team Physician and the Dallas Stars Team Physician.',
+              },
+              {
                 icon: Scale,
                 title: 'Balanced Perspective',
                 desc: 'Accepts cases for both plaintiff and defense. Committed to objective, evidence-based analysis regardless of retaining party.',
@@ -453,24 +457,14 @@ function Expertise() {
       desc: 'Difficult airway assessment, management algorithms, intubation techniques, and emergency airway scenarios.',
     },
     {
-      icon: Heart,
-      title: 'Critical Care',
-      desc: 'ICU management, hemodynamic monitoring, ventilator management, and perioperative critical care.',
-    },
-    {
       icon: Users,
       title: 'Obstetric Anesthesia',
       desc: 'Labor epidurals, cesarean section anesthesia, high-risk obstetric management, and neonatal resuscitation.',
     },
     {
       icon: BarChart3,
-      title: 'Regional & Neuraxial',
+      title: 'Regional & Neuraxial Anesthesia',
       desc: 'Spinal, epidural, and peripheral nerve blocks. Complications including spinal cord injury and nerve damage.',
-    },
-    {
-      icon: Clock,
-      title: 'Pain Management',
-      desc: 'Acute and chronic pain treatment, interventional procedures, and multimodal analgesic protocols.',
     },
   ]
 
@@ -663,81 +657,6 @@ function PortalSection() {
 
 // ─── FEE SCHEDULE ───────────────────────────────────────────────────────────────
 
-function FeeSchedule() {
-  const fees = [
-    { activity: 'Initial Case Review & Consultation', rate: '$500', unit: 'per hour' },
-    { activity: 'Medical Record Review', rate: '$500', unit: 'per hour' },
-    { activity: 'Research & Literature Review', rate: '$500', unit: 'per hour' },
-    { activity: 'Report Writing', rate: '$500', unit: 'per hour' },
-    { activity: 'Deposition Preparation', rate: '$500', unit: 'per hour' },
-    { activity: 'Deposition Testimony', rate: '$750', unit: 'per hour' },
-    { activity: 'Trial Preparation', rate: '$500', unit: 'per hour' },
-    { activity: 'Trial Testimony', rate: '$750', unit: 'per hour' },
-    { activity: 'Phone & Video Conferences', rate: '$500', unit: 'per hour' },
-    { activity: 'Travel Time', rate: '$250', unit: 'per hour' },
-  ]
-
-  return (
-    <section id="fees" className="py-24 bg-[#F0F2F5]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#091525]/5 text-[#091525] text-sm font-medium mb-4">
-            <Scale className="w-4 h-4 text-[#C9A84C]" />
-            Fee Schedule
-          </div>
-          <h2 className="text-3xl sm:text-4xl font-bold text-[#091525]">
-            Transparent Fee Structure
-          </h2>
-          <p className="mt-4 text-gray-500 max-w-2xl mx-auto">
-            All fees are clearly communicated upfront. Detailed billing is available
-            through the attorney portal with itemized time entries.
-          </p>
-        </div>
-
-        <div className="max-w-3xl mx-auto">
-          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-            {/* Header */}
-            <div className="bg-[#091525] px-6 py-4 flex items-center justify-between">
-              <span className="text-white font-semibold">Activity</span>
-              <span className="text-white font-semibold">Rate</span>
-            </div>
-
-            {/* Rows */}
-            <div className="divide-y divide-gray-100">
-              {fees.map((f, i) => (
-                <div
-                  key={f.activity}
-                  className={`px-6 py-4 flex items-center justify-between ${
-                    i % 2 === 1 ? 'bg-[#FAFBFC]' : ''
-                  }`}
-                >
-                  <span className="text-[#091525] font-medium text-sm">{f.activity}</span>
-                  <div className="text-right">
-                    <span className="text-[#091525] font-semibold">{f.rate}</span>
-                    <span className="text-gray-400 text-sm ml-1">{f.unit}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Footer note */}
-            <div className="bg-[#FAFBFC] px-6 py-4 border-t border-gray-200">
-              <div className="flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 text-[#C9A84C] mt-0.5 flex-shrink-0" />
-                <p className="text-sm text-gray-500">
-                  A non-refundable retainer of $2,500 is required at the time of
-                  retention. The retainer is applied to the final invoice. Billing
-                  is in 0.1-hour increments.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-}
-
 // ─── CASE HISTORY ───────────────────────────────────────────────────────────────
 
 interface CaseData {
@@ -746,6 +665,7 @@ interface CaseData {
   specialty: string
   caseType: string
   involvement: string
+  issue: string
 }
 
 interface CaseStats {
@@ -814,10 +734,11 @@ function CaseHistory() {
           {/* Desktop header */}
           <div className="hidden sm:grid sm:grid-cols-12 bg-[#091525] px-6 py-3 gap-4">
             <span className="col-span-1 text-white text-xs font-semibold tracking-wider">YEAR</span>
-            <span className="col-span-2 text-white text-xs font-semibold tracking-wider">SIDE</span>
-            <span className="col-span-3 text-white text-xs font-semibold tracking-wider">SPECIALTY</span>
-            <span className="col-span-3 text-white text-xs font-semibold tracking-wider">INVOLVEMENT</span>
-            <span className="col-span-3 text-white text-xs font-semibold tracking-wider">TYPE</span>
+            <span className="col-span-1 text-white text-xs font-semibold tracking-wider">SIDE</span>
+            <span className="col-span-2 text-white text-xs font-semibold tracking-wider">SPECIALTY</span>
+            <span className="col-span-4 text-white text-xs font-semibold tracking-wider">ISSUE</span>
+            <span className="col-span-2 text-white text-xs font-semibold tracking-wider">INVOLVEMENT</span>
+            <span className="col-span-2 text-white text-xs font-semibold tracking-wider">TYPE</span>
           </div>
 
           {loading ? (
@@ -834,7 +755,7 @@ function CaseHistory() {
                     <span className="col-span-1 text-sm text-gray-500 font-medium">
                       {c.year}
                     </span>
-                    <span className="col-span-2">
+                    <span className="col-span-1">
                       <span
                         className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
                           c.side === 'Plaintiff'
@@ -845,11 +766,12 @@ function CaseHistory() {
                         {c.side}
                       </span>
                     </span>
-                    <span className="col-span-3 text-sm text-[#091525] font-medium">
+                    <span className="col-span-2 text-sm text-[#091525] font-medium">
                       {c.specialty}
                     </span>
-                    <span className="col-span-3 text-sm text-gray-500">{c.involvement}</span>
-                    <span className="col-span-3 text-xs text-gray-400">{c.caseType}</span>
+                    <span className="col-span-4 text-sm text-gray-600">{c.issue}</span>
+                    <span className="col-span-2 text-sm text-gray-500">{c.involvement}</span>
+                    <span className="col-span-2 text-xs text-gray-400">{c.caseType}</span>
                   </div>
 
                   {/* Mobile */}
@@ -867,6 +789,7 @@ function CaseHistory() {
                       <span className="text-xs text-gray-400">{c.year}</span>
                     </div>
                     <div className="text-sm text-[#091525] font-medium">{c.specialty}</div>
+                    <div className="text-sm text-gray-500">{c.issue}</div>
                     <div className="text-xs text-gray-400">{c.involvement} &bull; {c.caseType}</div>
                   </div>
                 </div>
@@ -1027,7 +950,6 @@ export default function SitePage() {
       <Qualifications />
       <Expertise />
       <PortalSection />
-      <FeeSchedule />
       <CaseHistory />
       <Contact />
       <Footer />
