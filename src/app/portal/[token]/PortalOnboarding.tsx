@@ -201,8 +201,8 @@ export function PortalOnboarding({
     }
     if (isActive) {
       return (
-        <div className="w-10 h-10 rounded-full bg-[#C9A84C]/20 border-2 border-[#C9A84C] flex items-center justify-center">
-          <Circle className="h-5 w-5 text-[#C9A84C] fill-[#C9A84C]" />
+        <div className="w-10 h-10 rounded-full bg-[#DFC06A]/20 border-2 border-[#DFC06A] flex items-center justify-center">
+          <Circle className="h-5 w-5 text-[#DFC06A] fill-[#DFC06A]" />
         </div>
       )
     }
@@ -245,7 +245,7 @@ export function PortalOnboarding({
           </div>
           <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
             <div
-              className="h-full bg-[#C9A84C] rounded-full transition-all duration-500"
+              className="h-full bg-[#DFC06A] rounded-full transition-all duration-500"
               style={{ width: `${totalSteps > 0 ? (completedCount / totalSteps) * 100 : 0}%` }}
             />
           </div>
@@ -299,7 +299,7 @@ export function PortalOnboarding({
                   {/* Right: content */}
                   <div className={`flex-1 pb-8 ${isLast ? 'pb-0' : ''}`}>
                     <button
-                      onClick={() => status === 'pending' && setActiveStep(config.key)}
+                      onClick={() => (status === 'pending' || status === 'completed') && setActiveStep(isActive ? null : config.key)}
                       disabled={status === 'locked'}
                       className={`text-left w-full ${
                         status === 'locked' ? 'opacity-50' : 'cursor-pointer'
@@ -342,10 +342,14 @@ export function PortalOnboarding({
                         )}
 
                         {config.key === 'enter_case_details' && (
-                          <CaseDetailsStep
-                            token={token}
-                            onComplete={() => updateStep('enter_case_details', 'completed')}
-                          />
+                          status === 'completed' ? (
+                            <CaseDetailsSummary token={token} />
+                          ) : (
+                            <CaseDetailsStep
+                              token={token}
+                              onComplete={() => updateStep('enter_case_details', 'completed')}
+                            />
+                          )
                         )}
 
                         {config.key === 'schedule_call' && (
@@ -355,7 +359,14 @@ export function PortalOnboarding({
                         )}
 
                         {config.key === 'sign_contract' && (
-                          <PortalContract token={token} onSigned={handleContractSigned} />
+                          status === 'completed' ? (
+                            <div className="text-sm text-emerald-700 flex items-center gap-2">
+                              <CheckCircle2 className="h-4 w-4" />
+                              Retention agreement has been signed.
+                            </div>
+                          ) : (
+                            <PortalContract token={token} onSigned={handleContractSigned} />
+                          )
                         )}
 
                         {config.key === 'retainer_payment' && (
@@ -423,7 +434,7 @@ function FeeScheduleReviewStep({
               type="checkbox"
               checked={agreed}
               onChange={(e) => setAgreed(e.target.checked)}
-              className="mt-1 h-4 w-4 rounded border-gray-300 text-[#C9A84C] focus:ring-[#C9A84C]"
+              className="mt-1 h-4 w-4 rounded border-gray-300 text-[#DFC06A] focus:ring-[#DFC06A]"
             />
             <span className="text-sm text-gray-700">
               I have reviewed and agree to the fee schedule and rates listed above for expert
@@ -452,8 +463,8 @@ function CVReviewStep({ onReviewed }: { onReviewed: () => void }) {
     <div className="space-y-4">
       <div className="bg-[#0E1F35]/5 border border-[#0E1F35]/10 rounded-lg p-5">
         <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-lg bg-[#C9A84C]/20 flex items-center justify-center flex-shrink-0">
-            <FileText className="h-6 w-6 text-[#C9A84C]" />
+          <div className="w-12 h-12 rounded-lg bg-[#DFC06A]/20 flex items-center justify-center flex-shrink-0">
+            <FileText className="h-6 w-6 text-[#DFC06A]" />
           </div>
           <div className="flex-1">
             <h4 className="font-semibold text-[#0E1F35] mb-1">
@@ -759,3 +770,53 @@ function RetainerPaymentStep({ onAcknowledge }: { onAcknowledge: () => void }) {
     </div>
   )
 }
+
+// ---------------------------------------------------------------------------
+// Case Details Summary (read-only, for pre-filled cases)
+// ---------------------------------------------------------------------------
+function CaseDetailsSummary({ token }: { token: string }) {
+  const [caseData, setCaseData] = useState<Record<string, string | null> | null>(null)
+
+  useEffect(() => {
+    fetch(`/api/portal/${token}/case-details`)
+      .then(r => r.json())
+      .then(data => setCaseData(data))
+      .catch(() => {})
+  }, [token])
+
+  if (!caseData) return <div className="text-sm text-muted-foreground">Loading case details...</div>
+
+  const fields = [
+    { label: 'Case Name', value: caseData.case_name },
+    { label: 'Case Type', value: caseData.case_type?.replace(/_/g, ' ') },
+    { label: 'Side', value: caseData.side },
+    { label: 'Patient', value: caseData.patient_name },
+    { label: 'State', value: caseData.jurisdiction_state },
+  ].filter(f => f.value)
+
+  return (
+    <div className="space-y-3">
+      <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+        <p className="text-sm text-emerald-700 flex items-center gap-2">
+          <CheckCircle2 className="h-4 w-4" />
+          Case details have been entered. Here&apos;s a summary:
+        </p>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        {fields.map(f => (
+          <div key={f.label}>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{f.label}</p>
+            <p className="text-sm capitalize mt-0.5" style={{ color: '#0E1F35' }}>{f.value}</p>
+          </div>
+        ))}
+      </div>
+      {caseData.brief_summary && (
+        <div>
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Summary</p>
+          <p className="text-sm mt-0.5 text-gray-600">{caseData.brief_summary}</p>
+        </div>
+      )}
+    </div>
+  )
+}
+

@@ -22,6 +22,10 @@ import {
   HelpCircle,
   Receipt,
   CalendarClock,
+  FolderArchive,
+  Bookmark,
+  Copy,
+  Check,
 } from 'lucide-react'
 import { PortalSummary } from './PortalSummary'
 import { PortalTimeline } from './PortalTimeline'
@@ -35,6 +39,7 @@ import { PortalBooking } from './PortalBooking'
 import { PortalContract } from './PortalContract'
 import { PortalOnboarding } from './PortalOnboarding'
 import { PortalTutorial } from './PortalTutorial'
+import { PortalExpertFiles } from './PortalExpertFiles'
 
 interface PortalInvite {
   id: string
@@ -189,6 +194,8 @@ export function PortalView({
 }: PortalViewProps) {
   const [unreadCount, setUnreadCount] = useState(initialUnreadCount)
   const [showWelcome, setShowWelcome] = useState(invite.view_count === 1 && !invite.onboarding_mode)
+  const [showSaveLink, setShowSaveLink] = useState(invite.view_count === 1)
+  const [linkCopied, setLinkCopied] = useState(false)
   const [contractSigned, setContractSigned] = useState(contractStatus?.status === 'signed')
   const [showOnboarding, setShowOnboarding] = useState(invite.onboarding_mode && !invite.onboarding_completed_at)
   const [showTutorial, setShowTutorial] = useState(false)
@@ -261,6 +268,12 @@ export function PortalView({
       icon: <CalendarClock className="h-4 w-4" />,
       enabled: invite.can_book_scheduling,
     },
+    {
+      id: 'expert-files',
+      label: 'Expert Files',
+      icon: <FolderArchive className="h-4 w-4" />,
+      enabled: true,
+    },
   ]
 
   const enabledTabs = tabs.filter((t) => t.enabled)
@@ -295,10 +308,17 @@ export function PortalView({
 
     return (
       <div>
+        <SaveLinkDialog
+          open={showSaveLink}
+          onOpenChange={setShowSaveLink}
+          token={token}
+          linkCopied={linkCopied}
+          setLinkCopied={setLinkCopied}
+        />
         {/* Case header */}
         <div className="mb-8 text-center">
           <div className="inline-flex items-center gap-2 bg-[#0E1F35] text-white px-4 py-1.5 rounded-full text-sm mb-3">
-            <span className="text-[#C9A84C] font-medium">Case Portal</span>
+            <span className="text-[#DFC06A] font-medium">Case Portal</span>
             <span className="text-white/40">|</span>
             <span>{caseData.case_number}</span>
           </div>
@@ -330,6 +350,13 @@ export function PortalView({
 
   return (
     <div>
+      <SaveLinkDialog
+        open={showSaveLink}
+        onOpenChange={setShowSaveLink}
+        token={token}
+        linkCopied={linkCopied}
+        setLinkCopied={setLinkCopied}
+      />
       {/* Welcome Dialog (first visit) */}
       <Dialog open={showWelcome} onOpenChange={setShowWelcome}>
         <DialogContent>
@@ -421,7 +448,7 @@ export function PortalView({
         </div>
         <button
           onClick={() => setShowTutorial(true)}
-          className="text-gray-400 hover:text-[#C9A84C] transition-colors p-1.5 rounded-lg hover:bg-gray-100"
+          className="text-gray-400 hover:text-[#DFC06A] transition-colors p-1.5 rounded-lg hover:bg-gray-100"
           title="Portal tutorial"
         >
           <HelpCircle className="h-5 w-5" />
@@ -440,7 +467,7 @@ export function PortalView({
                 flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors
                 ${
                   activeTab === tab.id
-                    ? 'border-[#C9A84C] text-[#0E1F35]'
+                    ? 'border-[#DFC06A] text-[#0E1F35]'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }
               `}
@@ -448,12 +475,12 @@ export function PortalView({
               {tab.icon}
               {tab.label}
               {tab.id === 'messages' && unreadCount > 0 && (
-                <span className="ml-1 bg-[#C9A84C] text-[#0E1F35] text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                <span className="ml-1 bg-[#DFC06A] text-[#0E1F35] text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
                   {unreadCount}
                 </span>
               )}
               {tab.id === 'contract' && !contractSigned && (
-                <span className="ml-1 w-2 h-2 rounded-full bg-[#C9A84C]" />
+                <span className="ml-1 w-2 h-2 rounded-full bg-[#DFC06A]" />
               )}
             </button>
           ))}
@@ -495,6 +522,7 @@ export function PortalView({
           <PortalDepositions depositions={depositions} />
         )}
         {activeTab === 'booking' && <PortalBooking />}
+        {activeTab === 'expert-files' && <PortalExpertFiles />}
       </div>
 
       {/* Spotlight Tutorial */}
@@ -510,5 +538,91 @@ export function PortalView({
         />
       )}
     </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// SaveLinkDialog — shown on first visit, prompts the user to bookmark/save
+// their personal portal link. This link is how they'll access the portal for
+// all future communications; no account or password needed.
+// ---------------------------------------------------------------------------
+function SaveLinkDialog({
+  open,
+  onOpenChange,
+  token,
+  linkCopied,
+  setLinkCopied,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  token: string
+  linkCopied: boolean
+  setLinkCopied: (v: boolean) => void
+}) {
+  const portalUrl =
+    typeof window !== 'undefined'
+      ? window.location.origin + `/portal/${token}`
+      : `/portal/${token}`
+
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(portalUrl)
+      setLinkCopied(true)
+      setTimeout(() => setLinkCopied(false), 2500)
+    } catch {
+      // ignore
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Bookmark className="h-5 w-5 text-[#DFC06A]" />
+            Save Your Portal Link
+          </DialogTitle>
+          <DialogDescription>
+            This link is your personal access to the case portal. Please bookmark
+            it or save it somewhere safe — you&apos;ll use it for all future
+            communications. No account or password needed.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm font-mono break-all text-[#0E1F35]">
+            {portalUrl}
+          </div>
+          <Button
+            onClick={copyLink}
+            variant="outline"
+            className="w-full"
+          >
+            {linkCopied ? (
+              <>
+                <Check className="h-4 w-4 mr-2 text-emerald-600" />
+                Copied!
+              </>
+            ) : (
+              <>
+                <Copy className="h-4 w-4 mr-2" />
+                Copy Link
+              </>
+            )}
+          </Button>
+          <p className="text-xs text-gray-500">
+            Tip: bookmark this page in your browser, or email the link to
+            yourself so you can find it easily later.
+          </p>
+        </div>
+        <DialogFooter>
+          <Button
+            onClick={() => onOpenChange(false)}
+            className="bg-[#0E1F35] hover:bg-[#0E1F35]/90 w-full"
+          >
+            Got it — Continue
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }

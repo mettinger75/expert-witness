@@ -36,9 +36,10 @@ export async function POST(request: NextRequest) {
     const expiresAt = new Date()
     expiresAt.setDate(expiresAt.getDate() + expiresInDays)
 
-    // Build onboarding steps if onboarding mode is enabled (6-step flow)
-    // Check if case details are already filled — if so, skip that step
+    // Build onboarding steps if onboarding mode is enabled
+    // Check case state to auto-skip completed steps
     let caseDetailsAlreadyFilled = false
+    let contractAlreadySigned = false
     if (onboardingMode) {
       const { data: caseData } = await supabase
         .from('cases')
@@ -48,15 +49,38 @@ export async function POST(request: NextRequest) {
       if (caseData?.case_name && caseData?.case_type && caseData?.side && caseData?.patient_name) {
         caseDetailsAlreadyFilled = true
       }
+
+      // Check if a retention agreement is already signed for this case
+      if (contractId) {
+        const { data: contractData } = await supabase
+          .from('contracts')
+          .select('status, signed_at')
+          .eq('id', contractId)
+          .single()
+        if (contractData?.status === 'signed' && contractData?.signed_at) {
+          contractAlreadySigned = true
+        }
+      } else {
+        // Check if ANY contract for this case is signed
+        const { data: existingContracts } = await supabase
+          .from('contracts')
+          .select('id, status')
+          .eq('case_id', caseId)
+          .eq('status', 'signed')
+          .limit(1)
+        if (existingContracts && existingContracts.length > 0) {
+          contractAlreadySigned = true
+        }
+      }
     }
 
     const onboardingSteps = onboardingMode
       ? {
           review_fee_schedule: 'pending',
           review_cv: 'locked',
-          enter_case_details: caseDetailsAlreadyFilled ? 'not_applicable' : 'locked',
-          sign_contract: canSignContract && contractId ? 'locked' : 'not_applicable',
-          retainer_payment: canSignContract && contractId ? 'locked' : 'not_applicable',
+          enter_case_details: caseDetailsAlreadyFilled ? 'completed' : 'locked',
+          sign_contract: contractAlreadySigned ? 'completed' : (canSignContract && contractId ? 'locked' : 'not_applicable'),
+          retainer_payment: contractAlreadySigned ? 'completed' : (canSignContract && contractId ? 'locked' : 'not_applicable'),
           upload_documents: canUploadDocuments ? 'locked' : 'not_applicable',
         }
       : null
