@@ -26,6 +26,7 @@ import {
   Mail,
   Target,
   Gavel,
+  ClipboardList,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -52,6 +53,7 @@ const navItems: NavItem[] = [
       { title: 'New Case', href: '/cases/new' },
     ],
   },
+  { title: 'Inquiries', href: '/inquiries', icon: ClipboardList },
   { title: 'Emails', href: '/emails', icon: Mail },
   { title: 'Inbox', href: '/inbox', icon: Inbox },
   { title: 'Calendar', href: '/calendar', icon: Calendar },
