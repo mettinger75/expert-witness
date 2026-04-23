@@ -213,7 +213,7 @@ function generateRetentionAgreementHTML(contract: {
     <div class="header-text">
       <h1>MARK ETTINGER, MD</h1>
       <div class="subtitle">Expert Witness</div>
-      <div class="specialty">Anesthesiology &amp; Pain Medicine</div>
+      <div class="specialty">Anesthesiology</div>
     </div>
   </div>
 
@@ -399,7 +399,7 @@ function generateRetentionAgreementHTML(contract: {
 
   <!-- Footer -->
   <div class="footer">
-    <p>MARK ETTINGER, MD &bull; Expert Witness &bull; Anesthesiology &amp; Pain Medicine</p>
+    <p>MARK ETTINGER, MD &bull; Expert Witness &bull; Anesthesiology</p>
     <p>This document is confidential and intended solely for the named parties.</p>
   </div>
 </div>

@@ -15,7 +15,7 @@ const ALLOWED_CASE_TYPES = new Set([
 ])
 const ALLOWED_SPECIALTIES = new Set([
   'general_anesthesia', 'regional', 'obstetric', 'pediatric', 'cardiac', 'neuro',
-  'pain_management', 'critical_care', 'airway_management', 'sedation', 'monitoring',
+  'critical_care', 'airway_management', 'sedation', 'monitoring',
   'pharmacology', 'patient_safety', 'simulation', 'other',
 ])
 const ALLOWED_SIDES = new Set(['plaintiff', 'defense', 'neutral'])

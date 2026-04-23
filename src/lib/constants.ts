@@ -48,7 +48,6 @@ export const SPECIALTY_AREAS = [
   { value: 'obstetric_anesthesia', label: 'Obstetric Anesthesia' },
   { value: 'pediatric_anesthesia', label: 'Pediatric Anesthesia' },
   { value: 'cardiac_anesthesia', label: 'Cardiac Anesthesia' },
-  { value: 'pain_management', label: 'Pain Management' },
   { value: 'critical_care', label: 'Critical Care' },
   { value: 'airway_management', label: 'Airway Management' },
   { value: 'sedation', label: 'Sedation' },

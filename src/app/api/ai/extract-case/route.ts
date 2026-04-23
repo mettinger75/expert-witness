@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
       '{',
       '  "case_name": "string - case name, typically Patient Last v. Defendant Last",',
       '  "case_type": "medical_malpractice | wrongful_death | product_liability | personal_injury | other",',
-      '  "specialty_area": "general_anesthesia | regional_anesthesia | obstetric_anesthesia | pediatric_anesthesia | cardiac_anesthesia | neuro_anesthesia | pain_management | critical_care | sedation | airway_management | other",',
+      '  "specialty_area": "general_anesthesia | regional_anesthesia | obstetric_anesthesia | pediatric_anesthesia | cardiac_anesthesia | neuro_anesthesia | critical_care | sedation | airway_management | other",',
       '  "side": "plaintiff | defense | neutral",',
       '  "priority": "urgent | high | normal | low",',
       '  "date_of_incident": "YYYY-MM-DD or null",',

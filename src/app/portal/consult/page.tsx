@@ -19,7 +19,6 @@ const SPECIALTY_AREAS = [
   { value: 'pediatric', label: 'Pediatric' },
   { value: 'cardiac', label: 'Cardiac' },
   { value: 'neuro', label: 'Neuroanesthesia' },
-  { value: 'pain_management', label: 'Pain Management' },
   { value: 'critical_care', label: 'Critical Care' },
   { value: 'airway_management', label: 'Airway Management' },
   { value: 'sedation', label: 'Sedation' },

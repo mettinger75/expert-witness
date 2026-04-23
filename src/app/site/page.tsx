@@ -239,7 +239,7 @@ function About() {
                 Dr. Ettinger has provided expert witness consultation and testimony since
                 2015, accepting cases for both plaintiff and defense. His practice spans
                 general anesthesia, regional and neuraxial anesthesia, obstetric anesthesia,
-                critical care, pain management, and airway management.
+                critical care, and airway management.
               </p>
             </div>
           </div>

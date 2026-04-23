@@ -14,7 +14,6 @@ const SPECIALTY_LABELS: Record<string, string> = {
   obstetric: 'Obstetric Anesthesia',
   pediatric_anesthesia: 'Pediatric Anesthesia',
   cardiac_anesthesia: 'Cardiac Anesthesia',
-  pain_management: 'Pain Management',
   critical_care: 'Critical Care',
   airway_management: 'Airway Management',
   sedation: 'Sedation',
@@ -82,7 +81,6 @@ function deriveIssue(c: {
   const fallbacks: Record<string, string> = {
     general_anesthesia: 'Anesthesia management standard of care',
     critical_care: 'Critical care management',
-    pain_management: 'Pain management procedure complication',
     neuro: 'Neuroanesthesia and neuromonitoring',
     obstetric: 'Obstetric anesthesia complication',
     obstetric_anesthesia: 'Obstetric anesthesia complication',

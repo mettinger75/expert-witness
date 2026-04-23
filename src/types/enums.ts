@@ -23,7 +23,6 @@ export type SpecialtyArea =
   | 'pediatric'
   | 'cardiac'
   | 'neuro'
-  | 'pain_management'
   | 'critical_care'
   | 'other';
 

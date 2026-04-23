@@ -107,7 +107,7 @@ export function ProfileSettings() {
           </div>
           <div>
             <Label htmlFor="subspecialties">Subspecialties</Label>
-            <Input id="subspecialties" value={profile.subspecialties} onChange={(e) => update('subspecialties', e.target.value)} placeholder="e.g., Pain Management, Critical Care" />
+            <Input id="subspecialties" value={profile.subspecialties} onChange={(e) => update('subspecialties', e.target.value)} placeholder="e.g., Critical Care, Obstetric Anesthesia" />
           </div>
           <div>
             <Label htmlFor="bio">Professional Bio</Label>
