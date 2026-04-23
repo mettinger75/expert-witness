@@ -111,7 +111,8 @@ export async function PATCH(
     steps[step] = stepStatus
 
     // Auto-unlock next step when a step is completed (6-step chain)
-    // Cascades through any not_applicable steps to find the next locked one
+    // Cascades through any not_applicable, already-completed, or missing steps
+    // to find the next locked one and promote it to pending.
     if (stepStatus === 'completed') {
       const stepOrder: (keyof typeof steps)[] = [
         'review_fee_schedule',
@@ -128,14 +129,19 @@ export async function PATCH(
         // Walk forward from the completed step, unlocking the next actionable one
         for (let i = completedIndex + 1; i < stepOrder.length; i++) {
           const nextStep = stepOrder[i]
-          if (steps[nextStep] === 'locked') {
+          const nextStatus = steps[nextStep]
+          if (nextStatus === 'locked') {
             steps[nextStep] = 'pending'
             break // only unlock one step
           }
-          if (steps[nextStep] === 'not_applicable') {
-            continue // skip over not_applicable, keep looking
+          if (
+            nextStatus === 'not_applicable' ||
+            nextStatus === 'completed' ||
+            nextStatus === undefined
+          ) {
+            continue // skip past NA, already-done, or absent steps
           }
-          break // stop at pending or completed steps
+          break // stop at a pending step (another active path)
         }
       }
     }
