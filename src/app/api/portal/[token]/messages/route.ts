@@ -1,6 +1,103 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 
+type SupabaseAdmin = ReturnType<typeof getSupabaseAdmin>
+
+const NOTIFY_EMAIL = 'markettingermd@gmail.com'
+
+/**
+ * Fire-and-forget: send Dr. Ettinger an email whenever an attorney posts a
+ * portal note. Silent no-op if RESEND_API_KEY is missing; never blocks the
+ * HTTP response or rethrows.
+ */
+async function notifyPortalMessage(opts: {
+  supabase: SupabaseAdmin
+  caseId: string | null
+  senderName: string
+  content: string
+}): Promise<void> {
+  const { supabase, caseId, senderName, content } = opts
+
+  const resendKey = process.env.RESEND_API_KEY
+  if (!resendKey) {
+    console.warn('[portal-message-notify] RESEND_API_KEY not set — skipping')
+    return
+  }
+
+  try {
+    // Look up case context so the email is useful at a glance
+    let caseLabel = 'a case'
+    let caseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'
+    if (caseId) {
+      const { data: caseRow } = await supabase
+        .from('cases')
+        .select('case_number, patient_name, case_caption')
+        .eq('id', caseId)
+        .single()
+      if (caseRow) {
+        const caption = (caseRow as { case_caption?: string | null }).case_caption
+        const patient = (caseRow as { patient_name?: string | null }).patient_name
+        const number = (caseRow as { case_number?: string | null }).case_number
+        caseLabel = caption || patient || number || caseLabel
+      }
+      caseUrl = `${caseUrl}/cases/${caseId}`
+    }
+
+    const escape = (s: string) =>
+      s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    const snippet = escape(content).replace(/\n/g, '<br/>')
+
+    const subject = `New portal note from ${senderName} — ${caseLabel}`
+    const html = `
+      <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto;">
+        <div style="background-color: #0E1F35; color: white; padding: 24px 32px;">
+          <h1 style="margin: 0; font-size: 20px; color: #DFC06A;">New Portal Note</h1>
+        </div>
+        <div style="padding: 32px; border: 1px solid #e5e7eb; border-top: none;">
+          <p style="color: #374151; font-size: 15px; line-height: 1.6;">
+            <strong>${escape(senderName)}</strong> left a note on
+            <strong>${escape(caseLabel)}</strong>:
+          </p>
+          <blockquote style="margin: 16px 0; padding: 12px 16px; background: #F0F2F5; border-left: 3px solid #DFC06A; color: #0E1F35; font-size: 14px; line-height: 1.6;">
+            ${snippet}
+          </blockquote>
+          <div style="text-align: center; margin: 28px 0;">
+            <a href="${caseUrl}" style="display: inline-block; background-color: #0E1F35; color: white; text-decoration: none; padding: 12px 32px; border-radius: 6px; font-size: 14px; font-weight: 600;">
+              Open Case
+            </a>
+          </div>
+          <p style="color: #9ca3af; font-size: 12px; margin-top: 24px; text-align: center;">
+            Expert Witness Practice — portal notification
+          </p>
+        </div>
+      </div>
+    `
+
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${resendKey}`,
+      },
+      body: JSON.stringify({
+        from: 'Expert Witness <noreply@meridian-anesthesia.com>',
+        to: NOTIFY_EMAIL,
+        subject,
+        html,
+      }),
+    })
+    if (!res.ok) {
+      console.error(
+        '[portal-message-notify] Resend returned non-OK:',
+        res.status,
+        await res.text().catch(() => ''),
+      )
+    }
+  } catch (err) {
+    console.error('[portal-message-notify] Failed to send:', err)
+  }
+}
+
 // GET: List messages for a portal invite
 export async function GET(
   request: NextRequest,
@@ -78,6 +175,7 @@ export async function POST(
 
     const contact = invite.contacts as unknown as { first_name: string; last_name: string } | null
     const senderName = contact ? `${contact.first_name} ${contact.last_name}` : 'Attorney'
+    const trimmedContent = content.trim()
 
     const { data: message, error } = await supabase
       .from('portal_messages')
@@ -86,12 +184,20 @@ export async function POST(
         case_id: invite.case_id,
         sender_type: 'attorney',
         sender_name: senderName,
-        content: content.trim(),
+        content: trimmedContent,
       })
       .select()
       .single()
 
     if (error) throw error
+
+    // Fire-and-forget: notify Dr. Ettinger of the new portal note
+    void notifyPortalMessage({
+      supabase,
+      caseId: invite.case_id,
+      senderName,
+      content: trimmedContent,
+    })
 
     return NextResponse.json({ message })
   } catch (error) {
