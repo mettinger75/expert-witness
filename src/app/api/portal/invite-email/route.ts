@@ -1,11 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 
+/**
+ * Normalize a "From" email header so display names with special characters
+ * (commas, periods in initials, etc.) are properly quoted per RFC 5322.
+ *
+ * Input  : `Mark Ettinger, M.D. <mark@example.com>`
+ * Output : `"Mark Ettinger, M.D." <mark@example.com>`
+ *
+ * Without quoting, Resend/SMTP parsers treat the comma as an address
+ * separator and the send fails with a cryptic error.
+ */
+function normalizeFromEmail(from: string): string {
+  const match = from.match(/^(.+?)\s*<([^>]+)>\s*$/)
+  if (!match) return from
+  const [, rawName, email] = match
+  const name = rawName.trim().replace(/^"|"$/g, '') // strip existing quotes
+  // Quote if the name has special chars that would otherwise break parsing
+  const needsQuoting = /[,;:@()<>\[\]\\"]/.test(name)
+  const displayName = needsQuoting ? `"${name.replace(/"/g, '\\"')}"` : name
+  return `${displayName} <${email.trim()}>`
+}
+
 export async function POST(request: NextRequest) {
   try {
     const resend = new Resend(process.env.RESEND_API_KEY)
-    const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'Dr. Mark Ettinger <onboarding@resend.dev>'
+    const FROM_EMAIL = normalizeFromEmail(
+      process.env.RESEND_FROM_EMAIL || 'Dr. Mark Ettinger <onboarding@resend.dev>'
+    )
     const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'
+
+    if (!process.env.RESEND_API_KEY) {
+      console.error('Portal invite email: RESEND_API_KEY is not set')
+      return NextResponse.json(
+        { error: 'Email service is not configured (missing RESEND_API_KEY)' },
+        { status: 500 }
+      )
+    }
 
     const body = await request.json()
 
@@ -69,7 +100,7 @@ export async function POST(request: NextRequest) {
         (feature: string) =>
           `<tr>
             <td style="padding: 6px 0; color: #1e293b; font-size: 14px; line-height: 1.6;">
-              <span style="color: #C9A84C; font-size: 16px; margin-right: 8px;">&#10003;</span>
+              <span style="color: #DFC06A; font-size: 16px; margin-right: 8px;">&#10003;</span>
               ${feature}
             </td>
           </tr>`
@@ -114,7 +145,7 @@ export async function POST(request: NextRequest) {
 
           <!-- Gold accent line -->
           <tr>
-            <td style="background-color: #C9A84C; height: 3px; font-size: 0; line-height: 0;">&nbsp;</td>
+            <td style="background-color: #DFC06A; height: 3px; font-size: 0; line-height: 0;">&nbsp;</td>
           </tr>
 
           <!-- Body -->
@@ -132,7 +163,7 @@ export async function POST(request: NextRequest) {
               ${contractCalloutHtml}
 
               ${invitationMessage ? `
-              <div style="background-color: #fafaf9; border-left: 3px solid #C9A84C; padding: 12px 16px; margin: 20px 0; border-radius: 0 4px 4px 0;">
+              <div style="background-color: #fafaf9; border-left: 3px solid #DFC06A; padding: 12px 16px; margin: 20px 0; border-radius: 0 4px 4px 0;">
                 <p style="color: #44403c; font-size: 14px; line-height: 1.6; margin: 0; font-style: italic;">
                   "${invitationMessage}"
                 </p>
@@ -162,7 +193,7 @@ export async function POST(request: NextRequest) {
               <table width="100%" cellpadding="0" cellspacing="0" style="margin: 28px 0;">
                 <tr>
                   <td align="center">
-                    <a href="${portalUrl}" style="display: inline-block; background-color: #C9A84C; color: #0E1F35; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-size: 15px; font-weight: 600; letter-spacing: 0.3px;">
+                    <a href="${portalUrl}" style="display: inline-block; background-color: #DFC06A; color: #0E1F35; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-size: 15px; font-weight: 600; letter-spacing: 0.3px;">
                       ${contractTitle ? 'Review &amp; Sign Agreement' : isInquiry ? 'Review &amp; Get Started' : 'Access Case Portal'}
                     </a>
                   </td>
@@ -197,26 +228,39 @@ export async function POST(request: NextRequest) {
         ? `Expert Witness Consultation \u2014 Dr. Mark Ettinger`
         : `Case Portal Invitation \u2014 ${resolvedCaseName}`
 
-    const { data, error } = await resend.emails.send({
-      from: FROM_EMAIL,
-      to: [recipientEmail],
-      subject,
-      html: htmlBody,
-    })
-
-    if (error) {
-      console.error('Resend error:', error)
+    let resendResult
+    try {
+      resendResult = await resend.emails.send({
+        from: FROM_EMAIL,
+        to: [recipientEmail],
+        subject,
+        html: htmlBody,
+      })
+    } catch (sendErr) {
+      const message =
+        sendErr instanceof Error ? sendErr.message : 'Unknown Resend exception'
+      console.error('Resend threw:', sendErr, { from: FROM_EMAIL, to: recipientEmail })
       return NextResponse.json(
-        { error: 'Failed to send email', details: error.message },
+        { error: 'Failed to send email', details: message },
+        { status: 500 }
+      )
+    }
+
+    const { data, error } = resendResult
+    if (error) {
+      console.error('Resend error:', error, { from: FROM_EMAIL, to: recipientEmail })
+      return NextResponse.json(
+        { error: 'Failed to send email', details: error.message || String(error) },
         { status: 500 }
       )
     }
 
     return NextResponse.json({ success: true, emailId: data?.id })
   } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
     console.error('Portal invite email error:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: message },
       { status: 500 }
     )
   }

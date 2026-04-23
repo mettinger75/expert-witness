@@ -250,8 +250,18 @@ export function CreatePortalInviteDialog({ caseId, contactId, contactName, conta
         }),
       })
       if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error || 'Failed to send email')
+        // Read as text first so we don't choke on empty / non-JSON bodies
+        const text = await res.text().catch(() => '')
+        let message = `Failed to send email (HTTP ${res.status})`
+        if (text) {
+          try {
+            const err = JSON.parse(text)
+            message = err.details || err.error || message
+          } catch {
+            message = text.slice(0, 200) // fall back to raw body snippet
+          }
+        }
+        throw new Error(message)
       }
       setEmailSent(true)
       toast.success(`Invitation email sent to ${contactEmail}`)
@@ -318,7 +328,7 @@ export function CreatePortalInviteDialog({ caseId, contactId, contactName, conta
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="text-[#0E1F35]">
-              <Link2 className="h-5 w-5 inline mr-2 text-[#C9A84C]" />
+              <Link2 className="h-5 w-5 inline mr-2 text-[#DFC06A]" />
               Portal Access — {contactName}
             </DialogTitle>
             <DialogDescription>
@@ -476,7 +486,7 @@ export function CreatePortalInviteDialog({ caseId, contactId, contactName, conta
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-[#0E1F35]">
-            <Link2 className="h-5 w-5 inline mr-2 text-[#C9A84C]" />
+            <Link2 className="h-5 w-5 inline mr-2 text-[#DFC06A]" />
             {showCreateNew ? 'Create New Portal Invite' : 'Create Portal Invite'}
           </DialogTitle>
           <DialogDescription>
@@ -571,7 +581,7 @@ export function CreatePortalInviteDialog({ caseId, contactId, contactName, conta
                   onCheckedChange={(checked) => setAttachContract(checked === true)}
                 />
                 <div className="flex items-center gap-1.5">
-                  <FileSignature className="h-4 w-4 text-[#C9A84C]" />
+                  <FileSignature className="h-4 w-4 text-[#DFC06A]" />
                   <span className="text-sm font-medium text-[#0E1F35]">Attach Retention Agreement</span>
                 </div>
               </div>
@@ -683,7 +693,7 @@ export function CreatePortalInviteDialog({ caseId, contactId, contactName, conta
                 value={invitationMessage}
                 onChange={(e) => setInvitationMessage(e.target.value)}
                 placeholder="Add a personal note to the invitation..."
-                className="w-full text-sm border rounded-md p-2.5 h-20 resize-none focus:outline-none focus:ring-2 focus:ring-[#C9A84C]/50 focus:border-[#C9A84C]"
+                className="w-full text-sm border rounded-md p-2.5 h-20 resize-none focus:outline-none focus:ring-2 focus:ring-[#DFC06A]/50 focus:border-[#DFC06A]"
               />
             </div>
           </div>
