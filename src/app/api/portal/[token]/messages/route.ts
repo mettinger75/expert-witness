@@ -31,14 +31,14 @@ async function notifyPortalMessage(opts: {
     if (caseId) {
       const { data: caseRow } = await supabase
         .from('cases')
-        .select('case_number, patient_name, case_caption')
+        .select('case_number, patient_name, case_name')
         .eq('id', caseId)
         .single()
       if (caseRow) {
-        const caption = (caseRow as { case_caption?: string | null }).case_caption
+        const name = (caseRow as { case_name?: string | null }).case_name
         const patient = (caseRow as { patient_name?: string | null }).patient_name
         const number = (caseRow as { case_number?: string | null }).case_number
-        caseLabel = caption || patient || number || caseLabel
+        caseLabel = name || patient || number || caseLabel
       }
       caseUrl = `${caseUrl}/cases/${caseId}`
     }
