@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { notifyMark, escapeHtml } from '@/lib/notify-mark'
 
 // Resend inbound webhook handler
 // Receives forwarded emails and stores them as communication logs.
@@ -82,6 +83,33 @@ export async function POST(request: NextRequest) {
       console.error('Failed to store inbound email:', insertError)
       return NextResponse.json({ error: 'Failed to store email' }, { status: 500 })
     }
+
+    // Fire-and-forget: notify Dr. Ettinger that a new email has landed.
+    // Unassigned (inbox) emails get a more urgent subject since they need
+    // manual triage. Matched emails still notify so he sees activity on
+    // a case without having to open the dashboard.
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'
+    const senderDisplay = fromName ? `${fromName} <${fromEmail}>` : fromEmail || 'Unknown sender'
+    const snippet = (text || html || '').toString().slice(0, 500).trim()
+    const ctaUrl = caseId ? `${appUrl}/cases/${caseId}/emails` : `${appUrl}/inbox`
+    const ctaLabel = caseId ? 'Open Case' : 'Triage in Inbox'
+    const subjectPrefix = caseId ? 'New email on case' : 'Unassigned email needs triage'
+
+    void notifyMark({
+      subject: `${subjectPrefix}: ${subject || '(no subject)'}`,
+      heading: caseId ? 'New Case Email' : 'Inbox — Needs Triage',
+      bodyHtml: `
+        <table style="width: 100%; border-collapse: collapse; margin: 8px 0 16px 0;">
+          <tr><td style="padding: 6px 0; color: #6b7280; font-size: 13px; width: 80px;">From:</td>
+              <td style="padding: 6px 0; font-size: 14px; font-weight: 600;">${escapeHtml(senderDisplay)}</td></tr>
+          <tr><td style="padding: 6px 0; color: #6b7280; font-size: 13px;">Subject:</td>
+              <td style="padding: 6px 0; font-size: 14px;">${escapeHtml(subject || '(no subject)')}</td></tr>
+          ${caseId ? '' : '<tr><td colspan="2" style="padding: 6px 0; color: #b45309; font-size: 13px;">⚠ Sender email does not match any contact — needs manual assignment to a case.</td></tr>'}
+        </table>
+        ${snippet ? `<blockquote style="margin: 16px 0; padding: 12px 16px; background: #F0F2F5; border-left: 3px solid #DFC06A; color: #0E1F35; font-size: 14px; line-height: 1.5; white-space: pre-wrap;">${escapeHtml(snippet)}${snippet.length >= 500 ? '…' : ''}</blockquote>` : ''}
+      `,
+      cta: { label: ctaLabel, url: ctaUrl },
+    })
 
     return NextResponse.json({
       status: caseId ? 'assigned' : 'inbox',
