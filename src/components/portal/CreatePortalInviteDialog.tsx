@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
-import { Copy, Check, Link2, Loader2, Mail, Send, FileSignature, Eye, Clock, CheckCircle2, RefreshCw, Plus } from 'lucide-react'
+import { Copy, Check, Link2, Loader2, Mail, Send, FileSignature, Eye, Clock, CheckCircle2, RefreshCw, Plus, Activity as ActivityIcon, ExternalLink, SlidersHorizontal } from 'lucide-react'
+import { PortalActivityDrawer } from './PortalActivityDrawer'
 
 interface ExistingInvite {
   id: string
@@ -76,6 +77,22 @@ export function CreatePortalInviteDialog({ caseId, contactId, contactName, conta
   const [depositionRate, setDepositionRate] = useState('750')
   const [trialRate, setTrialRate] = useState('750')
   const [retainerAmount, setRetainerAmount] = useState('5000')
+
+  // Onboarding stage control (granular send options)
+  const ONBOARDING_STEPS: Array<{ key: string; label: string }> = [
+    { key: 'review_fee_schedule', label: 'Review fee schedule' },
+    { key: 'review_cv', label: 'Review CV' },
+    { key: 'enter_case_details', label: 'Enter case details' },
+    { key: 'sign_contract', label: 'Sign retention agreement' },
+    { key: 'retainer_payment', label: 'Pay retainer' },
+    { key: 'upload_documents', label: 'Upload documents' },
+  ]
+  const [showStageControl, setShowStageControl] = useState(false)
+  const [startingStep, setStartingStep] = useState<string>('review_fee_schedule')
+  const [stepOverrides, setStepOverrides] = useState<Record<string, string>>({})
+
+  // Activity drawer
+  const [activityOpen, setActivityOpen] = useState(false)
 
   // Check for existing invite when dialog opens
   useEffect(() => {
@@ -179,6 +196,9 @@ export function CreatePortalInviteDialog({ caseId, contactId, contactName, conta
           contractId,
           onboardingMode: true,
           invitationMessage: invitationMessage.trim() || undefined,
+          startingStep: showStageControl ? startingStep : undefined,
+          onboardingStepsOverride:
+            showStageControl && Object.keys(stepOverrides).length > 0 ? stepOverrides : undefined,
         }),
       })
       if (!res.ok) throw new Error('Failed to create invite')
@@ -426,6 +446,32 @@ export function CreatePortalInviteDialog({ caseId, contactId, contactName, conta
               </Button>
             </div>
 
+            {/* View Activity + View as Recipient */}
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setActivityOpen(true)}
+                className="text-xs"
+              >
+                <ActivityIcon className="h-3.5 w-3.5 mr-1.5" />
+                View All Activity
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (existingPortalUrl) {
+                    window.open(`${existingPortalUrl}?preview=1`, '_blank', 'noopener,noreferrer')
+                  }
+                }}
+                className="text-xs"
+              >
+                <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                View as Recipient
+              </Button>
+            </div>
+
             {/* Resend Email */}
             {contactEmail && (
               <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
@@ -477,6 +523,12 @@ export function CreatePortalInviteDialog({ caseId, contactId, contactName, conta
             <Button onClick={handleClose}>Done</Button>
           </DialogFooter>
         </DialogContent>
+        <PortalActivityDrawer
+          inviteId={existingInvite?.id ?? null}
+          contactName={contactName}
+          open={activityOpen}
+          onOpenChange={setActivityOpen}
+        />
       </Dialog>
     )
   }
@@ -670,6 +722,81 @@ export function CreatePortalInviteDialog({ caseId, contactId, contactName, conta
               </div>
             </div>
 
+            {/* Onboarding Stage Control */}
+            <div className="border rounded-lg">
+              <button
+                type="button"
+                onClick={() => setShowStageControl((v) => !v)}
+                className="w-full flex items-center justify-between p-3 text-left hover:bg-gray-50 rounded-lg"
+              >
+                <span className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                  <SlidersHorizontal className="h-4 w-4 text-[#DFC06A]" />
+                  Onboarding Stage Control
+                </span>
+                <span className="text-xs text-gray-400">{showStageControl ? 'Hide' : 'Customize'}</span>
+              </button>
+              {showStageControl && (
+                <div className="px-3 pb-3 space-y-3 border-t pt-3">
+                  <p className="text-xs text-gray-500">
+                    Pre-complete steps the attorney has already done, or pick where they start. Default skips
+                    steps already satisfied from case data.
+                  </p>
+
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 block mb-1">Start attorney at</label>
+                    <Select value={startingStep} onValueChange={setStartingStep}>
+                      <SelectTrigger className="w-full h-9 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ONBOARDING_STEPS.map((s) => (
+                          <SelectItem key={s.key} value={s.key}>
+                            {s.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[11px] text-gray-400 mt-1">
+                      Everything before this step will be marked completed.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 block mb-1">Per-step overrides</label>
+                    <div className="space-y-1.5">
+                      {ONBOARDING_STEPS.map((s) => (
+                        <div key={s.key} className="flex items-center justify-between gap-2 text-xs">
+                          <span className="text-gray-700 truncate">{s.label}</span>
+                          <Select
+                            value={stepOverrides[s.key] ?? 'auto'}
+                            onValueChange={(v) => {
+                              setStepOverrides((prev) => {
+                                const next = { ...prev }
+                                if (v === 'auto') delete next[s.key]
+                                else next[s.key] = v
+                                return next
+                              })
+                            }}
+                          >
+                            <SelectTrigger className="h-7 w-40 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="auto">Auto (default)</SelectItem>
+                              <SelectItem value="pending">Pending</SelectItem>
+                              <SelectItem value="locked">Locked</SelectItem>
+                              <SelectItem value="completed">Skip (done)</SelectItem>
+                              <SelectItem value="not_applicable">Hide (N/A)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Expiration */}
             <div>
               <label className="text-sm font-medium text-gray-700 block mb-1">Expires In</label>
@@ -717,6 +844,12 @@ export function CreatePortalInviteDialog({ caseId, contactId, contactName, conta
           )}
         </DialogFooter>
       </DialogContent>
+      <PortalActivityDrawer
+        inviteId={existingInvite?.id ?? null}
+        contactName={contactName}
+        open={activityOpen}
+        onOpenChange={setActivityOpen}
+      />
     </Dialog>
   )
 }

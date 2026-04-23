@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
+import { trackPortalEvent } from '@/lib/portal-track'
 import {
   Dialog,
   DialogContent,
@@ -278,6 +279,17 @@ export function PortalView({
 
   const enabledTabs = tabs.filter((t) => t.enabled)
   const [activeTab, setActiveTab] = useState(enabledTabs[0]?.id || 'summary')
+
+  // Fire a page_view event on the initial load, and feature_opened when the
+  // recipient switches tabs. trackPortalEvent no-ops under ?preview=1.
+  useEffect(() => {
+    trackPortalEvent(invite.token, 'page_view', { view: 'portal_root' })
+  }, [invite.token])
+  useEffect(() => {
+    if (!activeTab) return
+    const label = enabledTabs.find((t) => t.id === activeTab)?.label || activeTab
+    trackPortalEvent(invite.token, 'feature_opened', { tab: activeTab, label })
+  }, [activeTab, enabledTabs, invite.token])
 
   const contactName = invite.contact
     ? `${invite.contact.first_name} ${invite.contact.last_name}`

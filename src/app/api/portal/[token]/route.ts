@@ -10,6 +10,10 @@ export async function GET(
     const { token } = await params
     const supabase = getSupabaseAdmin()
 
+    // Preview mode: admin previewing what the recipient sees.
+    // Skips view_count increments, session logging, and case-status side effects.
+    const isPreview = request.nextUrl.searchParams.get('preview') === '1'
+
     // Look up the portal invite
     const { data: invite, error } = await supabase
       .from('portal_invites')
@@ -27,14 +31,68 @@ export async function GET(
       return NextResponse.json({ error: 'This portal link has expired' }, { status: 410 })
     }
 
-    // Increment view count
-    await supabase
-      .from('portal_invites')
-      .update({
+    if (!isPreview) {
+      // Increment view count
+      const nowIso = new Date().toISOString()
+      const inviteUpdates: Record<string, unknown> = {
         view_count: invite.view_count + 1,
-        last_accessed_at: new Date().toISOString(),
-      })
-      .eq('id', invite.id)
+        last_accessed_at: nowIso,
+      }
+      if (!invite.first_accessed_at) {
+        inviteUpdates.first_accessed_at = nowIso
+      }
+      await supabase.from('portal_invites').update(inviteUpdates).eq('id', invite.id)
+
+      // Log this session. Dedup to a single row per (invite, session_id) via
+      // client-provided session cookie. Fallback to a per-request id if absent.
+      const sessionId =
+        request.cookies.get('pi_sid')?.value ||
+        request.headers.get('x-portal-session-id') ||
+        crypto.randomUUID()
+      const ipAddress =
+        request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+        request.headers.get('x-real-ip') ||
+        null
+      const userAgent = request.headers.get('user-agent') || null
+      const referrer = request.headers.get('referer') || null
+
+      // Only log a new row if we haven't seen this session in the last 30 min
+      const cutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString()
+      const { data: recent } = await supabase
+        .from('portal_access_log')
+        .select('id')
+        .eq('portal_invite_id', invite.id)
+        .eq('session_id', sessionId)
+        .gte('accessed_at', cutoff)
+        .limit(1)
+        .maybeSingle()
+
+      if (!recent) {
+        await supabase.from('portal_access_log').insert({
+          portal_invite_id: invite.id,
+          session_id: sessionId,
+          ip_address: ipAddress,
+          user_agent: userAgent,
+          referrer,
+          is_preview: false,
+        })
+      }
+
+      // Auto-update case status: inquiry → conflict_check on first attorney view
+      if (invite.view_count === 0 && invite.onboarding_mode) {
+        const { data: currentCase } = await supabase
+          .from('cases')
+          .select('status')
+          .eq('id', invite.case_id)
+          .single()
+        if (currentCase?.status === 'inquiry') {
+          await supabase
+            .from('cases')
+            .update({ status: 'conflict_check', updated_at: new Date().toISOString() })
+            .eq('id', invite.case_id)
+        }
+      }
+    }
 
     // Fetch case data
     const { data: caseData, error: caseError } = await supabase
@@ -151,7 +209,7 @@ export async function GET(
         onboarding_mode: invite.onboarding_mode,
         onboarding_steps: invite.onboarding_steps,
         expires_at: invite.expires_at,
-        view_count: invite.view_count + 1,
+        view_count: isPreview ? invite.view_count : invite.view_count + 1,
         tutorial_completed_at: invite.tutorial_completed_at ?? null,
         onboarding_completed_at: invite.onboarding_completed_at ?? null,
         contact: invite.contacts,

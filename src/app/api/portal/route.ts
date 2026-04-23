@@ -24,6 +24,11 @@ export async function POST(request: NextRequest) {
       contractId = null,
       onboardingMode = false,
       invitationMessage,
+      // Granular stage control:
+      //   onboardingStepsOverride: { [stepKey]: 'pending'|'locked'|'completed'|'not_applicable' }
+      //   startingStep: shortcut — marks all earlier steps 'completed' and the given step 'pending'
+      onboardingStepsOverride = null,
+      startingStep = null,
     } = body
 
     if (!caseId || !contactId) {
@@ -74,7 +79,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const onboardingSteps = onboardingMode
+    // Default auto-derived steps
+    const defaultSteps: Record<string, string> | null = onboardingMode
       ? {
           review_fee_schedule: 'pending',
           review_cv: 'locked',
@@ -84,6 +90,41 @@ export async function POST(request: NextRequest) {
           upload_documents: canUploadDocuments ? 'locked' : 'not_applicable',
         }
       : null
+
+    // Apply manual overrides from the dialog's "Onboarding Stage Control" section.
+    // startingStep shortcut: mark every step before the chosen one as 'completed',
+    // the chosen one as 'pending', and leave later ones untouched.
+    let onboardingSteps: Record<string, string> | null = defaultSteps
+    if (onboardingSteps) {
+      const stepOrder = [
+        'review_fee_schedule',
+        'review_cv',
+        'enter_case_details',
+        'sign_contract',
+        'retainer_payment',
+        'upload_documents',
+      ]
+      if (startingStep && stepOrder.includes(startingStep)) {
+        const startIdx = stepOrder.indexOf(startingStep)
+        const next = { ...onboardingSteps }
+        stepOrder.forEach((key, idx) => {
+          if (next[key] === 'not_applicable') return
+          if (idx < startIdx) next[key] = 'completed'
+          else if (idx === startIdx) next[key] = 'pending'
+        })
+        onboardingSteps = next
+      }
+      if (onboardingStepsOverride && typeof onboardingStepsOverride === 'object') {
+        const allowed = new Set(['pending', 'locked', 'completed', 'not_applicable'])
+        const merged = { ...onboardingSteps }
+        for (const [key, val] of Object.entries(onboardingStepsOverride)) {
+          if (key in merged && typeof val === 'string' && allowed.has(val)) {
+            merged[key] = val
+          }
+        }
+        onboardingSteps = merged
+      }
+    }
 
     const { data: invite, error } = await supabase
       .from('portal_invites')
