@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -24,11 +25,12 @@ import {
   Loader2,
   CreditCard,
   FileText,
+  Download,
 } from 'lucide-react'
 
 interface InvoiceLineItem {
   id: string
-  line_type: string
+  activity_type: string
   description: string
   quantity: number
   unit_price: number
@@ -103,12 +105,30 @@ function fmtQty(qty: number): string {
 }
 
 export function PortalBilling({ token }: PortalBillingProps) {
+  const searchParams = useSearchParams()
+  const paymentStatus = searchParams.get('payment')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [invoices, setInvoices] = useState<PortalInvoice[]>([])
   const [payments, setPayments] = useState<Payment[]>([])
   const [summary, setSummary] = useState<BillingSummary | null>(null)
   const [expandedInvoice, setExpandedInvoice] = useState<string | null>(null)
+  const [payingInvoiceId, setPayingInvoiceId] = useState<string | null>(null)
+
+  async function handlePayInvoice(invoiceId: string) {
+    setPayingInvoiceId(invoiceId)
+    try {
+      const res = await fetch(`/api/portal/${token}/invoices/${invoiceId}/checkout`, {
+        method: 'POST',
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to start checkout')
+      window.location.href = data.url
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Payment failed')
+      setPayingInvoiceId(null)
+    }
+  }
 
   useEffect(() => {
     async function loadBilling() {
@@ -167,8 +187,42 @@ export function PortalBilling({ token }: PortalBillingProps) {
     setExpandedInvoice((prev) => (prev === invoiceId ? null : invoiceId))
   }
 
+  const handleDownload = (invoiceId: string, invoiceNumber: string) => {
+    const url = `/api/portal/${token}/invoices/${invoiceId}/pdf`
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${invoiceNumber}.pdf`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
   return (
     <div className="space-y-6">
+      {/* Payment Status Banner */}
+      {paymentStatus === 'success' && (
+        <div className="rounded-lg border border-green-200 bg-green-50 px-5 py-4 flex items-start gap-3">
+          <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-green-800">Payment received</p>
+            <p className="text-sm text-green-700 mt-0.5">
+              Thank you. A confirmation will be emailed to you and the invoice balance will update shortly.
+            </p>
+          </div>
+        </div>
+      )}
+      {paymentStatus === 'cancelled' && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-5 py-4 flex items-start gap-3">
+          <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-amber-800">Payment cancelled</p>
+            <p className="text-sm text-amber-700 mt-0.5">
+              No charge was made. You can try again using the Pay Online button below.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Summary Cards */}
       {summary && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -181,8 +235,8 @@ export function PortalBilling({ token }: PortalBillingProps) {
                     {formatCurrency(summary.totalOutstanding)}
                   </p>
                 </div>
-                <div className="h-10 w-10 rounded-lg flex items-center justify-center bg-[#C9A84C]/10">
-                  <DollarSign className="h-5 w-5 text-[#C9A84C]" />
+                <div className="h-10 w-10 rounded-lg flex items-center justify-center bg-[#DFC06A]/10">
+                  <DollarSign className="h-5 w-5 text-[#DFC06A]" />
                 </div>
               </div>
             </CardContent>
@@ -224,7 +278,7 @@ export function PortalBilling({ token }: PortalBillingProps) {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-lg font-semibold text-[#0E1F35] flex items-center gap-2">
-            <Receipt className="h-5 w-5 text-[#C9A84C]" />
+            <Receipt className="h-5 w-5 text-[#DFC06A]" />
             Invoices
           </CardTitle>
         </CardHeader>
@@ -288,6 +342,41 @@ export function PortalBilling({ token }: PortalBillingProps) {
                         </p>
                       )}
                     </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-[#0E1F35]/20 text-[#0E1F35] hover:bg-[#0E1F35]/5"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDownload(invoice.id, invoice.invoice_number)
+                      }}
+                    >
+                      <Download className="h-4 w-4 mr-1.5" />
+                      PDF
+                    </Button>
+                    {invoice.balance_due > 0 && invoice.status !== 'paid' && (
+                      <Button
+                        size="sm"
+                        className="bg-[#0E1F35] text-[#DFC06A] hover:bg-[#0E1F35]/90"
+                        disabled={payingInvoiceId === invoice.id}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handlePayInvoice(invoice.id)
+                        }}
+                      >
+                        {payingInvoiceId === invoice.id ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                            Redirecting…
+                          </>
+                        ) : (
+                          <>
+                            <CreditCard className="h-4 w-4 mr-1.5" />
+                            Pay Online
+                          </>
+                        )}
+                      </Button>
+                    )}
                     {isExpanded ? (
                       <ChevronUp className="h-5 w-5 text-gray-400" />
                     ) : (

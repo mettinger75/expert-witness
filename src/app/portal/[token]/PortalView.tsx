@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { trackPortalEvent } from '@/lib/portal-track'
 import {
   Dialog,
@@ -278,7 +279,13 @@ export function PortalView({
   ]
 
   const enabledTabs = tabs.filter((t) => t.enabled)
-  const [activeTab, setActiveTab] = useState(enabledTabs[0]?.id || 'summary')
+  const searchParams = useSearchParams()
+  const requestedTab = searchParams.get('tab')
+  const initialTab =
+    requestedTab && enabledTabs.some((t) => t.id === requestedTab)
+      ? requestedTab
+      : enabledTabs[0]?.id || 'summary'
+  const [activeTab, setActiveTab] = useState(initialTab)
 
   // Fire a page_view event on the initial load, and feature_opened when the
   // recipient switches tabs. trackPortalEvent no-ops under ?preview=1.
