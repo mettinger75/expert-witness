@@ -10,6 +10,14 @@
 export const SITE_URL =
   process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'
 
+/**
+ * Domain used inside Message-ID / In-Reply-To / References headers so that
+ * Gmail and other clients group every email about a given case into a single
+ * thread. Must be a domain we control (matches the live `from` addresses used
+ * in /api/portal/messages and /api/portal/[token]/messages).
+ */
+export const EMAIL_THREAD_DOMAIN = 'meridian-anesthesia.com'
+
 // ── Sender identity ──────────────────────────────────────────────
 export const SENDER_EMAIL = 'mark.ettinger@meridiananesthesia.com'
 export const SENDER_NAME = 'Mark Ettinger, M.D.'
