@@ -63,7 +63,7 @@ export function SendInvoiceDialog({
         throw new Error(err.error || 'Failed to create shared link')
       }
 
-      const { shareUrl } = await linkRes.json()
+      const { url: shareUrl } = await linkRes.json()
 
       // Step 2: Send the email
       const emailRes = await fetch('/api/shared-links/send-email', {
@@ -77,6 +77,8 @@ export function SendInvoiceDialog({
           entityName: invoice.invoice_number,
           permission: 'view',
           senderMessage: senderMessage.trim() || undefined,
+          invoiceAmount: invoice.balance_due > 0 ? invoice.balance_due : invoice.total_amount,
+          invoiceDueDate: invoice.due_date,
         }),
       })
 
