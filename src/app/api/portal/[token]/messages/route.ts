@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { caseEmailHeaders, caseEmailSubject } from '@/lib/email-threading'
 
 type SupabaseAdmin = ReturnType<typeof getSupabaseAdmin>
 
@@ -7,16 +8,18 @@ const NOTIFY_EMAIL = 'markettingermd@gmail.com'
 
 /**
  * Fire-and-forget: send Dr. Ettinger an email whenever an attorney posts a
- * portal note. Silent no-op if RESEND_API_KEY is missing; never blocks the
- * HTTP response or rethrows.
+ * portal message. Threads under the case's root Message-ID so the email
+ * lands inside an existing Gmail conversation for the case. Silent no-op
+ * if RESEND_API_KEY is missing; never blocks the HTTP response or rethrows.
  */
 async function notifyPortalMessage(opts: {
   supabase: SupabaseAdmin
   caseId: string | null
+  messageId: string
   senderName: string
   content: string
 }): Promise<void> {
-  const { supabase, caseId, senderName, content } = opts
+  const { supabase, caseId, messageId, senderName, content } = opts
 
   const resendKey = process.env.RESEND_API_KEY
   if (!resendKey) {
@@ -25,45 +28,53 @@ async function notifyPortalMessage(opts: {
   }
 
   try {
-    // Look up case context so the email is useful at a glance
-    let caseLabel = 'a case'
+    // Look up case context for subject + threading
+    let caseNumber: string | null = null
+    let caseName = 'a case'
+    let isInquiry = false
     let caseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'
     if (caseId) {
       const { data: caseRow } = await supabase
         .from('cases')
-        .select('case_number, patient_name, case_name')
+        .select('case_number, case_name, status')
         .eq('id', caseId)
         .single()
       if (caseRow) {
-        const name = (caseRow as { case_name?: string | null }).case_name
-        const patient = (caseRow as { patient_name?: string | null }).patient_name
-        const number = (caseRow as { case_number?: string | null }).case_number
-        caseLabel = name || patient || number || caseLabel
+        caseNumber = (caseRow as { case_number?: string | null }).case_number ?? null
+        caseName = (caseRow as { case_name?: string | null }).case_name || caseName
+        isInquiry = (caseRow as { status?: string | null }).status === 'inquiry'
       }
-      caseUrl = `${caseUrl}/cases/${caseId}`
+      caseUrl = `${caseUrl}/cases/${caseId}/messages`
     }
 
     const escape = (s: string) =>
       s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     const snippet = escape(content).replace(/\n/g, '<br/>')
 
-    const subject = `New portal note from ${senderName} — ${caseLabel}`
+    const subject = caseId
+      ? caseEmailSubject(caseNumber, caseName, isInquiry)
+      : `New portal note from ${senderName}`
+
+    const headers = caseId
+      ? caseEmailHeaders(caseId, { selfLabel: messageId })
+      : undefined
+
     const html = `
       <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto;">
         <div style="background-color: #0E1F35; color: white; padding: 24px 32px;">
-          <h1 style="margin: 0; font-size: 20px; color: #DFC06A;">New Portal Note</h1>
+          <h1 style="margin: 0; font-size: 20px; color: #DFC06A;">New portal message</h1>
         </div>
         <div style="padding: 32px; border: 1px solid #e5e7eb; border-top: none;">
           <p style="color: #374151; font-size: 15px; line-height: 1.6;">
-            <strong>${escape(senderName)}</strong> left a note on
-            <strong>${escape(caseLabel)}</strong>:
+            <strong>${escape(senderName)}</strong> sent a message on
+            <strong>${escape(caseName)}</strong>:
           </p>
           <blockquote style="margin: 16px 0; padding: 12px 16px; background: #F0F2F5; border-left: 3px solid #DFC06A; color: #0E1F35; font-size: 14px; line-height: 1.6;">
             ${snippet}
           </blockquote>
           <div style="text-align: center; margin: 28px 0;">
             <a href="${caseUrl}" style="display: inline-block; background-color: #0E1F35; color: white; text-decoration: none; padding: 12px 32px; border-radius: 6px; font-size: 14px; font-weight: 600;">
-              Open Case
+              Reply in portal
             </a>
           </div>
           <p style="color: #9ca3af; font-size: 12px; margin-top: 24px; text-align: center;">
@@ -83,6 +94,7 @@ async function notifyPortalMessage(opts: {
         from: 'Expert Witness <noreply@meridian-anesthesia.com>',
         to: NOTIFY_EMAIL,
         subject,
+        ...(headers ? { headers } : {}),
         html,
       }),
     })
@@ -195,6 +207,7 @@ export async function POST(
     void notifyPortalMessage({
       supabase,
       caseId: invite.case_id,
+      messageId: message.id,
       senderName,
       content: trimmedContent,
     })

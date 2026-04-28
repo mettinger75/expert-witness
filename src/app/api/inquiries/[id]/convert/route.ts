@@ -1,140 +1,132 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import crypto from 'crypto'
 
 /**
  * POST /api/inquiries/[id]/convert
- * Converts a consultation_requests row into a real `cases` row.
- * - Reuses the inquiry's contact (or creates one if missing).
- * - Links the contact to the new case as retaining counsel.
- * - Stamps the inquiry with case_id + converted_at and flips status to 'converted'.
  *
- * Intended to be called from the protected Inquiries admin page after a
- * phone call confirms the engagement. Authorization: this sits behind the
- * protected (auth) route group via the admin UI; the endpoint itself is
- * not public-facing but validates the inquiry state before writing.
+ * Promotes a case with status='inquiry' to an active engagement.
+ * `[id]` is now a CASE id (post-collapse — consultation_requests no longer
+ * exists as a separate row).
+ *
+ * Behavior:
+ *  - Reject if case is missing or not in status='inquiry'.
+ *  - Flip status to 'accepted' (or whatever `targetStatus` body field
+ *    requests, restricted to a small allowlist).
+ *  - Optional `{ createPortal: true }` — if the case has no portal_invites
+ *    row yet, create one with onboarding defaults so the attorney has
+ *    immediate access.
  */
-export async function POST(_request: NextRequest, context: { params: Promise<{ id: string }> }) {
+
+const ALLOWED_TARGET_STATUSES = new Set(['accepted', 'conflict_check', 'active'])
+
+export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = await context.params
-    if (!id) return NextResponse.json({ error: 'Missing inquiry id' }, { status: 400 })
+    const { id: caseId } = await context.params
+    if (!caseId) return NextResponse.json({ error: 'Missing case id' }, { status: 400 })
+
+    let createPortal = false
+    let targetStatus = 'accepted'
+    try {
+      const body = await request.json()
+      if (body && typeof body === 'object') {
+        if (body.createPortal === true) createPortal = true
+        if (typeof body.targetStatus === 'string' && ALLOWED_TARGET_STATUSES.has(body.targetStatus)) {
+          targetStatus = body.targetStatus
+        }
+      }
+    } catch {
+      // No body — fine, use defaults
+    }
 
     const supabase = getSupabaseAdmin()
 
-    // 1. Load inquiry
-    const { data: inquiry, error: loadErr } = await supabase
-      .from('consultation_requests')
-      .select('*')
-      .eq('id', id)
+    // 1. Load case + verify state
+    const { data: caseRow, error: loadErr } = await supabase
+      .from('cases')
+      .select('id, case_number, status')
+      .eq('id', caseId)
       .single()
 
-    if (loadErr || !inquiry) {
-      return NextResponse.json({ error: 'Inquiry not found' }, { status: 404 })
+    if (loadErr || !caseRow) {
+      return NextResponse.json({ error: 'Case not found' }, { status: 404 })
     }
 
-    if (inquiry.status === 'converted' && inquiry.case_id) {
-      return NextResponse.json({
-        success: true,
-        alreadyConverted: true,
-        caseId: inquiry.case_id,
-      })
+    if (caseRow.status !== 'inquiry') {
+      return NextResponse.json(
+        { error: `Case is not in inquiry status (current: ${caseRow.status})` },
+        { status: 400 }
+      )
     }
 
-    // 2. Resolve contact
-    let contactId: string | null = inquiry.contact_id
-    if (!contactId) {
-      const { data: existing } = await supabase
-        .from('contacts')
-        .select('id')
-        .eq('email', inquiry.email)
+    // 2. Flip status
+    const { error: updateErr } = await supabase
+      .from('cases')
+      .update({ status: targetStatus })
+      .eq('id', caseId)
+
+    if (updateErr) {
+      console.error('Case status update error:', updateErr)
+      return NextResponse.json({ error: 'Failed to update case status' }, { status: 500 })
+    }
+
+    // 3. Optional portal_invite creation
+    let portalToken: string | null = null
+    if (createPortal) {
+      const { data: existingInvite } = await supabase
+        .from('portal_invites')
+        .select('id, token, is_active')
+        .eq('case_id', caseId)
         .eq('is_active', true)
-        .limit(1)
         .maybeSingle()
 
-      if (existing) {
-        contactId = existing.id
+      if (existingInvite) {
+        portalToken = (existingInvite as { token: string }).token
       } else {
-        const { data: newContact, error: contactErr } = await supabase
-          .from('contacts')
-          .insert({
-            contact_type: 'attorney',
-            first_name: inquiry.first_name,
-            last_name: inquiry.last_name,
-            email: inquiry.email,
-            phone_primary: inquiry.phone || null,
-            organization_name: inquiry.organization_name || null,
+        // Find primary contact
+        const { data: primaryContact } = await supabase
+          .from('case_contacts')
+          .select('contact_id')
+          .eq('case_id', caseId)
+          .eq('is_primary', true)
+          .limit(1)
+          .maybeSingle()
+
+        if (primaryContact?.contact_id) {
+          const token = crypto.randomBytes(32).toString('hex')
+          const expiresAt = new Date()
+          expiresAt.setDate(expiresAt.getDate() + 90)
+
+          const { error: inviteErr } = await supabase.from('portal_invites').insert({
+            case_id: caseId,
+            contact_id: primaryContact.contact_id,
+            token,
+            onboarding_mode: false,
+            can_view_summary: true,
+            can_view_timeline: true,
+            can_message: true,
+            can_view_reports: true,
+            can_edit_reports: false,
+            can_upload_documents: true,
+            can_view_fee_schedule: true,
+            can_view_depositions: true,
+            can_view_billing: true,
+            can_book_scheduling: true,
+            can_sign_contract: false,
+            expires_at: expiresAt.toISOString(),
           })
-          .select('id')
-          .single()
 
-        if (contactErr || !newContact) {
-          console.error('Contact creation error:', contactErr)
-          return NextResponse.json({ error: 'Failed to create contact' }, { status: 500 })
+          if (!inviteErr) portalToken = token
         }
-        contactId = newContact.id
-      }
-
-      // Backfill inquiry.contact_id for future lookups
-      await supabase
-        .from('consultation_requests')
-        .update({ contact_id: contactId })
-        .eq('id', id)
-    }
-
-    // 3. Create case — case_number is auto-generated by DB trigger
-    const caseName = inquiry.organization_name
-      ? `${inquiry.last_name} — ${inquiry.organization_name}`
-      : `${inquiry.first_name} ${inquiry.last_name}`
-
-    const { data: newCase, error: caseErr } = await supabase
-      .from('cases')
-      .insert({
-        case_name: caseName,
-        case_type: inquiry.case_type || 'other',
-        specialty_area: inquiry.specialty_area || null,
-        side: inquiry.side || 'plaintiff',
-        status: 'inquiry',
-        priority: 'normal',
-        date_of_referral: new Date().toISOString().split('T')[0],
-        brief_summary: inquiry.case_description || null,
-      })
-      .select('id, case_number')
-      .single()
-
-    if (caseErr || !newCase) {
-      console.error('Case creation error:', caseErr)
-      return NextResponse.json({ error: 'Failed to create case' }, { status: 500 })
-    }
-
-    // 4. Link contact to case as retaining counsel
-    if (contactId) {
-      const { error: linkErr } = await supabase
-        .from('case_contacts')
-        .insert({
-          case_id: newCase.id,
-          contact_id: contactId,
-          role: 'retaining_attorney',
-          is_primary: true,
-        })
-      if (linkErr) {
-        console.error('Case-contact link error:', linkErr)
-        // Not fatal — case exists, link can be added manually
       }
     }
-
-    // 5. Mark inquiry converted
-    await supabase
-      .from('consultation_requests')
-      .update({
-        status: 'converted',
-        case_id: newCase.id,
-        converted_at: new Date().toISOString(),
-      })
-      .eq('id', id)
 
     return NextResponse.json({
       success: true,
-      caseId: newCase.id,
-      caseNumber: newCase.case_number,
+      caseId: caseRow.id,
+      caseNumber: caseRow.case_number,
+      status: targetStatus,
+      portalToken,
     })
   } catch (err) {
     console.error('Inquiry convert error:', err)

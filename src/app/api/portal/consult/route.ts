@@ -1,12 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { EMAIL_COLORS } from '@/lib/email-config'
+import { findOrCreateAttorneyContact, createInquiryCase } from '@/lib/inquiry-helpers'
+import { caseEmailHeaders, caseEmailSubject } from '@/lib/email-threading'
 
 /**
  * POST /api/portal/consult
  * Public endpoint — accepts a consultation request from an attorney.
- * Does NOT create a case or portal invite.
- * Creates/finds a contact, stores the request, and notifies Dr. Ettinger.
+ *
+ * Behavior (post-collapse):
+ *   1. Find or create attorney contact.
+ *   2. Insert a `cases` row with status='inquiry' and link the contact as
+ *      retaining_attorney.
+ *   3. Send Mark a notification email tagged with the case's thread root
+ *      Message-ID so every subsequent message about this case threads under
+ *      the same Gmail conversation.
+ *
+ * Does NOT create a portal_invite — that happens when Mark clicks Convert
+ * on the /inquiries page.
  */
 
 const ALLOWED_CASE_TYPES = new Set([
@@ -67,69 +78,35 @@ export async function POST(request: NextRequest) {
     const supabase = getSupabaseAdmin()
 
     // 1. Find or create contact
-    let contactId: string | null = null
-    const { data: existingContact } = await supabase
-      .from('contacts')
-      .select('id')
-      .eq('email', email)
-      .eq('is_active', true)
-      .limit(1)
-      .single()
+    const contactId = await findOrCreateAttorneyContact(supabase, {
+      firstName,
+      lastName,
+      email,
+      phone,
+      organizationName,
+    })
 
-    if (existingContact) {
-      contactId = existingContact.id
-    } else {
-      const { data: newContact, error: contactError } = await supabase
-        .from('contacts')
-        .insert({
-          contact_type: 'attorney',
-          first_name: firstName,
-          last_name: lastName,
-          email,
-          phone_primary: phone || null,
-          organization_name: organizationName || null,
-        })
-        .select('id')
-        .single()
+    // 2. Create inquiry case (status='inquiry') + link contact
+    const { caseId, caseNumber } = await createInquiryCase(supabase, {
+      contactId,
+      firstName,
+      lastName,
+      organizationName,
+      caseDescription,
+      caseType: caseTypeClean,
+      specialtyArea: specialtyClean,
+      side: sideClean,
+      requestedTurnaround: turnaroundClean,
+      source: sourceClean,
+    })
 
-      if (contactError) {
-        console.error('Contact creation error:', contactError)
-      } else if (newContact) {
-        contactId = newContact.id
-      }
-    }
-
-    // 2. Store consultation request
-    const { data: inquiryRow, error: requestError } = await supabase
-      .from('consultation_requests')
-      .insert({
-        contact_id: contactId,
-        first_name: firstName,
-        last_name: lastName,
-        email,
-        phone: phone || null,
-        organization_name: organizationName || null,
-        case_description: caseDescription || null,
-        case_type: caseTypeClean,
-        specialty_area: specialtyClean,
-        side: sideClean,
-        requested_turnaround: turnaroundClean,
-        source: sourceClean,
-      })
-      .select('id')
-      .single()
-
-    if (requestError) {
-      console.error('Consultation request error:', requestError)
-      return NextResponse.json({ error: 'Failed to store consultation request' }, { status: 500 })
-    }
-
-    // 3. Send notification email to Dr. Ettinger
+    // 3. Notify Dr. Ettinger — this is the THREAD ROOT for the case.
     const resendKey = process.env.RESEND_API_KEY
     if (resendKey) {
       const c = EMAIL_COLORS
       const fullName = `${firstName} ${lastName}`
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'
+      const caseName = organizationName ? `${lastName} — ${organizationName}` : fullName
 
       const turnaroundLabel = turnaroundClean ? (TURNAROUND_LABELS[turnaroundClean] ?? turnaroundClean) : ''
 
@@ -143,6 +120,7 @@ export async function POST(request: NextRequest) {
         specialtyClean ? { label: 'Clinical Area', value: humanize(specialtyClean) } : null,
         turnaroundLabel ? { label: 'Turnaround', value: turnaroundLabel } : null,
         sourceClean && sourceClean !== 'direct' ? { label: 'Source', value: sourceClean.toUpperCase() } : null,
+        { label: 'Case', value: caseNumber },
       ]
         .filter(Boolean)
         .map(
@@ -161,7 +139,8 @@ export async function POST(request: NextRequest) {
           </div>`
         : ''
 
-      const inquiryId = inquiryRow?.id
+      const subject = caseEmailSubject(caseNumber, caseName, true)
+      const headers = caseEmailHeaders(caseId, { isRoot: true })
 
       fetch('https://api.resend.com/emails', {
         method: 'POST',
@@ -169,7 +148,8 @@ export async function POST(request: NextRequest) {
         body: JSON.stringify({
           from: 'Expert Witness <noreply@meridian-anesthesia.com>',
           to: 'markettingermd@gmail.com',
-          subject: `New Consultation Request: ${fullName}${organizationName ? ` (${organizationName})` : ''}${sourceClean && sourceClean !== 'direct' ? ` [${sourceClean}]` : ''}`,
+          subject,
+          headers,
           html: `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
@@ -177,7 +157,7 @@ export async function POST(request: NextRequest) {
 <div style="max-width: 600px; margin: 0 auto; padding: 24px 16px;">
 <div style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
   <div style="background: ${c.navyDark}; padding: 20px 24px;">
-    <p style="font-family: Georgia, serif; font-size: 12px; color: ${c.gold}; letter-spacing: 2px; text-transform: uppercase; margin: 0 0 4px;">New Consultation Request</p>
+    <p style="font-family: Georgia, serif; font-size: 12px; color: ${c.gold}; letter-spacing: 2px; text-transform: uppercase; margin: 0 0 4px;">New Inquiry</p>
     <h1 style="font-family: Georgia, serif; font-size: 18px; color: white; font-weight: 400; margin: 0;">${fullName}</h1>
   </div>
   <div style="height: 3px; background: ${c.gold};"></div>
@@ -185,8 +165,9 @@ export async function POST(request: NextRequest) {
     <table cellpadding="0" cellspacing="0" style="border-collapse: collapse; width: 100%;">${detailRows}</table>
     ${caseDescriptionHtml}
     <div style="text-align: center; margin: 24px 0 8px;">
-      <a href="${appUrl}/inquiries${inquiryId ? `?highlight=${inquiryId}` : ''}" style="display: inline-block; background: ${c.navy}; color: white; padding: 12px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px;">Review Inquiry</a>
+      <a href="${appUrl}/inquiries" style="display: inline-block; background: ${c.navy}; color: white; padding: 12px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px;">Review Inquiry</a>
     </div>
+    <p style="text-align:center; font-size:12px; color:${c.textSecondary}; margin: 16px 0 0;">All future messages on this case will be threaded under this email.</p>
   </div>
 </div>
 </div>
@@ -196,7 +177,7 @@ export async function POST(request: NextRequest) {
       }).catch((err) => console.error('Consultation notification email error:', err))
     }
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true, caseId, caseNumber })
   } catch (error) {
     console.error('Consultation request error:', error)
     return NextResponse.json({ error: 'Failed to process consultation request' }, { status: 500 })

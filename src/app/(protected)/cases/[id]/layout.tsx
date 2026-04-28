@@ -26,18 +26,21 @@ import {
   Check,
   X,
   AudioLines,
+  ListTodo,
+  MessageSquare,
 } from 'lucide-react'
 
 const tabs = [
   { label: 'Overview', href: '', icon: LayoutDashboard },
   { label: 'Timeline', href: '/timeline', icon: Clock },
-  { label: 'Medical Records', href: '/documents', icon: FileText },
-  { label: 'Depositions', href: '/depositions', icon: Gavel },
-  { label: 'Other Documents', href: '/other-documents', icon: FolderOpen },
+  { label: 'Documents', href: '/documents', icon: FolderOpen },
+  { label: 'Reports', href: '/reports', icon: FileText },
+  { label: 'Deposition Prep', href: '/depositions', icon: Gavel },
+  { label: 'Tasks', href: '/tasks', icon: ListTodo },
   { label: 'Emails', href: '/emails', icon: Mail },
+  { label: 'Messages', href: '/messages', icon: MessageSquare },
   { label: 'Notes', href: '/notes', icon: StickyNote },
   { label: 'Billing', href: '/billing', icon: DollarSign },
-  { label: 'Reports', href: '/reports', icon: FileText },
   { label: 'Contracts', href: '/contracts', icon: ScrollText },
   { label: 'Meetings', href: '/meetings', icon: AudioLines },
   { label: 'AI', href: '/ai', icon: Brain },
@@ -169,7 +172,7 @@ export default function CaseDetailLayout({
                     ? 'text-neutral-900'
                     : 'border-transparent text-neutral-500 hover:text-neutral-800 hover:border-neutral-300'
                 )}
-                style={isActive ? { borderBottomColor: '#C9A84C' } : undefined}
+                style={isActive ? { borderBottomColor: '#DFC06A' } : undefined}
               >
                 <tab.icon className="h-4 w-4" />
                 {tab.label}
