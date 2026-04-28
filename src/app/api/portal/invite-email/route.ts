@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
+import { EMAIL_BCC, EMAIL_REPLY_TO } from '@/lib/email-config'
 
 /**
  * Normalize a "From" email header so display names with special characters
@@ -233,6 +234,8 @@ export async function POST(request: NextRequest) {
       resendResult = await resend.emails.send({
         from: FROM_EMAIL,
         to: [recipientEmail],
+        bcc: EMAIL_BCC,
+        replyTo: EMAIL_REPLY_TO,
         subject,
         html: htmlBody,
       })
