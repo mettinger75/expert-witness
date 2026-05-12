@@ -98,7 +98,6 @@ export async function POST(request: NextRequest) {
           amount_paid: newAmountPaid,
           balance_due: Math.max(0, newBalance),
           status: newBalance <= 0 ? 'paid' : 'partial',
-          paid_at: newBalance <= 0 ? new Date().toISOString() : undefined,
         })
         .eq('id', invoiceId)
     }

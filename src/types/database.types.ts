@@ -33,7 +33,7 @@ import type {
   InvoiceStatus,
   LineItemType,
   PaymentMethod,
-  PaymentType,
+  PaymentStatus,
   CommunicationType,
   MilestoneType,
   NoteType,
@@ -1206,15 +1206,15 @@ export type InvoiceLineItemUpdate = Partial<InvoiceLineItemInsert>;
 export interface PaymentRow {
   id: string;
   case_id: string;
-  invoice_id: string | null;
-  payment_type: PaymentType;
-  payment_method: PaymentMethod;
-  amount: number;
+  invoice_id: string;
   payment_date: string;
+  amount: number;
+  payment_method: PaymentMethod | null;
   reference_number: string | null;
-  payer_contact_id: string | null;
+  check_number: string | null;
+  status: PaymentStatus;
   notes: string | null;
-  deposited_date: string | null;
+  received_from: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -1222,15 +1222,15 @@ export interface PaymentRow {
 export interface PaymentInsert {
   id?: string;
   case_id: string;
-  invoice_id?: string | null;
-  payment_type: PaymentType;
-  payment_method: PaymentMethod;
+  invoice_id: string;
+  payment_date?: string;
   amount: number;
-  payment_date: string;
+  payment_method?: PaymentMethod | null;
   reference_number?: string | null;
-  payer_contact_id?: string | null;
+  check_number?: string | null;
+  status?: PaymentStatus;
   notes?: string | null;
-  deposited_date?: string | null;
+  received_from?: string | null;
   created_at?: string;
   updated_at?: string;
 }

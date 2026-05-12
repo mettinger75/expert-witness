@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { EmptyState } from '@/components/shared/EmptyState'
+import { RecordPaymentDialog } from '@/components/billing/RecordPaymentDialog'
 import { useInvoices, useUpdateInvoice, useDeleteInvoice } from '@/hooks/useInvoices'
 import { useTimeEntries } from '@/hooks/useTimeEntries'
 import { useCases } from '@/hooks/useCases'
@@ -38,6 +39,7 @@ import {
   Star,
   Download,
   Eye,
+  CheckCircle2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -45,6 +47,7 @@ export default function BillingPage() {
   const [activeTab, setActiveTab] = useState('invoices')
   const [editInvoice, setEditInvoice] = useState<InvoiceRow | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<InvoiceRow | null>(null)
+  const [recordPaymentInvoice, setRecordPaymentInvoice] = useState<InvoiceRow | null>(null)
   const [exportingId, setExportingId] = useState<string | null>(null)
 
   // Template management state
@@ -415,6 +418,17 @@ export default function BillingPage() {
                             >
                               <Download className="h-4 w-4" />
                             </Button>
+                            {(invoice.balance_due || 0) > 0 && invoice.status !== 'void' && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setRecordPaymentInvoice(invoice)}
+                                title="Record payment"
+                                className="text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50"
+                              >
+                                <CheckCircle2 className="h-4 w-4" />
+                              </Button>
+                            )}
                             <Button
                               variant="ghost"
                               size="sm"
@@ -886,6 +900,15 @@ export default function BillingPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Record Payment Dialog */}
+      {recordPaymentInvoice && (
+        <RecordPaymentDialog
+          invoice={recordPaymentInvoice}
+          open={!!recordPaymentInvoice}
+          onOpenChange={(open) => !open && setRecordPaymentInvoice(null)}
+        />
+      )}
     </div>
   )
 }

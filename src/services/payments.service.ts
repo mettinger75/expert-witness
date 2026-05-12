@@ -30,26 +30,24 @@ export const paymentsService = {
       .single()
     if (error) throw error
 
-    // Update invoice balance if payment is linked to an invoice
-    if (input.invoice_id) {
-      const { data: invoice } = await supabase
-        .from('invoices')
-        .select('amount_paid, total_amount')
-        .eq('id', input.invoice_id)
-        .single()
+    // Recalculate invoice totals & status. invoice_id is required on payments.
+    const { data: invoice } = await supabase
+      .from('invoices')
+      .select('amount_paid, total_amount')
+      .eq('id', input.invoice_id)
+      .single()
 
-      if (invoice) {
-        const newAmountPaid = (invoice.amount_paid || 0) + input.amount
-        const newBalance = (invoice.total_amount || 0) - newAmountPaid
-        await supabase
-          .from('invoices')
-          .update({
-            amount_paid: newAmountPaid,
-            balance_due: newBalance,
-            status: newBalance <= 0 ? 'paid' : 'partial',
-          })
-          .eq('id', input.invoice_id)
-      }
+    if (invoice) {
+      const newAmountPaid = (invoice.amount_paid || 0) + input.amount
+      const newBalance = Math.max(0, (invoice.total_amount || 0) - newAmountPaid)
+      await supabase
+        .from('invoices')
+        .update({
+          amount_paid: newAmountPaid,
+          balance_due: newBalance,
+          status: newBalance <= 0 ? 'paid' : 'partial',
+        })
+        .eq('id', input.invoice_id)
     }
 
     return data as PaymentRow

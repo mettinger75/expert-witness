@@ -15,13 +15,14 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
+import { RecordPaymentDialog } from '@/components/billing/RecordPaymentDialog'
 import { useInvoice, useUpdateInvoice, useDeleteInvoice } from '@/hooks/useInvoices'
 import { useCase } from '@/hooks/useCases'
 import { INVOICE_STATUSES, getLabelForValue, getColorForValue } from '@/lib/constants'
 import { formatCurrency, formatDate } from '@/lib/formatters'
 import { supabase } from '@/lib/supabase'
 import type { InvoiceUpdate, InvoiceLineItemRow, PaymentRow } from '@/types/database.types'
-import { ArrowLeft, CreditCard, FileText, Mail, Pencil, Plus, Trash2, Loader2 } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, CreditCard, FileText, Mail, Pencil, Plus, Trash2, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface EditableLineItem {
@@ -48,6 +49,7 @@ export default function InvoiceDetailPage() {
 
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [recordPaymentOpen, setRecordPaymentOpen] = useState(false)
 
   // Line item editing state
   const [editingLineItems, setEditingLineItems] = useState(false)
@@ -388,6 +390,15 @@ export default function InvoiceDetailPage() {
           <p className="text-sm" style={{ color: '#8892A2' }}>{caseData?.case_name || '\u2014'}</p>
         </div>
         <div className="flex items-center gap-2">
+          {(invoice.balance_due || 0) > 0 && invoice.status !== 'void' && (
+            <Button
+              onClick={() => setRecordPaymentOpen(true)}
+              style={{ backgroundColor: '#0E1F35' }}
+            >
+              <CheckCircle2 className="h-4 w-4 mr-2" />
+              Record Payment
+            </Button>
+          )}
           <Button variant="outline" onClick={openSendDialog}>
             <Mail className="h-4 w-4 mr-2" />
             Send Invoice
@@ -734,6 +745,15 @@ export default function InvoiceDetailPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Record Payment Dialog (mounted only when open, for fresh form state) */}
+      {recordPaymentOpen && (
+        <RecordPaymentDialog
+          invoice={invoice}
+          open={recordPaymentOpen}
+          onOpenChange={setRecordPaymentOpen}
+        />
+      )}
 
       {/* Send Invoice Dialog */}
       <Dialog open={sendOpen} onOpenChange={setSendOpen}>

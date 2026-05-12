@@ -337,13 +337,17 @@ export type ActivityType =
 
 export type InvoiceStatus =
   | 'draft'
+  | 'pending_review'
+  | 'approved'
   | 'sent'
   | 'viewed'
   | 'partial'
   | 'paid'
   | 'overdue'
+  | 'disputed'
   | 'written_off'
-  | 'disputed';
+  | 'cancelled'
+  | 'void';
 
 export type LineItemType =
   | 'time'
@@ -354,10 +358,20 @@ export type LineItemType =
 
 export type PaymentMethod =
   | 'check'
-  | 'wire'
+  | 'wire_transfer'
   | 'ach'
   | 'credit_card'
+  | 'cash'
+  | 'money_order'
   | 'other';
+
+export type PaymentStatus =
+  | 'pending'
+  | 'received'
+  | 'cleared'
+  | 'bounced'
+  | 'refunded'
+  | 'cancelled';
 
 export type PaymentType =
   | 'retainer'

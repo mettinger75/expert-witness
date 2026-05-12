@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
       // YTD payments (for revenue.total_collected)
       supabase
         .from('payments')
-        .select('id, amount, payment_date, payment_type')
+        .select('id, amount, payment_date')
         .gte('payment_date', ytdStart),
     ])
 
