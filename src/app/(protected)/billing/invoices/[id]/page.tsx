@@ -22,7 +22,7 @@ import { INVOICE_STATUSES, getLabelForValue, getColorForValue } from '@/lib/cons
 import { formatCurrency, formatDate } from '@/lib/formatters'
 import { supabase } from '@/lib/supabase'
 import type { InvoiceUpdate, InvoiceLineItemRow, PaymentRow } from '@/types/database.types'
-import { ArrowLeft, CheckCircle2, CreditCard, FileText, Mail, Pencil, Plus, Trash2, Loader2 } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, CreditCard, Download, Eye, FileText, Mail, Pencil, Plus, Trash2, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface EditableLineItem {
@@ -218,12 +218,12 @@ export default function InvoiceDetailPage() {
           .insert({
             invoice_id: invoice.id,
             case_id: invoice.case_id,
-            line_type: 'other' as const,
+            activity_type: 'other' as const,
             description: item.description,
             quantity: item.quantity,
             unit_price: item.unit_price,
             amount: item.quantity * item.unit_price,
-            sort_order: 0,
+            line_number: 0,
             is_billed: true,
           })
       }
@@ -399,6 +399,50 @@ export default function InvoiceDetailPage() {
               Record Payment
             </Button>
           )}
+          <Button
+            variant="outline"
+            onClick={async () => {
+              try {
+                const res = await fetch('/api/invoices/export-pdf', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ invoiceId: invoice.id }),
+                })
+                if (!res.ok) throw new Error('Export failed')
+                const blob = await res.blob()
+                window.open(URL.createObjectURL(blob), '_blank')
+              } catch { toast.error('Failed to generate preview') }
+            }}
+          >
+            <Eye className="h-4 w-4 mr-2" />
+            Preview
+          </Button>
+          <Button
+            variant="outline"
+            onClick={async () => {
+              try {
+                const res = await fetch('/api/invoices/export-pdf', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ invoiceId: invoice.id }),
+                })
+                if (!res.ok) throw new Error('Export failed')
+                const blob = await res.blob()
+                const url = URL.createObjectURL(blob)
+                const a = document.createElement('a')
+                a.href = url
+                a.download = `${invoice.invoice_number}.pdf`
+                document.body.appendChild(a)
+                a.click()
+                document.body.removeChild(a)
+                URL.revokeObjectURL(url)
+                toast.success('Invoice PDF downloaded')
+              } catch { toast.error('Failed to download PDF') }
+            }}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Download
+          </Button>
           <Button variant="outline" onClick={openSendDialog}>
             <Mail className="h-4 w-4 mr-2" />
             Send Invoice
