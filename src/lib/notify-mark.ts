@@ -11,7 +11,7 @@
  */
 
 const NOTIFY_EMAIL = 'markettingermd@gmail.com'
-const SENDER = 'Expert Witness <noreply@meridian-anesthesia.com>'
+const SENDER = 'Expert Witness <noreply@markettingermd.com>'
 
 export interface NotifyMarkOptions {
   /** Email subject line. Keep it scannable — shows in his inbox list. */
