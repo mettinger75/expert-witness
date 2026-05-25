@@ -11,7 +11,7 @@
  */
 
 const NOTIFY_EMAIL = 'markettingermd@gmail.com'
-const SENDER = 'Expert Witness <noreply@markettingermd.com>'
+const SENDER = 'Mark Ettinger, M.D. <mark@markettingermd.com>'
 
 export interface NotifyMarkOptions {
   /** Email subject line. Keep it scannable — shows in his inbox list. */
@@ -80,6 +80,7 @@ export async function notifyMark(opts: NotifyMarkOptions): Promise<boolean> {
       },
       body: JSON.stringify({
         from: SENDER,
+        replyTo: NOTIFY_EMAIL,
         to: NOTIFY_EMAIL,
         subject: opts.subject,
         html: renderMarkEmail(opts),
