@@ -279,7 +279,7 @@ export function PortalDocuments({ token }: PortalDocumentsProps) {
       <Card data-tour="documents-upload-area">
         <CardHeader>
           <CardTitle className="text-lg text-[#0E1F35] flex items-center gap-2">
-            <Upload className="h-5 w-5 text-[#C9A84C]" />
+            <Upload className="h-5 w-5 text-[#DFC06A]" />
             Upload Documents
           </CardTitle>
         </CardHeader>
@@ -295,10 +295,10 @@ export function PortalDocuments({ token }: PortalDocumentsProps) {
               transition-colors
               ${
                 isDragging
-                  ? 'border-[#C9A84C] bg-[#C9A84C]/5'
+                  ? 'border-[#DFC06A] bg-[#DFC06A]/5'
                   : selectedFile
                     ? 'border-emerald-300 bg-emerald-50'
-                    : 'border-gray-300 hover:border-[#C9A84C]/50 hover:bg-gray-50'
+                    : 'border-gray-300 hover:border-[#DFC06A]/50 hover:bg-gray-50'
               }
             `}
           >
@@ -382,7 +382,7 @@ export function PortalDocuments({ token }: PortalDocumentsProps) {
             <div className="space-y-1">
               <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-[#C9A84C] rounded-full transition-all duration-300"
+                  className="h-full bg-[#DFC06A] rounded-full transition-all duration-300"
                   style={{ width: `${uploadProgress}%` }}
                 />
               </div>
@@ -424,7 +424,7 @@ export function PortalDocuments({ token }: PortalDocumentsProps) {
       <Card data-tour="documents-list">
         <CardHeader>
           <CardTitle className="text-lg text-[#0E1F35] flex items-center gap-2">
-            <FolderOpen className="h-5 w-5 text-[#C9A84C]" />
+            <FolderOpen className="h-5 w-5 text-[#DFC06A]" />
             Case Documents
             {!loadingDocs && (
               <Badge variant="outline" className="ml-2 text-xs">

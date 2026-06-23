@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
       bodyHtml = `
         <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto;">
           <div style="background-color: #0E1F35; color: white; padding: 24px 32px;">
-            <h1 style="margin: 0; font-size: 20px; color: #C9A84C;">New Case Created</h1>
+            <h1 style="margin: 0; font-size: 20px; color: #DFC06A;">New Case Created</h1>
           </div>
           <div style="padding: 32px; border: 1px solid #e5e7eb; border-top: none;">
             <p style="color: #374151; font-size: 15px; line-height: 1.6;">
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
       bodyHtml = `
         <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto;">
           <div style="background-color: #0E1F35; color: white; padding: 24px 32px;">
-            <h1 style="margin: 0; font-size: 20px; color: #C9A84C;">Case Updated</h1>
+            <h1 style="margin: 0; font-size: 20px; color: #DFC06A;">Case Updated</h1>
           </div>
           <div style="padding: 32px; border: 1px solid #e5e7eb; border-top: none;">
             <p style="color: #374151; font-size: 15px; line-height: 1.6;">

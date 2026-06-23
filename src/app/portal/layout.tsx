@@ -11,7 +11,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
       {/* Navy header bar */}
       <header className="bg-[#0E1F35] text-white px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-[#C9A84C] flex items-center justify-center text-[#0E1F35] font-bold text-sm">
+          <div className="w-8 h-8 rounded-full bg-[#DFC06A] flex items-center justify-center text-[#0E1F35] font-bold text-sm">
             ME
           </div>
           <div>

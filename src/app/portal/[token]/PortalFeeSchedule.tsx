@@ -41,7 +41,7 @@ export function PortalFeeSchedule({ feeSchedule }: PortalFeeScheduleProps) {
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-lg font-semibold text-[#0E1F35] flex items-center gap-2">
-          <DollarSign className="h-5 w-5 text-[#C9A84C]" />
+          <DollarSign className="h-5 w-5 text-[#DFC06A]" />
           Fee Schedule
         </CardTitle>
       </CardHeader>
@@ -77,7 +77,7 @@ export function PortalFeeSchedule({ feeSchedule }: PortalFeeScheduleProps) {
                     <TableCell className="font-medium text-[#0E1F35]">
                       {label}
                     </TableCell>
-                    <TableCell className="text-right font-semibold text-[#C9A84C]">
+                    <TableCell className="text-right font-semibold text-[#DFC06A]">
                       {formatCurrency(item.rate_per_hour)}
                     </TableCell>
                     <TableCell className="text-right font-semibold text-[#0E1F35]">

@@ -282,7 +282,7 @@ export function ShareDialog({
                     onClick={() => setPermission(opt.value)}
                     className={`p-2 rounded-md border text-xs text-center transition-colors ${
                       permission === opt.value
-                        ? 'border-[#C9A84C] bg-[#C9A84C]/10 text-[#0E1F35]'
+                        ? 'border-[#DFC06A] bg-[#DFC06A]/10 text-[#0E1F35]'
                         : 'border-gray-200 hover:bg-gray-50 text-gray-600'
                     }`}
                   >
@@ -354,7 +354,7 @@ export function ShareDialog({
                     onClick={() => setExpiresInDays(opt.value)}
                     className={`px-3 py-1.5 rounded-md border text-xs transition-colors ${
                       expiresInDays === opt.value
-                        ? 'border-[#C9A84C] bg-[#C9A84C]/10'
+                        ? 'border-[#DFC06A] bg-[#DFC06A]/10'
                         : 'border-gray-200 hover:bg-gray-50'
                     }`}
                   >

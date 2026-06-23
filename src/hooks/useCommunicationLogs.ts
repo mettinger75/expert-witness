@@ -3,6 +3,14 @@ import { communicationLogsService } from '@/services/communicationLogs.service'
 import type { CommunicationLogInsert, CommunicationLogUpdate } from '@/types/database.types'
 import { toast } from 'sonner'
 
+/** Fetch all communication logs across all cases */
+export function useAllCommunicationLogs(filters?: { direction?: string; search?: string; communicationType?: string }) {
+  return useQuery({
+    queryKey: ['communication_logs', 'all', filters],
+    queryFn: () => communicationLogsService.getAll(filters),
+  })
+}
+
 export function useCommunicationLogs(caseId: string) {
   return useQuery({
     queryKey: ['communication_logs', 'case', caseId],

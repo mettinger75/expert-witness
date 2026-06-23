@@ -157,10 +157,10 @@ export default function CaseBillingPage() {
   const balanceDue = invoices.reduce((sum, i) => sum + (i.balance_due || 0), 0)
 
   const stats = [
-    { title: 'Total Hours', value: formatDuration(totalHours), icon: Clock, bgColor: '#0E1F35', iconColor: '#C9A84C' },
-    { title: 'Total Billed', value: formatCurrency(totalBilled), icon: DollarSign, bgColor: '#0E1F35', iconColor: '#C9A84C' },
+    { title: 'Total Hours', value: formatDuration(totalHours), icon: Clock, bgColor: '#0E1F35', iconColor: '#DFC06A' },
+    { title: 'Total Billed', value: formatCurrency(totalBilled), icon: DollarSign, bgColor: '#0E1F35', iconColor: '#DFC06A' },
     { title: 'Total Paid', value: formatCurrency(totalPaid), icon: CreditCard, bgColor: '#059669', iconColor: '#ffffff' },
-    { title: 'Balance Due', value: formatCurrency(balanceDue), icon: Receipt, bgColor: '#C9A84C', iconColor: '#0E1F35' },
+    { title: 'Balance Due', value: formatCurrency(balanceDue), icon: Receipt, bgColor: '#DFC06A', iconColor: '#0E1F35' },
   ]
 
   // =======================================================================
@@ -188,7 +188,7 @@ export default function CaseBillingPage() {
         id: ch.id,
         kind: 'charge',
         date: ch.created_at?.split('T')[0] ?? '',
-        type: getLabelForValue(CHARGE_TYPES, ch.line_type),
+        type: getLabelForValue(CHARGE_TYPES, ch.activity_type),
         typeBadgeColor: 'amber',
         description: ch.description,
         quantity: ch.quantity,
@@ -336,13 +336,23 @@ export default function CaseBillingPage() {
   const invTotal = invSubtotal + invTaxAmount
 
   function resetCreateInvoiceForm() {
-    setInvTemplateId('')
+    // Auto-apply default template
+    const defaultTpl = templates.find((t) => t.is_default)
+    if (defaultTpl) {
+      setInvTemplateId(defaultTpl.id)
+      if (defaultTpl.default_payment_terms) setInvPaymentTerms(String(defaultTpl.default_payment_terms))
+      if (defaultTpl.payment_instructions) setInvPaymentInstructions(defaultTpl.payment_instructions)
+      if (defaultTpl.default_notes) setInvNotes(defaultTpl.default_notes)
+      if (defaultTpl.default_tax_rate) setInvTaxRate(String(defaultTpl.default_tax_rate))
+    } else {
+      setInvTemplateId('')
+      setInvPaymentTerms('30')
+      setInvTaxRate('')
+      setInvPaymentInstructions('')
+      setInvNotes('')
+    }
     setInvBillToContactId('')
     setInvDueDate('')
-    setInvPaymentTerms('30')
-    setInvTaxRate('')
-    setInvPaymentInstructions('')
-    setInvNotes('')
     setSelectedItemIds(new Set())
   }
 
@@ -566,7 +576,7 @@ export default function CaseBillingPage() {
               <Badge
                 variant="secondary"
                 className="text-xs"
-                style={{ backgroundColor: '#C9A84C', color: '#0E1F35' }}
+                style={{ backgroundColor: '#DFC06A', color: '#0E1F35' }}
               >
                 {unbilledItems.length}
               </Badge>
@@ -664,7 +674,7 @@ export default function CaseBillingPage() {
                     </TableCell>
                     <TableCell
                       className="text-right text-sm font-semibold tabular-nums"
-                      style={{ color: '#C9A84C' }}
+                      style={{ color: '#DFC06A' }}
                     >
                       {formatCurrency(totalUnbilled)}
                     </TableCell>
@@ -691,7 +701,7 @@ export default function CaseBillingPage() {
               <Badge
                 variant="secondary"
                 className="text-xs"
-                style={{ backgroundColor: '#C9A84C', color: '#0E1F35' }}
+                style={{ backgroundColor: '#DFC06A', color: '#0E1F35' }}
               >
                 {invoices.length}
               </Badge>
@@ -773,6 +783,15 @@ export default function CaseBillingPage() {
                           title="Send invoice"
                         >
                           <Mail className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => exportPDF(inv.id, true)}
+                          disabled={exportingId === inv.id}
+                          title="Preview invoice"
+                        >
+                          <Eye className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
@@ -1162,7 +1181,7 @@ export default function CaseBillingPage() {
                 )}
                 <div
                   className="flex justify-between pt-1 border-t font-semibold"
-                  style={{ borderColor: '#C9A84C' }}
+                  style={{ borderColor: '#DFC06A' }}
                 >
                   <span>Total</span>
                   <span className="tabular-nums">{formatCurrency(invTotal)}</span>

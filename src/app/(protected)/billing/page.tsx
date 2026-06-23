@@ -561,7 +561,7 @@ export default function BillingPage() {
                   {tpl.is_default && (
                     <div
                       className="absolute top-3 right-3 flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full"
-                      style={{ backgroundColor: '#C9A84C20', color: '#C9A84C' }}
+                      style={{ backgroundColor: '#DFC06A20', color: '#DFC06A' }}
                     >
                       <Star className="h-3 w-3" />
                       Default

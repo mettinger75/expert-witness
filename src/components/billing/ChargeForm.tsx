@@ -61,7 +61,7 @@ export function ChargeForm({ caseId, open, onOpenChange }: ChargeFormProps) {
     createCharge.mutate(
       {
         case_id: caseId,
-        line_type: lineType as LineItemType,
+        activity_type: lineType as LineItemType,
         description: description.trim(),
         quantity: qty,
         unit_price: price,

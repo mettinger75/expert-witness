@@ -1,7 +1,7 @@
 'use client'
 
 import { useParams, useRouter } from 'next/navigation'
-import { useCase, useUpdateCase, useDeleteCase, useSynthesizeCase, useNotionPull, useNotionPush } from '@/hooks/useCases'
+import { useCase, useUpdateCase, useDeleteCase, useSynthesizeCase } from '@/hooks/useCases'
 import { useCaseContacts } from '@/hooks/useCaseContacts'
 import { useMilestones } from '@/hooks/useMilestones'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
@@ -33,8 +33,6 @@ export default function CaseOverviewPage() {
   const updateCase = useUpdateCase()
   const deleteCase = useDeleteCase()
   const synthesizeCase = useSynthesizeCase()
-  const notionPull = useNotionPull()
-  const notionPush = useNotionPush()
   const toggleMilestone = useToggleMilestone()
   const [editingStatus, setEditingStatus] = useState(false)
   const [editingDeadline, setEditingDeadline] = useState(false)
@@ -147,6 +145,33 @@ export default function CaseOverviewPage() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</label>
+                <div className="mt-1 flex items-center gap-2">
+                  {editingStatus ? (
+                    <Select defaultValue={caseData.status} onValueChange={handleStatusChange}>
+                      <SelectTrigger className="w-[160px] h-8">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CASE_STATUSES.map((s) => (
+                          <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <>
+                      <StatusBadge
+                        label={getLabelForValue(CASE_STATUSES, caseData.status)}
+                        color={getColorForValue(CASE_STATUSES, caseData.status)}
+                      />
+                      <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={() => setEditingStatus(true)}>
+                        Change
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+              <div>
                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Case Type</label>
                 <p className="mt-1 font-medium">{getLabelForValue(CASE_TYPES, caseData.case_type)}</p>
               </div>
@@ -222,12 +247,12 @@ export default function CaseOverviewPage() {
           </CardContent>
         </Card>
 
-        {/* Contacts Section */}
+        {/* People Involved */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg flex items-center gap-2">
               <Users className="h-5 w-5" />
-              Contacts
+              People Involved
             </CardTitle>
             <Link href={`/cases/${caseId}/contacts`}>
               <Button variant="outline" size="sm">Manage</Button>
@@ -237,72 +262,105 @@ export default function CaseOverviewPage() {
             {caseContacts.length === 0 ? (
               <p className="text-sm text-muted-foreground">No contacts linked to this case yet.</p>
             ) : (
-              <div className="space-y-3">
-                {caseContacts.map((cc) => {
-                  const contact = cc.contacts
-                  return (
-                    <div key={cc.id} className="flex items-start justify-between border rounded-lg p-3">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <Link
-                            href={`/contacts/${contact.id}`}
-                            className="font-medium text-sm hover:underline"
-                            style={{ color: '#091525' }}
-                          >
-                            {contact.first_name} {contact.last_name}
-                          </Link>
-                          <Badge variant="secondary" className="text-xs">
-                            {getLabelForValue(CASE_CONTACT_ROLES, cc.role)}
-                          </Badge>
-                          {cc.is_primary && (
-                            <Badge variant="default" className="text-xs">Primary</Badge>
-                          )}
-                        </div>
-                        {contact.organization_name && (
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Building className="h-3 w-3" />
-                            {contact.organization_name}
-                          </div>
-                        )}
-                        <div className="flex items-center gap-4">
-                          {contact.email && (
-                            <a
-                              href={`mailto:${contact.email}`}
-                              className="flex items-center gap-1 text-xs text-primary hover:underline"
-                            >
-                              <Mail className="h-3 w-3" />
-                              {contact.email}
-                            </a>
-                          )}
-                          {contact.phone_primary && (
-                            <a
-                              href={`tel:${contact.phone_primary}`}
-                              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary"
-                            >
-                              <Phone className="h-3 w-3" />
-                              {contact.phone_primary}
-                            </a>
-                          )}
+              <div className="space-y-4">
+                {(() => {
+                  // Group contacts by role category
+                  const groups: Record<string, typeof caseContacts> = {}
+                  const groupOrder = [
+                    { roles: ['retaining_attorney', 'co_counsel'], label: 'Retaining Counsel' },
+                    { roles: ['opposing_attorney'], label: 'Opposing Counsel' },
+                    { roles: ['paralegal', 'law_firm'], label: 'Legal Staff' },
+                    { roles: ['plaintiff', 'plaintiff_patient'], label: 'Plaintiff / Patient' },
+                    { roles: ['defendant', 'defendant_physician', 'co_defendant'], label: 'Defendant' },
+                    { roles: ['treating_physician', 'medical_provider'], label: 'Medical Providers' },
+                    { roles: ['opposing_expert', 'co_expert'], label: 'Expert Witnesses' },
+                    { roles: ['insurance_adjuster'], label: 'Insurance' },
+                    { roles: ['court_reporter', 'judge', 'mediator', 'court_clerk'], label: 'Court' },
+                    { roles: ['witness', 'other'], label: 'Other' },
+                  ]
+
+                  for (const cc of caseContacts) {
+                    const group = groupOrder.find(g => g.roles.includes(cc.role))
+                    const label = group?.label || 'Other'
+                    if (!groups[label]) groups[label] = []
+                    groups[label].push(cc)
+                  }
+
+                  return groupOrder
+                    .filter(g => groups[g.label]?.length > 0)
+                    .map(g => (
+                      <div key={g.label}>
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{g.label}</p>
+                        <div className="space-y-2">
+                          {groups[g.label].map((cc) => {
+                            const contact = cc.contacts
+                            return (
+                              <div key={cc.id} className="flex items-start justify-between border rounded-lg p-3">
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-2">
+                                    <Link
+                                      href={`/contacts/${contact.id}`}
+                                      className="font-medium text-sm hover:underline"
+                                      style={{ color: '#091525' }}
+                                    >
+                                      {contact.first_name} {contact.last_name}
+                                    </Link>
+                                    <Badge variant="secondary" className="text-xs">
+                                      {getLabelForValue(CASE_CONTACT_ROLES, cc.role)}
+                                    </Badge>
+                                    {cc.is_primary && (
+                                      <Badge variant="default" className="text-xs">Primary</Badge>
+                                    )}
+                                  </div>
+                                  {contact.organization_name && (
+                                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                      <Building className="h-3 w-3" />
+                                      {contact.organization_name}
+                                    </div>
+                                  )}
+                                  <div className="flex items-center gap-4">
+                                    {contact.email && (
+                                      <a
+                                        href={`mailto:${contact.email}`}
+                                        className="flex items-center gap-1 text-xs text-primary hover:underline"
+                                      >
+                                        <Mail className="h-3 w-3" />
+                                        {contact.email}
+                                      </a>
+                                    )}
+                                    {contact.phone_primary && (
+                                      <a
+                                        href={`tel:${contact.phone_primary}`}
+                                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary"
+                                      >
+                                        <Phone className="h-3 w-3" />
+                                        {contact.phone_primary}
+                                      </a>
+                                    )}
+                                  </div>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 px-2 text-xs text-[#DFC06A] hover:text-[#0E1F35]"
+                                  onClick={() => {
+                                    setPortalContactId(cc.contact_id)
+                                    setPortalContactName(`${contact.first_name} ${contact.last_name}`)
+                                    setPortalContactEmail(contact.email || undefined)
+                                    setPortalContactOrganization(contact.organization_name || undefined)
+                                    setPortalInviteOpen(true)
+                                  }}
+                                >
+                                  <Link2 className="h-3 w-3 mr-1" />
+                                  Portal
+                                </Button>
+                              </div>
+                            )
+                          })}
                         </div>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 px-2 text-xs text-[#C9A84C] hover:text-[#0E1F35]"
-                        onClick={() => {
-                          setPortalContactId(cc.contact_id)
-                          setPortalContactName(`${contact.first_name} ${contact.last_name}`)
-                          setPortalContactEmail(contact.email || undefined)
-                          setPortalContactOrganization(contact.organization_name || undefined)
-                          setPortalInviteOpen(true)
-                        }}
-                      >
-                        <Link2 className="h-3 w-3 mr-1" />
-                        Portal
-                      </Button>
-                    </div>
-                  )
-                })}
+                    ))
+                })()}
               </div>
             )}
           </CardContent>
@@ -401,118 +459,20 @@ export default function CaseOverviewPage() {
 
       {/* Sidebar - Right column */}
       <div className="space-y-6">
-        {/* Status */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {editingStatus ? (
-              <Select defaultValue={caseData.status} onValueChange={handleStatusChange}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {CASE_STATUSES.map((s) => (
-                    <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : (
-              <div className="flex items-center justify-between">
-                <StatusBadge
-                  label={getLabelForValue(CASE_STATUSES, caseData.status)}
-                  color={getColorForValue(CASE_STATUSES, caseData.status)}
-                />
-                <Button variant="ghost" size="sm" onClick={() => setEditingStatus(true)}>
-                  Change
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Notion Integration */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M4.459 4.208c.746.606 1.026.56 2.428.466l13.215-.793c.28 0 .047-.28-.046-.326L18.56 2.35c-.42-.326-.98-.7-2.055-.607L3.62 2.863c-.467.047-.56.28-.374.466l1.213.88zm.793 3.08v13.904c0 .747.373 1.027 1.214.98l14.523-.84c.84-.046.933-.56.933-1.167V6.354c0-.606-.233-.933-.746-.886l-15.177.887c-.56.047-.747.327-.747.933zm14.337.745c.093.42 0 .84-.42.887l-.7.14v10.264c-.608.327-1.168.514-1.635.514-.746 0-.933-.234-1.495-.933l-4.577-7.186v6.952l1.448.327s0 .84-1.168.84l-3.222.186c-.093-.186 0-.653.327-.746l.84-.233V9.854L7.822 9.76c-.094-.42.14-1.026.793-1.073l3.456-.233 4.764 7.279v-6.44l-1.215-.14c-.093-.513.28-.886.747-.933l3.222-.186z"/></svg>
-              Notion
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {caseData.notion_page_url ? (
-              <div className="space-y-3">
-                <a
-                  href={caseData.notion_page_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-sm text-primary hover:underline truncate"
-                >
-                  <ExternalLink className="h-3 w-3 flex-shrink-0" />
-                  Open in Notion
-                </a>
-                {caseData.notion_last_synced && (
-                  <p className="text-xs text-muted-foreground">
-                    Last synced: {formatDate(caseData.notion_last_synced)}
-                  </p>
-                )}
-                <div className="flex flex-col gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full"
-                    onClick={() => notionPull.mutate(caseId)}
-                    disabled={notionPull.isPending}
-                  >
-                    {notionPull.isPending ? (
-                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                    ) : (
-                      <ArrowDownToLine className="h-4 w-4 mr-1" />
-                    )}
-                    Pull from Notion
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full"
-                    onClick={() => notionPush.mutate(caseId)}
-                    disabled={notionPush.isPending}
-                  >
-                    {notionPush.isPending ? (
-                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                    ) : (
-                      <ArrowUpFromLine className="h-4 w-4 mr-1" />
-                    )}
-                    Push Analysis to Notion
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-2">
-                <p className="text-xs text-muted-foreground">No Notion page linked.</p>
-                <Link href={`/cases/${caseId}/edit`}>
-                  <Button variant="link" size="sm" className="text-xs mt-1">
-                    Link a Notion page
-                  </Button>
-                </Link>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Outstanding Tasks / Milestones */}
+        {/* Status & Tasks */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg flex items-center gap-2">
               <CheckSquare className="h-5 w-5" />
               Tasks
             </CardTitle>
-            {milestones.length > 0 && (
-              <Badge variant="secondary" className="text-xs">
-                {outstandingMilestones.length} remaining
-              </Badge>
-            )}
+            <div className="flex items-center gap-2">
+              {milestones.length > 0 && (
+                <Badge variant="secondary" className="text-xs">
+                  {outstandingMilestones.length} remaining
+                </Badge>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             {milestones.length === 0 ? (
@@ -529,10 +489,10 @@ export default function CaseOverviewPage() {
                       className="mt-0.5"
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium leading-tight">{milestone.title}</p>
-                      {milestone.due_date && (
-                        <p className={`text-xs mt-0.5 ${milestone.is_overdue ? 'text-red-500 font-medium' : 'text-muted-foreground'}`}>
-                          {milestone.is_overdue ? 'Overdue: ' : 'Due: '}{formatDate(milestone.due_date)}
+                      <p className="text-sm font-medium leading-tight">{milestone.milestone_name}</p>
+                      {milestone.target_date && (
+                        <p className={`text-xs mt-0.5 ${milestone.target_date && new Date(milestone.target_date) < new Date() && !milestone.is_completed ? 'text-red-500 font-medium' : 'text-muted-foreground'}`}>
+                          {milestone.target_date && new Date(milestone.target_date) < new Date() && !milestone.is_completed ? 'Overdue: ' : 'Due: '}{formatDate(milestone.target_date)}
                         </p>
                       )}
                     </div>

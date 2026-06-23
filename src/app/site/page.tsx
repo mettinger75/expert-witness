@@ -2,82 +2,98 @@
 
 import { useState, useEffect } from 'react'
 import {
-  Shield,
-  BookOpen,
-  Scale,
-  Clock,
   FileText,
-  MessageSquare,
-  Calendar,
-  ChevronDown,
-  ChevronRight,
-  Award,
-  GraduationCap,
-  Stethoscope,
-  Users,
-  CheckCircle2,
   ArrowRight,
   Phone,
   Mail,
   MapPin,
   Menu,
   X,
-  Monitor,
-  Bell,
-  Lock,
-  BarChart3,
-  Upload,
-  Video,
-  Globe,
-  Heart,
 } from 'lucide-react'
+
+// ─── DESIGN TOKENS ──────────────────────────────────────────────────────────────
+// Palette: cream (#FAF7F0) bg, navy (#0E1F35) text, gold (#C9A84C) as hairline accent.
+// Typography: Source Serif 4 for display, Source Sans 3 for body.
+// Style: restrained, editorial, law-firm classical.
+
+const SERIF = 'font-[var(--font-source-serif)]'
+
+// ─── SHARED: SECTION EYEBROW ────────────────────────────────────────────────────
+
+function Eyebrow({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-center gap-3 text-[#8B7A3F]">
+      <span className="h-px w-8 bg-[#C9A84C]" />
+      <span className={`${SERIF} text-xs tracking-[0.25em] uppercase font-medium`}>
+        {children}
+      </span>
+      <span className="h-px w-8 bg-[#C9A84C]" />
+    </div>
+  )
+}
 
 // ─── NAV ────────────────────────────────────────────────────────────────────────
 
 function SiteNav() {
   const [open, setOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20)
+    window.addEventListener('scroll', onScroll)
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
   const links = [
     { href: '#about', label: 'About' },
     { href: '#qualifications', label: 'Qualifications' },
-    { href: '#portal', label: 'Attorney Portal' },
-    { href: '#cases', label: 'Case History' },
+    { href: '#expertise', label: 'Practice Areas' },
+    { href: '#portal', label: 'Portal' },
     { href: '#contact', label: 'Contact' },
   ]
+
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-[#091525]/95 backdrop-blur-md border-b border-white/10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 lg:h-20">
-          {/* Logo */}
-          <a href="#" className="flex items-center gap-3 group">
+    <nav
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        scrolled
+          ? 'bg-[#FAF7F0]/95 backdrop-blur-sm border-b border-[#E5DFD3]'
+          : 'bg-[#FAF7F0] border-b border-transparent'
+      }`}
+    >
+      <div className="max-w-6xl mx-auto px-6 lg:px-8">
+        <div className="flex items-center justify-between h-20">
+          {/* Logo / mark */}
+          <a href="#" className="flex items-center gap-4">
             <img
               src="/logo-expert-witness-dark.svg"
-              alt="Star logo"
-              className="w-10 h-10 rounded-lg"
+              alt="Mark Ettinger, M.D."
+              className="w-9 h-9"
             />
-            <div className="hidden sm:block">
-              <div className="text-white font-semibold text-sm tracking-wide">
-                MARK ETTINGER, M.D.
+            <div className="hidden sm:block border-l border-[#D4CCB8] pl-4">
+              <div className={`${SERIF} text-[#0E1F35] text-base font-semibold tracking-wide leading-none`}>
+                Mark Ettinger, M.D.
               </div>
-              <div className="text-[#DFC06A] text-xs tracking-widest uppercase">
-                Expert Witness
+              <div className="text-[#8B7A3F] text-[10px] tracking-[0.22em] uppercase mt-1.5">
+                Expert Witness &middot; Anesthesiology
               </div>
             </div>
           </a>
 
           {/* Desktop links */}
-          <div className="hidden lg:flex items-center gap-1">
+          <div className="hidden lg:flex items-center gap-8">
             {links.map((l) => (
               <a
                 key={l.href}
                 href={l.href}
-                className="px-4 py-2 text-sm text-gray-300 hover:text-[#DFC06A] transition-colors duration-200"
+                className="text-sm text-[#4A4A44] hover:text-[#0E1F35] transition-colors relative group py-1"
               >
                 {l.label}
+                <span className="absolute bottom-0 left-0 right-0 h-px bg-[#C9A84C] origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-200" />
               </a>
             ))}
             <a
               href="#contact"
-              className="ml-4 px-5 py-2.5 bg-gradient-to-r from-[#DFC06A] to-[#C9A84C] text-[#091525] text-sm font-semibold rounded-lg hover:shadow-lg hover:shadow-[#DFC06A]/20 transition-all duration-200"
+              className="ml-2 px-5 py-2.5 bg-[#0E1F35] text-[#FAF7F0] text-xs tracking-[0.15em] uppercase font-medium hover:bg-[#091525] transition-colors"
             >
               Request Consultation
             </a>
@@ -86,21 +102,22 @@ function SiteNav() {
           {/* Mobile toggle */}
           <button
             onClick={() => setOpen(!open)}
-            className="lg:hidden p-2 text-gray-300 hover:text-white"
+            className="lg:hidden p-2 text-[#0E1F35]"
+            aria-label="Toggle menu"
           >
-            {open ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
 
         {/* Mobile menu */}
         {open && (
-          <div className="lg:hidden pb-6 border-t border-white/10 pt-4">
+          <div className="lg:hidden pb-6 border-t border-[#E5DFD3] pt-4">
             {links.map((l) => (
               <a
                 key={l.href}
                 href={l.href}
                 onClick={() => setOpen(false)}
-                className="block px-4 py-3 text-gray-300 hover:text-[#DFC06A] transition-colors"
+                className="block px-2 py-3 text-[#4A4A44] hover:text-[#0E1F35] transition-colors"
               >
                 {l.label}
               </a>
@@ -108,7 +125,7 @@ function SiteNav() {
             <a
               href="#contact"
               onClick={() => setOpen(false)}
-              className="block mx-4 mt-4 px-5 py-3 bg-gradient-to-r from-[#DFC06A] to-[#C9A84C] text-[#091525] text-sm font-semibold rounded-lg text-center"
+              className="block mx-2 mt-4 px-5 py-3 bg-[#0E1F35] text-[#FAF7F0] text-xs tracking-[0.15em] uppercase font-medium text-center"
             >
               Request Consultation
             </a>
@@ -123,82 +140,82 @@ function SiteNav() {
 
 function Hero() {
   return (
-    <section className="relative min-h-[90vh] flex items-center bg-[#091525] overflow-hidden">
-      {/* Gradient overlays */}
-      <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#091525] via-[#0E1F35] to-[#152A42]" />
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#DFC06A]/5 rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-[#1C3555]/50 rounded-full blur-[100px]" />
-        {/* Subtle grid */}
-        <div
-          className="absolute inset-0 opacity-[0.03]"
-          style={{
-            backgroundImage:
-              'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
-            backgroundSize: '60px 60px',
-          }}
-        />
-      </div>
-
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32 lg:py-40">
-        <div className="max-w-3xl">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#DFC06A]/30 bg-[#DFC06A]/10 mb-8">
-            <Shield className="w-4 h-4 text-[#DFC06A]" />
-            <span className="text-[#DFC06A] text-sm font-medium tracking-wide">
-              Board-Certified Anesthesiologist &bull; Johns Hopkins Trained
-            </span>
-          </div>
-
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold text-white leading-[1.1] tracking-tight">
-            Expert Witness in{' '}
-            <span className="bg-gradient-to-r from-[#DFC06A] to-[#E8D48A] bg-clip-text text-transparent">
-              Anesthesiology
-            </span>
-          </h1>
-
-          <p className="mt-6 text-lg sm:text-xl text-gray-300 leading-relaxed max-w-2xl">
-            Providing rigorous, evidence-based expert analysis for medical malpractice
-            and personal injury litigation. Over a decade of expert witness experience
-            backed by active clinical practice and academic leadership.
-          </p>
-
-          {/* Stats row */}
-          <div className="mt-10 grid grid-cols-2 sm:grid-cols-4 gap-6">
-            {[
-              { val: '10+', label: 'Years Expert Witness' },
-              { val: '15+', label: 'Years Clinical Practice' },
-              { val: '50+', label: 'Cases Reviewed' },
-              { val: 'ABA', label: 'Board Certified' },
-            ].map((s) => (
-              <div key={s.label}>
-                <div className="text-3xl font-bold text-[#DFC06A]">{s.val}</div>
-                <div className="text-sm text-gray-400 mt-1">{s.label}</div>
+    <section className="relative bg-[#FAF7F0] pt-32 lg:pt-40 pb-20 lg:pb-28">
+      <div className="max-w-6xl mx-auto px-6 lg:px-8">
+        <div className="grid lg:grid-cols-12 gap-12 lg:gap-16 items-center">
+          {/* Portrait */}
+          <div className="lg:col-span-5">
+            <div className="relative">
+              <div className="aspect-[4/5] bg-[#EAE2D0] border border-[#D4CCB8] relative overflow-hidden">
+                <img
+                  src="/ettinger-portrait.png"
+                  alt="Dr. Mark Ettinger"
+                  className="w-full h-full object-cover object-[center_20%]"
+                />
               </div>
-            ))}
+              {/* Decorative gold corner marks */}
+              <div className="absolute -top-2 -left-2 w-8 h-8 border-t border-l border-[#C9A84C]" />
+              <div className="absolute -bottom-2 -right-2 w-8 h-8 border-b border-r border-[#C9A84C]" />
+            </div>
           </div>
 
-          {/* CTAs */}
-          <div className="mt-10 flex flex-col sm:flex-row gap-4">
-            <a
-              href="#contact"
-              className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-[#DFC06A] to-[#C9A84C] text-[#091525] font-semibold rounded-xl hover:shadow-lg hover:shadow-[#DFC06A]/25 transition-all duration-300 text-base"
-            >
-              Request a Consultation
-              <ArrowRight className="w-5 h-5" />
-            </a>
-            <a
-              href="#qualifications"
-              className="inline-flex items-center justify-center gap-2 px-8 py-4 border border-white/20 text-white font-medium rounded-xl hover:bg-white/5 transition-all duration-300 text-base"
-            >
-              View Qualifications
-            </a>
+          {/* Credentials block */}
+          <div className="lg:col-span-7">
+            <div className={`${SERIF} text-[#8B7A3F] text-xs tracking-[0.3em] uppercase font-medium mb-6`}>
+              Expert Witness &middot; Anesthesiology
+            </div>
+
+            <h1 className={`${SERIF} text-4xl sm:text-5xl lg:text-6xl text-[#0E1F35] leading-[1.1] tracking-tight font-semibold`}>
+              Mark Ettinger,
+              <br />
+              <span className="italic font-normal">M.D.</span>
+            </h1>
+
+            <div className="mt-6 w-16 h-px bg-[#C9A84C]" />
+
+            <p className={`${SERIF} mt-6 text-lg lg:text-xl text-[#3A3A35] leading-relaxed max-w-xl italic`}>
+              Rigorous, evidence-based expert analysis in anesthesiology —
+              grounded in active clinical practice.
+            </p>
+
+            {/* Credential lines */}
+            <dl className="mt-10 space-y-3 text-sm">
+              {[
+                ['Certification', 'Board-Certified, American Board of Anesthesiology (2032)'],
+                ['Training', 'The Johns Hopkins Hospital &middot; UT Southwestern'],
+                ['Practice', 'President, Meridian Anesthesia &middot; Dallas–Fort Worth'],
+                ['Experience', '15+ years clinical &middot; 10+ years expert witness'],
+              ].map(([label, value]) => (
+                <div key={label} className="flex flex-col sm:flex-row sm:gap-6">
+                  <dt className="text-[#8B7A3F] tracking-[0.15em] uppercase text-[10px] font-semibold sm:w-32 sm:pt-1 sm:flex-shrink-0">
+                    {label}
+                  </dt>
+                  <dd
+                    className="text-[#2A2A25] leading-relaxed"
+                    dangerouslySetInnerHTML={{ __html: value }}
+                  />
+                </div>
+              ))}
+            </dl>
+
+            <div className="mt-10 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+              <a
+                href="#contact"
+                className="inline-flex items-center justify-center gap-3 px-7 py-3.5 bg-[#0E1F35] text-[#FAF7F0] text-xs tracking-[0.2em] uppercase font-medium hover:bg-[#091525] transition-colors"
+              >
+                Request a Consultation
+                <ArrowRight className="w-3.5 h-3.5" />
+              </a>
+              <a
+                href="#qualifications"
+                className="text-sm text-[#0E1F35] hover:text-[#8B7A3F] transition-colors border-b border-[#C9A84C] pb-0.5"
+              >
+                View full qualifications
+              </a>
+            </div>
           </div>
         </div>
       </div>
-
-      {/* Bottom gradient fade */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#F0F2F5] to-transparent" />
     </section>
   )
 }
@@ -207,91 +224,65 @@ function Hero() {
 
 function About() {
   return (
-    <section id="about" className="py-24 bg-[#F0F2F5]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid lg:grid-cols-2 gap-16 items-center">
-          {/* Left: text */}
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#091525]/5 text-[#091525] text-sm font-medium mb-6">
-              <Stethoscope className="w-4 h-4 text-[#C9A84C]" />
-              About Dr. Ettinger
-            </div>
-            <h2 className="text-3xl sm:text-4xl font-bold text-[#091525] leading-tight">
-              Clinical Depth Meets{' '}
-              <span className="text-[#C9A84C]">Analytical Precision</span>
-            </h2>
-            <div className="mt-6 space-y-4 text-gray-600 leading-relaxed">
-              <p>
-                Dr. Mark Ettinger is a board-certified anesthesiologist who brings over
-                15 years of clinical experience to his expert witness practice. Trained at
-                The Johns Hopkins Hospital, he has served as Department Chair, Medical Director
-                of a preoperative assessment clinic, and Ethics Committee Chair at a 500-bed
-                Level II trauma center.
-              </p>
-              <p>
-                His unique background includes training in both neurological surgery and
-                anesthesiology at UT Southwestern, providing an unusually broad clinical
-                perspective. He currently serves as President of Meridian Anesthesia, a
-                division of National Partners in Healthcare, overseeing physician anesthesia
-                services across multiple facilities in the Dallas&ndash;Fort Worth metroplex.
-              </p>
-              <p>
-                Dr. Ettinger has provided expert witness consultation and testimony since
-                2015, accepting cases for both plaintiff and defense. His practice spans
-                general anesthesia, regional and neuraxial anesthesia, obstetric anesthesia,
-                critical care, and airway management.
-              </p>
-            </div>
-          </div>
+    <section id="about" className="py-24 lg:py-32 bg-white border-t border-[#E5DFD3]">
+      <div className="max-w-4xl mx-auto px-6 lg:px-8">
+        <div className="text-center mb-16">
+          <Eyebrow>About Dr. Ettinger</Eyebrow>
+          <h2 className={`${SERIF} mt-6 text-3xl sm:text-4xl lg:text-5xl text-[#0E1F35] font-semibold tracking-tight`}>
+            Clinical Depth. <span className="italic font-normal">Analytical Precision.</span>
+          </h2>
+        </div>
 
-          {/* Right: highlights */}
-          <div className="space-y-4">
+        {/* Prose bio */}
+        <div className={`${SERIF} space-y-6 text-[#2A2A25] text-lg leading-[1.75]`}>
+          <p className="first-letter:text-6xl first-letter:font-semibold first-letter:float-left first-letter:mr-3 first-letter:mt-1 first-letter:leading-[0.9] first-letter:text-[#0E1F35]">
+            Mark Ettinger, M.D. is a board-certified anesthesiologist whose expert witness
+            practice is informed by more than fifteen years of continuous clinical work.
+            Trained at The Johns Hopkins Hospital, he has served as Department Chair,
+            Medical Director of a preoperative assessment clinic, and Chair of the Hospital
+            Ethics Committee at a 500-bed Level II trauma center.
+          </p>
+          <p>
+            His preparation includes training in both neurological surgery and anesthesiology
+            at UT Southwestern, a breadth that informs his approach to cases involving spinal,
+            neuraxial, and neurosurgical anesthesia. He currently serves as President of
+            Meridian Anesthesia, a division of National Partners in Healthcare, overseeing
+            physician anesthesia services across multiple facilities in the Dallas–Fort Worth
+            metroplex.
+          </p>
+          <p>
+            Dr. Ettinger has provided expert witness consultation and testimony since 2015
+            and accepts retention by both plaintiff and defense. His practice spans general
+            anesthesia, regional and neuraxial anesthesia, obstetric anesthesia, critical
+            care, and airway management.
+          </p>
+        </div>
+
+        {/* Quiet credentials list */}
+        <div className="mt-16 pt-12 border-t border-[#E5DFD3]">
+          <dl className="grid sm:grid-cols-2 gap-x-12 gap-y-6">
             {[
-              {
-                icon: GraduationCap,
-                title: 'Johns Hopkins Trained',
-                desc: 'Anesthesiology residency at The Johns Hopkins Hospital. Prior neurological surgery and general surgery training at UT Southwestern.',
-              },
-              {
-                icon: Award,
-                title: 'Academic Excellence',
-                desc: 'Alpha Omega Alpha honor society. Valedictorian, LSU Health Sciences Center School of Medicine.',
-              },
-              {
-                icon: Users,
-                title: 'Department Leadership',
-                desc: 'Former Chair of Anesthesiology, Ethics Committee Chair, and Director of Preoperative Assessment at Medical City Arlington.',
-              },
-              {
-                icon: Heart,
-                title: 'Global Service',
-                desc: 'Medical Director for Faith in Practice mission trips in Guatemala since 2014, providing surgical care to underserved communities.',
-              },
-              {
-                icon: Stethoscope,
-                title: 'Professional Sports Anesthesiologist',
-                desc: 'Primary anesthesiologist for the Texas Rangers Team Physician and the Dallas Stars Team Physician.',
-              },
-              {
-                icon: Scale,
-                title: 'Balanced Perspective',
-                desc: 'Accepts cases for both plaintiff and defense. Committed to objective, evidence-based analysis regardless of retaining party.',
-              },
-            ].map((item) => (
-              <div
-                key={item.title}
-                className="flex gap-4 p-5 bg-white rounded-xl border border-gray-200/80 hover:border-[#C9A84C]/30 hover:shadow-md transition-all duration-200"
-              >
-                <div className="flex-shrink-0 w-11 h-11 rounded-lg bg-[#091525] flex items-center justify-center">
-                  <item.icon className="w-5 h-5 text-[#DFC06A]" />
+              ['Medical School', 'LSU Health Sciences Center, New Orleans', 'Valedictorian &middot; Alpha Omega Alpha'],
+              ['Anesthesiology Residency', 'The Johns Hopkins Hospital', 'Baltimore, Maryland'],
+              ['Neurological Surgery', 'UT Southwestern Medical Center', 'Dallas, Texas'],
+              ['Board Certification', 'American Board of Anesthesiology', 'Valid through 2032'],
+              ['Texas Medical License', 'License #N8184', 'In good standing'],
+              ['Global Service', 'Medical Director, Faith in Practice', 'Guatemala &middot; 2014–present'],
+            ].map(([label, primary, secondary]) => (
+              <div key={label} className="border-l-2 border-[#C9A84C] pl-5 py-1">
+                <div className="text-[#8B7A3F] tracking-[0.18em] uppercase text-[10px] font-semibold">
+                  {label}
                 </div>
-                <div>
-                  <h3 className="font-semibold text-[#091525]">{item.title}</h3>
-                  <p className="text-sm text-gray-500 mt-1 leading-relaxed">{item.desc}</p>
+                <div className={`${SERIF} text-[#0E1F35] mt-1 font-medium`}>
+                  {primary}
                 </div>
+                <div
+                  className="text-sm text-[#6A6A63] mt-0.5"
+                  dangerouslySetInnerHTML={{ __html: secondary }}
+                />
               </div>
             ))}
-          </div>
+          </dl>
         </div>
       </div>
     </section>
@@ -321,7 +312,7 @@ function Qualifications() {
       years: '2001 – 2005',
       title: 'Doctor of Medicine',
       institution: 'LSU Health Sciences Center, New Orleans, Louisiana',
-      note: 'Alpha Omega Alpha • Valedictorian of Class',
+      note: 'Alpha Omega Alpha &middot; Valedictorian of Class',
     },
   ]
 
@@ -359,44 +350,41 @@ function Qualifications() {
   ]
 
   return (
-    <section id="qualifications" className="py-24 bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section id="qualifications" className="py-24 lg:py-32 bg-[#FAF7F0] border-t border-[#E5DFD3]">
+      <div className="max-w-6xl mx-auto px-6 lg:px-8">
         <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#091525]/5 text-[#091525] text-sm font-medium mb-4">
-            <BookOpen className="w-4 h-4 text-[#C9A84C]" />
-            Curriculum Vitae
-          </div>
-          <h2 className="text-3xl sm:text-4xl font-bold text-[#091525]">
-            Qualifications & Experience
+          <Eyebrow>Curriculum Vitae</Eyebrow>
+          <h2 className={`${SERIF} mt-6 text-3xl sm:text-4xl lg:text-5xl text-[#0E1F35] font-semibold tracking-tight`}>
+            Qualifications &amp; <span className="italic font-normal">Experience</span>
           </h2>
-          <p className="mt-4 text-gray-500 max-w-2xl mx-auto">
-            Board-certified by the American Board of Anesthesiology (certification valid
-            through 2032). Licensed in the State of Texas.
-          </p>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-12">
+        <div className="grid lg:grid-cols-2 gap-16">
           {/* Education */}
           <div>
-            <h3 className="text-xl font-bold text-[#091525] mb-6 flex items-center gap-2">
-              <GraduationCap className="w-5 h-5 text-[#C9A84C]" />
-              Education & Training
-            </h3>
-            <div className="space-y-1">
+            <div className="pb-4 mb-8 border-b border-[#C9A84C]">
+              <h3 className={`${SERIF} text-xs tracking-[0.3em] uppercase text-[#0E1F35] font-semibold`}>
+                Education &amp; Training
+              </h3>
+            </div>
+            <div className="space-y-8">
               {education.map((e, i) => (
-                <div
-                  key={i}
-                  className="relative pl-6 pb-6 border-l-2 border-gray-200 last:border-transparent last:pb-0"
-                >
-                  <div className="absolute -left-[7px] top-1 w-3 h-3 rounded-full bg-[#C9A84C] border-2 border-white" />
-                  <div className="text-xs text-[#C9A84C] font-semibold tracking-wider uppercase">
+                <div key={i} className="grid grid-cols-[auto_1fr] gap-6">
+                  <div className="text-[#8B7A3F] text-xs tracking-[0.15em] uppercase font-semibold pt-1 w-28 sm:w-32">
                     {e.years}
                   </div>
-                  <div className="font-semibold text-[#091525] mt-1">{e.title}</div>
-                  <div className="text-sm text-gray-500">{e.institution}</div>
-                  {e.note && (
-                    <div className="text-sm text-[#C9A84C] italic mt-1">{e.note}</div>
-                  )}
+                  <div>
+                    <div className={`${SERIF} text-[#0E1F35] font-medium text-base leading-snug`}>
+                      {e.title}
+                    </div>
+                    <div className="text-sm text-[#6A6A63] mt-1">{e.institution}</div>
+                    {e.note && (
+                      <div
+                        className={`${SERIF} italic text-sm text-[#8B7A3F] mt-1`}
+                        dangerouslySetInnerHTML={{ __html: e.note }}
+                      />
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -404,22 +392,23 @@ function Qualifications() {
 
           {/* Experience */}
           <div>
-            <h3 className="text-xl font-bold text-[#091525] mb-6 flex items-center gap-2">
-              <Stethoscope className="w-5 h-5 text-[#C9A84C]" />
-              Professional Experience
-            </h3>
-            <div className="space-y-1">
+            <div className="pb-4 mb-8 border-b border-[#C9A84C]">
+              <h3 className={`${SERIF} text-xs tracking-[0.3em] uppercase text-[#0E1F35] font-semibold`}>
+                Professional Experience
+              </h3>
+            </div>
+            <div className="space-y-8">
               {experience.map((e, i) => (
-                <div
-                  key={i}
-                  className="relative pl-6 pb-6 border-l-2 border-gray-200 last:border-transparent last:pb-0"
-                >
-                  <div className="absolute -left-[7px] top-1 w-3 h-3 rounded-full bg-[#091525] border-2 border-white" />
-                  <div className="text-xs text-gray-400 font-semibold tracking-wider uppercase">
+                <div key={i} className="grid grid-cols-[auto_1fr] gap-6">
+                  <div className="text-[#8B7A3F] text-xs tracking-[0.15em] uppercase font-semibold pt-1 w-28 sm:w-32">
                     {e.years}
                   </div>
-                  <div className="font-semibold text-[#091525] mt-1">{e.title}</div>
-                  <div className="text-sm text-gray-500">{e.institution}</div>
+                  <div>
+                    <div className={`${SERIF} text-[#0E1F35] font-medium text-base leading-snug`}>
+                      {e.title}
+                    </div>
+                    <div className="text-sm text-[#6A6A63] mt-1">{e.institution}</div>
+                  </div>
                 </div>
               ))}
             </div>
@@ -427,14 +416,14 @@ function Qualifications() {
         </div>
 
         {/* Download CV */}
-        <div className="mt-12 text-center">
+        <div className="mt-16 pt-12 border-t border-[#E5DFD3] flex items-center justify-center">
           <a
             href="/ettinger-cv.pdf"
             target="_blank"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-[#091525] text-white font-medium rounded-xl hover:bg-[#0E1F35] transition-colors"
+            className="inline-flex items-center gap-3 px-7 py-3.5 bg-[#0E1F35] text-[#FAF7F0] text-xs tracking-[0.2em] uppercase font-medium hover:bg-[#091525] transition-colors"
           >
-            <FileText className="w-5 h-5" />
-            Download Full CV (PDF)
+            <FileText className="w-4 h-4" />
+            Full Curriculum Vitae
           </a>
         </div>
       </div>
@@ -445,370 +434,141 @@ function Qualifications() {
 // ─── AREAS OF EXPERTISE ─────────────────────────────────────────────────────────
 
 function Expertise() {
-  const areas = [
-    {
-      icon: Stethoscope,
-      title: 'General Anesthesia',
-      desc: 'Induction, maintenance, emergence, and recovery from general anesthesia across all surgical specialties.',
-    },
-    {
-      icon: Shield,
-      title: 'Airway Management',
-      desc: 'Difficult airway assessment, management algorithms, intubation techniques, and emergency airway scenarios.',
-    },
-    {
-      icon: Users,
-      title: 'Obstetric Anesthesia',
-      desc: 'Labor epidurals, cesarean section anesthesia, high-risk obstetric management, and neonatal resuscitation.',
-    },
-    {
-      icon: BarChart3,
-      title: 'Regional & Neuraxial Anesthesia',
-      desc: 'Spinal, epidural, and peripheral nerve blocks. Complications including spinal cord injury and nerve damage.',
-    },
+  const primary = [
+    'General Anesthesia',
+    'Airway Management & Difficult Intubation',
+    'Obstetric Anesthesia',
+    'Regional & Neuraxial Anesthesia',
+    'Critical Care & ICU Management',
+  ]
+
+  const subspecialty = [
+    'Preoperative Evaluation',
+    'Postoperative Complications',
+    'Anesthesia Informed Consent',
+    'Medication Errors',
+    'Equipment Malfunction',
+    'Vicarious Liability & Supervision',
   ]
 
   return (
-    <section className="py-24 bg-[#F0F2F5]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section id="expertise" className="py-24 lg:py-32 bg-white border-t border-[#E5DFD3]">
+      <div className="max-w-6xl mx-auto px-6 lg:px-8">
         <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#091525]/5 text-[#091525] text-sm font-medium mb-4">
-            <Shield className="w-4 h-4 text-[#C9A84C]" />
-            Practice Areas
-          </div>
-          <h2 className="text-3xl sm:text-4xl font-bold text-[#091525]">
-            Areas of Expertise
+          <Eyebrow>Practice Areas</Eyebrow>
+          <h2 className={`${SERIF} mt-6 text-3xl sm:text-4xl lg:text-5xl text-[#0E1F35] font-semibold tracking-tight`}>
+            Areas of <span className="italic font-normal">Expertise</span>
           </h2>
-          <p className="mt-4 text-gray-500 max-w-2xl mx-auto">
-            Expert opinions grounded in active clinical practice and deep subspecialty
-            knowledge across the full spectrum of anesthesiology.
-          </p>
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {areas.map((a) => (
-            <div
-              key={a.title}
-              className="bg-white rounded-xl p-6 border border-gray-200/80 hover:border-[#C9A84C]/30 hover:shadow-lg transition-all duration-300 group"
-            >
-              <div className="w-12 h-12 rounded-xl bg-[#091525] flex items-center justify-center mb-4 group-hover:bg-[#0E1F35] transition-colors">
-                <a.icon className="w-6 h-6 text-[#DFC06A]" />
+        <div className="grid lg:grid-cols-2 gap-16 items-start">
+          {/* Prose */}
+          <div className={`${SERIF} text-[#2A2A25] text-lg leading-[1.8]`}>
+            <p>
+              Expert opinions grounded in active clinical practice and deep subspecialty
+              knowledge across the full spectrum of anesthesiology. Dr. Ettinger personally
+              reviews every case he accepts and declines cases where his expertise is not
+              well-matched to the medical issues presented.
+            </p>
+            <p className="mt-6">
+              Opinions are offered only after comprehensive review of records and applicable
+              literature, and are framed with reference to the standard of care as it existed
+              at the time and place of the care in question.
+            </p>
+          </div>
+
+          {/* Two lists */}
+          <div className="grid sm:grid-cols-2 gap-10">
+            <div>
+              <div className="pb-3 mb-5 border-b border-[#C9A84C]">
+                <h3 className={`${SERIF} text-xs tracking-[0.25em] uppercase text-[#0E1F35] font-semibold`}>
+                  Clinical Domains
+                </h3>
               </div>
-              <h3 className="text-lg font-semibold text-[#091525]">{a.title}</h3>
-              <p className="mt-2 text-sm text-gray-500 leading-relaxed">{a.desc}</p>
+              <ul className="space-y-3">
+                {primary.map((item) => (
+                  <li key={item} className={`${SERIF} text-[#2A2A25] text-[15px] leading-snug pl-4 relative`}>
+                    <span className="absolute left-0 top-2 w-1.5 h-px bg-[#C9A84C]" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
             </div>
-          ))}
+            <div>
+              <div className="pb-3 mb-5 border-b border-[#C9A84C]">
+                <h3 className={`${SERIF} text-xs tracking-[0.25em] uppercase text-[#0E1F35] font-semibold`}>
+                  Frequently Addressed
+                </h3>
+              </div>
+              <ul className="space-y-3">
+                {subspecialty.map((item) => (
+                  <li key={item} className={`${SERIF} text-[#2A2A25] text-[15px] leading-snug pl-4 relative`}>
+                    <span className="absolute left-0 top-2 w-1.5 h-px bg-[#C9A84C]" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
     </section>
   )
 }
 
-// ─── PORTAL FEATURE ─────────────────────────────────────────────────────────────
+
+// ─── PORTAL (compact, moved below case history) ─────────────────────────────────
 
 function PortalSection() {
-  const features = [
-    {
-      icon: Monitor,
-      title: 'Real-Time Case Dashboard',
-      desc: 'Check in on your case anytime. See current status, milestones reached, and what comes next — all in one view.',
-    },
-    {
-      icon: Upload,
-      title: 'Secure Document Exchange',
-      desc: 'Upload medical records, pleadings, and supplemental materials directly through the portal. No more lost attachments.',
-    },
-    {
-      icon: MessageSquare,
-      title: 'Integrated Messaging',
-      desc: 'Communicate directly with Dr. Ettinger through secure, case-linked messaging. Every conversation is preserved in the case record.',
-    },
-    {
-      icon: FileText,
-      title: 'Collaborative Report Review',
-      desc: 'Review expert report drafts with inline comments. Track revisions with a visual timeline showing every change and approval.',
-    },
-    {
-      icon: Calendar,
-      title: 'Schedule Consultations & Depositions',
-      desc: 'Request initial consultations, schedule deposition preparation sessions, and coordinate trial appearance dates.',
-    },
-    {
-      icon: Bell,
-      title: 'Automated Notifications',
-      desc: 'Receive email updates when reports are ready for review, documents are uploaded, or milestones are completed.',
-    },
-    {
-      icon: BarChart3,
-      title: 'Billing Transparency',
-      desc: 'View detailed billing breakdowns, track invoices, and see time entry summaries — complete financial transparency.',
-    },
-    {
-      icon: Lock,
-      title: 'Bank-Grade Security',
-      desc: 'All data encrypted in transit and at rest. Token-based portal access with no shared passwords. HIPAA-compliant infrastructure.',
-    },
+  const bullets = [
+    'Secure document exchange and HIPAA-compliant messaging',
+    'Real-time case status and milestone tracking',
+    'Inline review and revision of draft expert reports',
+    'Transparent billing with itemized time entries',
   ]
 
   return (
-    <section id="portal" className="py-24 bg-white overflow-hidden">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#091525]/5 text-[#091525] text-sm font-medium mb-4">
-            <Globe className="w-4 h-4 text-[#C9A84C]" />
-            Attorney Portal
-          </div>
-          <h2 className="text-3xl sm:text-4xl font-bold text-[#091525]">
-            A Better Way to <span className="text-[#C9A84C]">Collaborate</span>
-          </h2>
-          <p className="mt-4 text-gray-500 max-w-2xl mx-auto">
-            Every retaining attorney receives a dedicated, secure portal — streamlining
-            communication and transparency from retention through trial.
-          </p>
-        </div>
-
-        {/* Portal workflow illustration */}
-        <div className="relative mb-20">
-          <div className="bg-gradient-to-br from-[#091525] to-[#152A42] rounded-2xl p-8 lg:p-12 overflow-hidden relative">
-            {/* Decorative elements */}
-            <div className="absolute top-0 right-0 w-96 h-96 bg-[#DFC06A]/5 rounded-full blur-[100px]" />
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#1C3555]/50 rounded-full blur-[80px]" />
-
-            <div className="relative">
-              <h3 className="text-2xl font-bold text-white mb-2">
-                How the Portal Works
-              </h3>
-              <p className="text-gray-400 mb-10 max-w-xl">
-                From initial case intake to final report delivery, the portal keeps you
-                informed and in control at every step.
-              </p>
-
-              {/* Workflow steps */}
-              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {[
-                  {
-                    step: '01',
-                    title: 'Case Onboarding',
-                    desc: 'Sign retention agreement electronically. Upload initial records through secure portal.',
-                    icon: FileText,
-                  },
-                  {
-                    step: '02',
-                    title: 'Record Review & Analysis',
-                    desc: 'Track review progress in real time. Ask questions and provide context through messaging.',
-                    icon: BookOpen,
-                  },
-                  {
-                    step: '03',
-                    title: 'Report Collaboration',
-                    desc: 'Review draft reports with inline markup. Request revisions with visual change tracking.',
-                    icon: MessageSquare,
-                  },
-                  {
-                    step: '04',
-                    title: 'Testimony Preparation',
-                    desc: 'Schedule depositions and trial dates. Coordinate preparation sessions directly.',
-                    icon: Video,
-                  },
-                ].map((s, i) => (
-                  <div key={i} className="relative">
-                    <div className="text-[#DFC06A] text-xs font-bold tracking-widest mb-3">
-                      STEP {s.step}
-                    </div>
-                    <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-5 hover:border-[#DFC06A]/30 transition-all duration-300">
-                      <div className="w-10 h-10 rounded-lg bg-[#DFC06A]/10 flex items-center justify-center mb-3">
-                        <s.icon className="w-5 h-5 text-[#DFC06A]" />
-                      </div>
-                      <h4 className="font-semibold text-white text-sm">{s.title}</h4>
-                      <p className="text-sm text-gray-400 mt-2 leading-relaxed">{s.desc}</p>
-                    </div>
-                    {/* Connector arrow (not on last) */}
-                    {i < 3 && (
-                      <div className="hidden lg:block absolute top-1/2 -right-3 translate-x-0">
-                        <ChevronRight className="w-5 h-5 text-[#DFC06A]/30" />
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Feature grid */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {features.map((f) => (
-            <div
-              key={f.title}
-              className="p-5 rounded-xl border border-gray-200/80 hover:border-[#C9A84C]/30 hover:shadow-md transition-all duration-200 group"
-            >
-              <div className="w-10 h-10 rounded-lg bg-[#091525] flex items-center justify-center mb-3 group-hover:bg-[#0E1F35] transition-colors">
-                <f.icon className="w-5 h-5 text-[#DFC06A]" />
-              </div>
-              <h4 className="font-semibold text-[#091525] text-sm">{f.title}</h4>
-              <p className="text-sm text-gray-500 mt-1.5 leading-relaxed">{f.desc}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
-}
-
-// ─── FEE SCHEDULE ───────────────────────────────────────────────────────────────
-
-// ─── CASE HISTORY ───────────────────────────────────────────────────────────────
-
-interface CaseData {
-  year: string
-  side: string
-  specialty: string
-  caseType: string
-  involvement: string
-  issue: string
-}
-
-interface CaseStats {
-  total: number
-  plaintiff: number
-  defense: number
-  depositionsAndTrials: number
-}
-
-function CaseHistory() {
-  const [expanded, setExpanded] = useState(false)
-  const [cases, setCases] = useState<CaseData[]>([])
-  const [stats, setStats] = useState<CaseStats>({ total: 0, plaintiff: 0, defense: 0, depositionsAndTrials: 0 })
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    fetch('/api/site/cases')
-      .then((res) => res.json())
-      .then((data) => {
-        setCases(data.cases || [])
-        setStats(data.stats || { total: 0, plaintiff: 0, defense: 0, depositionsAndTrials: 0 })
-        setLoading(false)
-      })
-      .catch(() => setLoading(false))
-  }, [])
-
-  const displayCases = expanded ? cases : cases.slice(0, 10)
-
-  return (
-    <section id="cases" className="py-24 bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#091525]/5 text-[#091525] text-sm font-medium mb-4">
-            <Scale className="w-4 h-4 text-[#C9A84C]" />
-            Case History
-          </div>
-          <h2 className="text-3xl sm:text-4xl font-bold text-[#091525]">
-            Recent Expert Witness Cases
-          </h2>
-          <p className="mt-4 text-gray-500 max-w-2xl mx-auto">
-            Cases shown are drawn directly from Dr. Ettinger&apos;s active practice. Case names
-            and identifying details are confidential.
-          </p>
-        </div>
-
-        {/* Summary stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-10">
-          {[
-            { label: 'Total Cases', value: String(stats.total) },
-            { label: 'Plaintiff', value: String(stats.plaintiff) },
-            { label: 'Defense', value: String(stats.defense) },
-            { label: 'Depositions & Trials', value: String(stats.depositionsAndTrials) },
-          ].map((s) => (
-            <div
-              key={s.label}
-              className="bg-[#F8F9FB] rounded-xl p-4 text-center border border-gray-100"
-            >
-              <div className="text-2xl font-bold text-[#091525]">{loading ? '—' : s.value}</div>
-              <div className="text-xs text-gray-400 mt-1">{s.label}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Table */}
-        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-          {/* Desktop header */}
-          <div className="hidden sm:grid sm:grid-cols-12 bg-[#091525] px-6 py-3 gap-4">
-            <span className="col-span-1 text-white text-xs font-semibold tracking-wider">YEAR</span>
-            <span className="col-span-1 text-white text-xs font-semibold tracking-wider">SIDE</span>
-            <span className="col-span-2 text-white text-xs font-semibold tracking-wider">SPECIALTY</span>
-            <span className="col-span-4 text-white text-xs font-semibold tracking-wider">ISSUE</span>
-            <span className="col-span-2 text-white text-xs font-semibold tracking-wider">INVOLVEMENT</span>
-            <span className="col-span-2 text-white text-xs font-semibold tracking-wider">TYPE</span>
+    <section id="portal" className="py-24 lg:py-32 bg-white border-t border-[#E5DFD3]">
+      <div className="max-w-5xl mx-auto px-6 lg:px-8">
+        <div className="grid lg:grid-cols-12 gap-12 items-center">
+          <div className="lg:col-span-5">
+            <Eyebrow>Attorney Portal</Eyebrow>
+            <h2 className={`${SERIF} mt-6 text-3xl sm:text-4xl text-[#0E1F35] font-semibold tracking-tight leading-tight`}>
+              A dedicated <span className="italic font-normal">workspace</span> for each case.
+            </h2>
           </div>
 
-          {loading ? (
-            <div className="px-6 py-12 text-center text-gray-400">Loading cases...</div>
-          ) : (
-            <div className="divide-y divide-gray-100">
-              {displayCases.map((c, i) => (
-                <div
-                  key={i}
-                  className={`px-6 py-3.5 ${i % 2 === 1 ? 'bg-[#FAFBFC]' : ''}`}
+          <div className="lg:col-span-7">
+            <p className={`${SERIF} text-[#2A2A25] text-lg leading-[1.8]`}>
+              Every retaining attorney receives a secure, case-linked portal for document
+              exchange, messaging, draft report review, and scheduling — from initial
+              retention through trial testimony. All correspondence is preserved in the
+              case record.
+            </p>
+
+            <ul className="mt-8 space-y-3">
+              {bullets.map((b) => (
+                <li
+                  key={b}
+                  className={`${SERIF} text-[#2A2A25] text-[15px] leading-relaxed pl-5 relative`}
                 >
-                  {/* Desktop */}
-                  <div className="hidden sm:grid sm:grid-cols-12 gap-4 items-center">
-                    <span className="col-span-1 text-sm text-gray-500 font-medium">
-                      {c.year}
-                    </span>
-                    <span className="col-span-1">
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
-                          c.side === 'Plaintiff'
-                            ? 'bg-blue-50 text-blue-700'
-                            : 'bg-orange-50 text-orange-700'
-                        }`}
-                      >
-                        {c.side}
-                      </span>
-                    </span>
-                    <span className="col-span-2 text-sm text-[#091525] font-medium">
-                      {c.specialty}
-                    </span>
-                    <span className="col-span-4 text-sm text-gray-600">{c.issue}</span>
-                    <span className="col-span-2 text-sm text-gray-500">{c.involvement}</span>
-                    <span className="col-span-2 text-xs text-gray-400">{c.caseType}</span>
-                  </div>
-
-                  {/* Mobile */}
-                  <div className="sm:hidden space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
-                          c.side === 'Plaintiff'
-                            ? 'bg-blue-50 text-blue-700'
-                            : 'bg-orange-50 text-orange-700'
-                        }`}
-                      >
-                        {c.side}
-                      </span>
-                      <span className="text-xs text-gray-400">{c.year}</span>
-                    </div>
-                    <div className="text-sm text-[#091525] font-medium">{c.specialty}</div>
-                    <div className="text-sm text-gray-500">{c.issue}</div>
-                    <div className="text-xs text-gray-400">{c.involvement} &bull; {c.caseType}</div>
-                  </div>
-                </div>
+                  <span className="absolute left-0 top-2.5 w-2 h-px bg-[#C9A84C]" />
+                  {b}
+                </li>
               ))}
-            </div>
-          )}
-        </div>
+            </ul>
 
-        {!expanded && cases.length > 10 && (
-          <div className="text-center mt-8">
-            <button
-              onClick={() => setExpanded(true)}
-              className="inline-flex items-center gap-2 px-6 py-3 border border-gray-300 text-[#091525] font-medium rounded-xl hover:bg-gray-50 transition-colors"
-            >
-              Show All {cases.length} Cases
-              <ChevronDown className="w-4 h-4" />
-            </button>
+            <div className="mt-8">
+              <a
+                href="/portal/consult"
+                className="inline-flex items-center gap-3 text-sm text-[#0E1F35] hover:text-[#8B7A3F] transition-colors border-b border-[#C9A84C] pb-0.5"
+              >
+                Submit a case inquiry
+                <ArrowRight className="w-3.5 h-3.5" />
+              </a>
+            </div>
           </div>
-        )}
+        </div>
       </div>
     </section>
   )
@@ -818,84 +578,70 @@ function CaseHistory() {
 
 function Contact() {
   return (
-    <section id="contact" className="py-24 bg-[#091525] relative overflow-hidden">
-      {/* Background effects */}
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#DFC06A]/5 rounded-full blur-[120px]" />
-      <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-[#1C3555]/50 rounded-full blur-[80px]" />
-
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section id="contact" className="py-24 lg:py-32 bg-[#FAF7F0] border-t border-[#E5DFD3]">
+      <div className="max-w-4xl mx-auto px-6 lg:px-8">
         <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#DFC06A]/30 bg-[#DFC06A]/10 text-[#DFC06A] text-sm font-medium mb-4">
-            <MessageSquare className="w-4 h-4" />
-            Get in Touch
-          </div>
-          <h2 className="text-3xl sm:text-4xl font-bold text-white">
-            Request a Consultation
+          <Eyebrow>Get In Touch</Eyebrow>
+          <h2 className={`${SERIF} mt-6 text-3xl sm:text-4xl lg:text-5xl text-[#0E1F35] font-semibold tracking-tight`}>
+            Request a <span className="italic font-normal">Consultation</span>
           </h2>
-          <p className="mt-4 text-gray-400 max-w-2xl mx-auto">
-            Contact Dr. Ettinger to discuss your case. Initial consultations are available
-            by phone or video call. Case screening is provided at no charge.
+          <p className={`${SERIF} mt-6 text-[#6A6A63] max-w-xl mx-auto italic`}>
+            Initial consultations are available by phone or video call.
+            Case screening is provided at no charge.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+        <div className="grid sm:grid-cols-3 gap-px bg-[#E5DFD3] border border-[#E5DFD3]">
           {[
             {
               icon: Phone,
-              title: 'Phone',
+              title: 'Direct Line',
               value: '(214) 930-4698',
               link: 'tel:+12149304698',
-              desc: 'Direct line for case inquiries',
             },
             {
               icon: Mail,
               title: 'Email',
               value: 'markettingermd@gmail.com',
               link: 'mailto:markettingermd@gmail.com',
-              desc: 'Typically responds within 24 hours',
             },
             {
               icon: MapPin,
               title: 'Location',
               value: 'Dallas–Fort Worth, Texas',
+              desc: 'Available nationwide',
               link: null,
-              desc: 'Available for cases nationwide',
             },
           ].map((c) => (
-            <div
-              key={c.title}
-              className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 text-center hover:border-[#DFC06A]/30 transition-all duration-200"
-            >
-              <div className="w-12 h-12 rounded-xl bg-[#DFC06A]/10 flex items-center justify-center mx-auto mb-4">
-                <c.icon className="w-6 h-6 text-[#DFC06A]" />
+            <div key={c.title} className="bg-white p-8 text-center">
+              <c.icon className="w-5 h-5 text-[#C9A84C] mx-auto mb-4" />
+              <div className={`${SERIF} text-[10px] tracking-[0.25em] uppercase text-[#8B7A3F] font-semibold`}>
+                {c.title}
               </div>
-              <h3 className="font-semibold text-white">{c.title}</h3>
               {c.link ? (
                 <a
                   href={c.link}
-                  className="text-[#DFC06A] hover:underline mt-1 block text-sm"
+                  className={`${SERIF} text-[#0E1F35] mt-3 block hover:text-[#8B7A3F] transition-colors`}
                 >
                   {c.value}
                 </a>
               ) : (
-                <span className="text-gray-300 mt-1 block text-sm">{c.value}</span>
+                <div className={`${SERIF} text-[#0E1F35] mt-3`}>{c.value}</div>
               )}
-              <p className="text-xs text-gray-500 mt-2">{c.desc}</p>
+              {c.desc && (
+                <div className="text-xs text-[#6A6A63] mt-1 italic">{c.desc}</div>
+              )}
             </div>
           ))}
         </div>
 
-        {/* CTA */}
         <div className="text-center mt-12">
-          <p className="text-gray-400 text-sm mb-4">
-            Prefer to submit a case for screening online?
-          </p>
           <a
             href="/portal/consult"
-            className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-[#DFC06A] to-[#C9A84C] text-[#091525] font-semibold rounded-xl hover:shadow-lg hover:shadow-[#DFC06A]/20 transition-all duration-300"
+            className="inline-flex items-center gap-3 px-7 py-3.5 bg-[#0E1F35] text-[#FAF7F0] text-xs tracking-[0.2em] uppercase font-medium hover:bg-[#091525] transition-colors"
           >
-            Submit a Case Inquiry
-            <ArrowRight className="w-5 h-5" />
+            Submit Case for Screening
+            <ArrowRight className="w-3.5 h-3.5" />
           </a>
         </div>
       </div>
@@ -907,32 +653,36 @@ function Contact() {
 
 function Footer() {
   return (
-    <footer className="bg-[#060E19] border-t border-white/5">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-3">
+    <footer className="bg-[#0E1F35] text-[#FAF7F0]">
+      <div className="max-w-6xl mx-auto px-6 lg:px-8 py-16">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8 pb-8 border-b border-white/10">
+          <div className="flex items-center gap-4">
             <img
               src="/logo-expert-witness-dark.svg"
-              alt="Star logo"
-              className="w-8 h-8 rounded-lg"
+              alt=""
+              className="w-9 h-9"
             />
             <div>
-              <div className="text-white text-sm font-semibold">Mark Ettinger, M.D.</div>
-              <div className="text-gray-500 text-xs">Expert Witness in Anesthesiology</div>
+              <div className={`${SERIF} text-[#FAF7F0] text-base font-semibold`}>
+                Mark Ettinger, M.D.
+              </div>
+              <div className="text-[#C9A84C] text-[10px] tracking-[0.22em] uppercase mt-1">
+                Expert Witness &middot; Anesthesiology
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-6 text-sm text-gray-500">
-            <span>Board-Certified, American Board of Anesthesiology</span>
-            <span className="hidden sm:inline">&bull;</span>
-            <span className="hidden sm:inline">Texas License #N8184</span>
+          <div className="text-xs text-[#B8B0A0] space-y-1 md:text-right">
+            <div>Board-Certified, American Board of Anesthesiology</div>
+            <div>Texas Medical License #N8184</div>
           </div>
         </div>
 
-        <div className="mt-8 pt-8 border-t border-white/5 text-center text-xs text-gray-600">
-          &copy; {new Date().getFullYear()} Mark Ettinger, M.D. All rights reserved. This
-          website is for informational purposes only and does not constitute medical or legal
-          advice.
+        <div className={`${SERIF} mt-8 text-[11px] text-[#8B8070] italic leading-relaxed max-w-3xl`}>
+          &copy; {new Date().getFullYear()} Mark Ettinger, M.D. All rights reserved.
+          This website is provided for informational purposes only and does not
+          constitute medical or legal advice. Past results do not guarantee
+          future outcomes.
         </div>
       </div>
     </footer>
@@ -943,14 +693,13 @@ function Footer() {
 
 export default function SitePage() {
   return (
-    <div className="font-[var(--font-source-sans)]">
+    <div className="font-[var(--font-source-sans)] bg-[#FAF7F0] text-[#2A2A25]">
       <SiteNav />
       <Hero />
       <About />
       <Qualifications />
       <Expertise />
       <PortalSection />
-      <CaseHistory />
       <Contact />
       <Footer />
     </div>

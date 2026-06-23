@@ -57,7 +57,7 @@ function generateRetentionAgreementHTML(contract: {
     align-items: center;
     gap: 24px;
     padding-bottom: 20px;
-    border-bottom: 3px solid #C9A84C;
+    border-bottom: 3px solid #DFC06A;
     margin-bottom: 30px;
   }
   .header-logo { width: 80px; height: 80px; }
@@ -107,7 +107,7 @@ function generateRetentionAgreementHTML(contract: {
   .parties-box {
     background: #f8f9fa;
     border: 1px solid #e5e7eb;
-    border-left: 4px solid #C9A84C;
+    border-left: 4px solid #DFC06A;
     padding: 16px 20px;
     margin: 24px 0;
     display: flex;
@@ -118,7 +118,7 @@ function generateRetentionAgreementHTML(contract: {
     font-size: 8pt;
     text-transform: uppercase;
     letter-spacing: 2px;
-    color: #C9A84C;
+    color: #DFC06A;
     font-weight: 700;
     font-family: Arial, Helvetica, sans-serif;
     margin-bottom: 4px;
@@ -131,7 +131,7 @@ function generateRetentionAgreementHTML(contract: {
   .section-number {
     font-size: 9pt;
     font-weight: 700;
-    color: #C9A84C;
+    color: #DFC06A;
     text-transform: uppercase;
     letter-spacing: 2px;
     font-family: Arial, Helvetica, sans-serif;
@@ -191,7 +191,7 @@ function generateRetentionAgreementHTML(contract: {
   .footer {
     margin-top: 40px;
     padding-top: 16px;
-    border-top: 2px solid #C9A84C;
+    border-top: 2px solid #DFC06A;
     text-align: center;
     font-size: 8pt;
     color: #8892A2;

@@ -7,14 +7,20 @@ export interface DocumentFilters {
   search?: string
 }
 
+// Column aliases: DB uses document_type/file_size_bytes/storage_path/document_date/is_key_document,
+// but the app TypeScript types use category/file_size/file_path/date_of_document/is_exhibit.
+const DOC_SELECT = '*, category:document_type, file_size:file_size_bytes, file_path:storage_path, date_of_document:document_date, is_exhibit:is_key_document'
+const DOC_SELECT_WITH_CASE = `${DOC_SELECT}, cases!inner(case_name)`
+
 export const documentsService = {
   async getAll(filters?: DocumentFilters) {
     let query = supabase
       .from('documents')
-      .select('*, cases!inner(case_name)')
+      .select(DOC_SELECT_WITH_CASE)
+      .is('deleted_at', null)
       .order('created_at', { ascending: false })
 
-    if (filters?.category) query = query.eq('category', filters.category)
+    if (filters?.category) query = query.eq('document_type', filters.category)
     if (filters?.search) {
       query = query.or(
         `file_name.ilike.%${filters.search}%,original_file_name.ilike.%${filters.search}%`
@@ -29,11 +35,12 @@ export const documentsService = {
   async getByCaseId(caseId: string, filters?: DocumentFilters) {
     let query = supabase
       .from('documents')
-      .select('*')
+      .select(DOC_SELECT)
       .eq('case_id', caseId)
+      .is('deleted_at', null)
       .order('created_at', { ascending: false })
 
-    if (filters?.category) query = query.eq('category', filters.category)
+    if (filters?.category) query = query.eq('document_type', filters.category)
     if (filters?.folder_id) query = query.eq('folder_id', filters.folder_id)
     if (filters?.search) query = query.ilike('file_name', `%${filters.search}%`)
 
@@ -45,7 +52,7 @@ export const documentsService = {
   async getById(id: string) {
     const { data, error } = await supabase
       .from('documents')
-      .select('*')
+      .select(DOC_SELECT)
       .eq('id', id)
       .single()
     if (error) throw error

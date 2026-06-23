@@ -181,7 +181,7 @@ export function MeetingRecorder({ caseId, onRecordingComplete }: MeetingRecorder
             className="w-3 rounded-sm transition-all duration-75"
             style={{
               height: `${Math.max(4, level * 40)}px`,
-              backgroundColor: state === 'recording' ? '#C9A84C' : '#D8DCE3',
+              backgroundColor: state === 'recording' ? '#DFC06A' : '#D8DCE3',
             }}
           />
         ))}

@@ -80,6 +80,7 @@ export type ContactType =
   | 'physician'
   | 'nurse'
   | 'patient'
+  | 'referral_agency'
   | 'other';
 
 export type CaseContactRole =
@@ -167,18 +168,27 @@ export type TimelineEventType =
   | 'discharge'
   | 'surgery'
   | 'procedure'
-  | 'anesthesia_start'
-  | 'anesthesia_end'
-  | 'medication_given'
-  | 'vital_signs'
+  | 'consultation'
+  | 'diagnosis'
+  | 'medication_start'
+  | 'medication_stop'
+  | 'medication_change'
   | 'lab_result'
   | 'imaging'
-  | 'consultation'
-  | 'nursing_assessment'
+  | 'vital_signs'
+  | 'nursing_note'
   | 'physician_note'
-  | 'code_event'
+  | 'anesthesia_event'
   | 'complication'
+  | 'code_event'
+  | 'transfer'
   | 'death'
+  | 'office_visit'
+  | 'er_visit'
+  | 'icu_admission'
+  | 'icu_discharge'
+  | 'intubation'
+  | 'extubation'
   | 'other';
 
 // ---------------------------------------------------------------------------

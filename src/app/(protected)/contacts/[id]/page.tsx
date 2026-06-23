@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
-import { useContact, useUpdateContact, useDeleteContact } from '@/hooks/useContacts'
+import { useContact, useUpdateContact, useDeleteContact, useAgencies, useAgencyContacts } from '@/hooks/useContacts'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useContactCases } from '@/hooks/useCaseContacts'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -40,6 +41,10 @@ export default function ContactOverviewPage() {
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleteError, setDeleteError] = useState<{ linkedCases?: number; activePortalInvites?: number; message?: string } | null>(null)
+  const { data: agencies = [] } = useAgencies()
+  const isAgency = contact?.contact_type === 'referral_agency'
+  const { data: agencyMembers = [] } = useAgencyContacts(isAgency ? contactId : '')
+
   const [editForm, setEditForm] = useState({
     first_name: '',
     last_name: '',
@@ -47,6 +52,7 @@ export default function ContactOverviewPage() {
     email: '',
     phone_primary: '',
     title: '',
+    parent_contact_id: '',
   })
 
   // Open edit dialog when ?edit=true
@@ -65,6 +71,7 @@ export default function ContactOverviewPage() {
         email: contact.email || '',
         phone_primary: contact.phone_primary || '',
         title: contact.title || '',
+        parent_contact_id: contact.parent_contact_id || '',
       })
     }
   }, [contact])
@@ -125,6 +132,7 @@ export default function ContactOverviewPage() {
           email: editForm.email || null,
           phone_primary: editForm.phone_primary || null,
           title: editForm.title || null,
+          parent_contact_id: editForm.parent_contact_id || null,
         },
       },
       { onSuccess: () => setEditOpen(false) }
@@ -198,7 +206,7 @@ export default function ContactOverviewPage() {
                 <DollarSign className="h-5 w-5 text-white" />
               </div>
               <div>
-                <p className="text-2xl font-bold" style={{ color: billingStats?.outstanding ? '#C9A84C' : '#091525' }}>
+                <p className="text-2xl font-bold" style={{ color: billingStats?.outstanding ? '#DFC06A' : '#091525' }}>
                   {formatCurrency(billingStats?.outstanding ?? 0)}
                 </p>
                 <p className="text-xs text-muted-foreground">Outstanding Balance</p>
@@ -324,6 +332,52 @@ export default function ContactOverviewPage() {
         </CardContent>
       </Card>
 
+      {/* Agency Members Section (only for referral_agency contacts) */}
+      {isAgency && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Agency Members
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {agencyMembers.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No members linked to this agency yet. Edit a contact and set their &quot;Linked Agency&quot; to this organization.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {agencyMembers.map((member) => (
+                  <div
+                    key={member.id}
+                    className="flex items-center justify-between border rounded-lg p-3 hover:bg-muted/50 cursor-pointer transition-colors"
+                    onClick={() => window.location.href = `/contacts/${member.id}`}
+                  >
+                    <div>
+                      <p className="font-medium text-sm" style={{ color: '#0E1F35' }}>
+                        {member.first_name} {member.last_name}
+                      </p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        {member.title && (
+                          <Badge variant="secondary" className="text-[10px]">{member.title}</Badge>
+                        )}
+                        {member.email && (
+                          <span className="text-xs text-muted-foreground">{member.email}</span>
+                        )}
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="text-xs">
+                      {getLabelForValue(CONTACT_TYPES, member.contact_type)}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Edit Contact Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="max-w-lg">
@@ -349,22 +403,50 @@ export default function ContactOverviewPage() {
                 />
               </div>
             </div>
-            <div>
-              <Label htmlFor="title_field">Title</Label>
-              <Input
-                id="title_field"
-                value={editForm.title}
-                onChange={(e) => setEditForm((p) => ({ ...p, title: e.target.value }))}
-                placeholder="Esq., MD, etc."
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="title_field">Title / Role</Label>
+                <Select
+                  value={editForm.title}
+                  onValueChange={(v) => setEditForm((p) => ({ ...p, title: v }))}
+                >
+                  <SelectTrigger id="title_field">
+                    <SelectValue placeholder="Select title" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {['Attorney', 'Partner', 'Associate', 'Paralegal', 'Legal Assistant', 'Agency Representative', 'Physician', 'Surgeon', 'Nurse', 'Court Reporter', 'Mediator', 'Insurance Adjuster', 'Other'].map(t => (
+                      <SelectItem key={t} value={t}>{t}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="organization_name">Organization</Label>
+                <Input
+                  id="organization_name"
+                  value={editForm.organization_name}
+                  onChange={(e) => setEditForm((p) => ({ ...p, organization_name: e.target.value }))}
+                />
+              </div>
             </div>
             <div>
-              <Label htmlFor="organization_name">Organization</Label>
-              <Input
-                id="organization_name"
-                value={editForm.organization_name}
-                onChange={(e) => setEditForm((p) => ({ ...p, organization_name: e.target.value }))}
-              />
+              <Label htmlFor="agency_link">Linked Agency</Label>
+              <Select
+                value={editForm.parent_contact_id || 'none'}
+                onValueChange={(v) => setEditForm((p) => ({ ...p, parent_contact_id: v === 'none' ? '' : v }))}
+              >
+                <SelectTrigger id="agency_link">
+                  <SelectValue placeholder="None (direct relationship)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None (direct relationship)</SelectItem>
+                  {agencies.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {a.organization_name || `${a.first_name} ${a.last_name}`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label htmlFor="email">Email</Label>

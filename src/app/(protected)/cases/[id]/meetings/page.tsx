@@ -640,7 +640,7 @@ export default function CaseMeetingsPage() {
                         )}
                         {hasSummary && (
                           <span className="flex items-center gap-1">
-                            <Brain className="h-3.5 w-3.5" style={{ color: '#C9A84C' }} />
+                            <Brain className="h-3.5 w-3.5" style={{ color: '#DFC06A' }} />
                             AI Summary
                           </span>
                         )}

@@ -4,7 +4,9 @@ import {
   getControlCenterClient,
   transformCaseToProject,
   transformContactForCC,
-  mapMilestonePriority,
+  transformMilestoneToTask,
+  EW_AREA_ID,
+  ACTIVE_CASE_STATUSES,
 } from '@/lib/control-center'
 
 function getEWClient() {
@@ -15,7 +17,6 @@ function getEWClient() {
 }
 
 // Find or create a CC project for an EW case
-// Looks up by fields->'ew_case_id' match, falls back to name match
 async function findOrCreateProject(
   cc: ReturnType<typeof getControlCenterClient>,
   ewCase: Record<string, unknown>
@@ -27,12 +28,11 @@ async function findOrCreateProject(
   const { data: existing } = await cc
     .from('projects')
     .select('id')
-    .filter('fields', 'cs', JSON.stringify({ ew_case_id: ewCaseId }))
+    .eq('fields->>ew_case_id', ewCaseId)
     .limit(1)
     .maybeSingle()
 
   if (existing) {
-    // Update existing project
     const { data, error } = await cc
       .from('projects')
       .update({
@@ -46,27 +46,143 @@ async function findOrCreateProject(
     return { id: data?.id || existing.id, error }
   }
 
-  // Create new project
+  // Create new project with the original case creation date
   const { data, error } = await cc
     .from('projects')
-    .insert(project)
+    .insert({
+      ...project,
+      created_at: (ewCase.created_at as string) || new Date().toISOString(),
+    })
     .select('id')
     .single()
 
   return { id: data?.id, error }
 }
 
-// Map EW milestone priority to CC shared_todos priority (capitalized)
-function mapMilestonePriorityCC(milestoneType: string): string {
-  const raw = mapMilestonePriority(milestoneType)
-  // CC shared_todos uses: 'Critical', 'High', 'Medium', 'Low'
-  const map: Record<string, string> = {
-    urgent: 'Critical',
-    high: 'High',
-    medium: 'Medium',
-    low: 'Low',
+// Find or create a CC task for an EW milestone
+async function findOrCreateTask(
+  cc: ReturnType<typeof getControlCenterClient>,
+  milestone: Record<string, unknown>,
+  caseNumber: string,
+  ccProjectId: string
+) {
+  const task = transformMilestoneToTask(milestone, caseNumber, ccProjectId)
+
+  // Look for existing task by title match + project
+  const { data: existing } = await cc
+    .from('tasks')
+    .select('id')
+    .eq('project_id', ccProjectId)
+    .eq('title', task.title)
+    .limit(1)
+    .maybeSingle()
+
+  if (existing) {
+    const { error } = await cc
+      .from('tasks')
+      .update({
+        ...task,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', existing.id)
+
+    return { id: existing.id, error }
   }
-  return map[raw] || 'Medium'
+
+  const { data, error } = await cc
+    .from('tasks')
+    .insert(task)
+    .select('id')
+    .single()
+
+  return { id: data?.id, error }
+}
+
+// Find or create a CC contact from an EW contact
+async function findOrCreateContact(
+  cc: ReturnType<typeof getControlCenterClient>,
+  ewContact: Record<string, unknown>
+) {
+  const ccContact = transformContactForCC(ewContact)
+  let ccContactId: string | null = null
+
+  // Find by email first (most reliable)
+  if (ccContact.email) {
+    const { data } = await cc
+      .from('contacts')
+      .select('id')
+      .eq('email', ccContact.email)
+      .limit(1)
+      .maybeSingle()
+    ccContactId = data?.id || null
+  }
+
+  // Fall back to name match
+  if (!ccContactId) {
+    const { data } = await cc
+      .from('contacts')
+      .select('id')
+      .eq('first_name', ccContact.first_name)
+      .eq('last_name', ccContact.last_name)
+      .limit(1)
+      .maybeSingle()
+    ccContactId = data?.id || null
+  }
+
+  if (ccContactId) {
+    // Update existing — don't overwrite realms/status/area_id if already set
+    const { error } = await cc
+      .from('contacts')
+      .update({
+        phone: ccContact.phone,
+        company: ccContact.company,
+        role_title: ccContact.role_title,
+        profession_category: ccContact.profession_category,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', ccContactId)
+
+    return { id: ccContactId, error, created: false }
+  }
+
+  // Create new contact with all required fields
+  const { data, error } = await cc
+    .from('contacts')
+    .insert(ccContact)
+    .select('id')
+    .single()
+
+  return { id: data?.id || null, error, created: true }
+}
+
+// Archive CC projects for cases that are no longer active
+async function archiveInactiveCaseProjects(
+  cc: ReturnType<typeof getControlCenterClient>,
+  activeCaseIds: string[]
+) {
+  // Find all EW projects in CC
+  const { data: allEWProjects } = await cc
+    .from('projects')
+    .select('id, fields')
+    .eq('area_id', EW_AREA_ID)
+    .eq('archived', false)
+
+  if (!allEWProjects) return 0
+
+  let archived = 0
+  for (const proj of allEWProjects) {
+    const fields = proj.fields as Record<string, unknown> | null
+    if (!fields || fields.source !== 'expert_witness') continue
+    const ewCaseId = fields.ew_case_id as string
+    if (ewCaseId && !activeCaseIds.includes(ewCaseId)) {
+      await cc
+        .from('projects')
+        .update({ archived: true, status: 'Complete', updated_at: new Date().toISOString() })
+        .eq('id', proj.id)
+      archived++
+    }
+  }
+  return archived
 }
 
 export async function POST(req: Request) {
@@ -85,7 +201,7 @@ export async function POST(req: Request) {
       )
     }
 
-    // 1. Fetch cases from EW
+    // Fetch ONLY active cases from EW (with relations)
     let casesQuery = ew
       .from('cases')
       .select('*, case_contacts(*, contacts(*)), case_milestones(*)')
@@ -93,7 +209,7 @@ export async function POST(req: Request) {
     if (caseId) {
       casesQuery = casesQuery.eq('id', caseId)
     } else {
-      casesQuery = casesQuery.eq('is_archived', false)
+      casesQuery = casesQuery.in('status', ACTIVE_CASE_STATUSES)
     }
 
     const { data: cases, error: casesError } = await casesQuery
@@ -104,12 +220,18 @@ export async function POST(req: Request) {
     const results = {
       projects_synced: 0,
       contacts_synced: 0,
-      todos_synced: 0,
+      contacts_created: 0,
+      tasks_synced: 0,
+      projects_archived: 0,
       errors: [] as string[],
     }
 
+    const activeCaseIds: string[] = []
+
     for (const ewCase of cases || []) {
-      // 2. Find or create CC project for this case
+      activeCaseIds.push(ewCase.id as string)
+
+      // 1. Find or create CC project for this case
       const { id: ccProjectId, error: projectError } = await findOrCreateProject(cc, ewCase)
 
       if (projectError || !ccProjectId) {
@@ -118,7 +240,7 @@ export async function POST(req: Request) {
       }
       results.projects_synced++
 
-      // 3. Sync contacts linked to this case
+      // 2. Sync contacts linked to this case
       const caseContacts = (ewCase.case_contacts || []) as Array<{
         role: string
         contacts: Record<string, unknown>
@@ -128,132 +250,54 @@ export async function POST(req: Request) {
         const contact = ccLink.contacts
         if (!contact) continue
 
-        const ccContact = transformContactForCC(contact)
+        const { id: ccContactId, error: contactError, created } = await findOrCreateContact(cc, contact)
 
-        // Find existing CC contact by email or name match
-        let ccContactId: string | null = null
-
-        if (contact.email) {
-          const { data: existingByEmail } = await cc
-            .from('contacts')
-            .select('id')
-            .eq('email', contact.email)
-            .limit(1)
-            .maybeSingle()
-          ccContactId = existingByEmail?.id || null
-        }
-
-        if (!ccContactId) {
-          const { data: existingByName } = await cc
-            .from('contacts')
-            .select('id')
-            .eq('first_name', ccContact.first_name)
-            .eq('last_name', ccContact.last_name)
-            .limit(1)
-            .maybeSingle()
-          ccContactId = existingByName?.id || null
-        }
-
-        if (ccContactId) {
-          // Update existing contact
-          const { error: contactError } = await cc
-            .from('contacts')
-            .update({ ...ccContact, updated_at: new Date().toISOString() })
-            .eq('id', ccContactId)
-
-          if (contactError) {
-            results.errors.push(`Contact ${contact.first_name} ${contact.last_name}: ${contactError.message}`)
-            continue
-          }
-        } else {
-          // Create new contact
-          const { data: newContact, error: contactError } = await cc
-            .from('contacts')
-            .insert(ccContact)
-            .select('id')
-            .single()
-
-          if (contactError || !newContact) {
-            results.errors.push(`Contact ${contact.first_name} ${contact.last_name}: ${contactError?.message || 'No ID returned'}`)
-            continue
-          }
-          ccContactId = newContact.id
+        if (contactError || !ccContactId) {
+          results.errors.push(`Contact ${contact.first_name} ${contact.last_name}: ${contactError?.message || 'No ID returned'}`)
+          continue
         }
 
         results.contacts_synced++
+        if (created) results.contacts_created++
 
-        // Link contact to project via project_contacts (composite PK)
-        const role = ccLink.role === 'retaining_counsel' ? 'stakeholder' : 'member'
+        // Link contact to project
+        const role = ccLink.role === 'retaining_attorney' || ccLink.role === 'retaining_counsel'
+          ? 'stakeholder'
+          : 'member'
         await cc.from('project_contacts').upsert(
-          {
-            project_id: ccProjectId,
-            contact_id: ccContactId,
-            role,
-          },
+          { project_id: ccProjectId, contact_id: ccContactId, role },
           { onConflict: 'project_id,contact_id' }
         )
       }
 
-      // 4. Sync milestones as shared_todos
+      // 3. Sync milestones as CC tasks
       const milestones = (ewCase.case_milestones || []) as Array<Record<string, unknown>>
 
       for (const milestone of milestones) {
-        const todoContent = `[${ewCase.case_number || 'EW'}] ${milestone.title || 'Milestone'}`
-        const todoPriority = mapMilestonePriorityCC((milestone.milestone_type as string) || 'other')
-        const todoStatus = milestone.is_completed ? 'Complete' : 'Not Started'
+        const { error: taskError } = await findOrCreateTask(
+          cc,
+          milestone,
+          (ewCase.case_number as string) || 'EW',
+          ccProjectId
+        )
 
-        // Look for existing todo by content match + project
-        const { data: existingTodo } = await cc
-          .from('shared_todos')
-          .select('id')
-          .eq('project_id', ccProjectId)
-          .eq('content', todoContent)
-          .limit(1)
-          .maybeSingle()
-
-        if (existingTodo) {
-          const { error: todoError } = await cc
-            .from('shared_todos')
-            .update({
-              priority: todoPriority,
-              status: todoStatus,
-              due_date: milestone.due_date || null,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', existingTodo.id)
-
-          if (todoError) {
-            results.errors.push(`Todo ${milestone.title}: ${todoError.message}`)
-            continue
-          }
-        } else {
-          const { error: todoError } = await cc
-            .from('shared_todos')
-            .insert({
-              content: todoContent,
-              from_user: 'mark',
-              for_user: 'mark',
-              priority: todoPriority,
-              status: todoStatus,
-              due_date: milestone.due_date || null,
-              project_id: ccProjectId,
-              category: 'expert_witness',
-            })
-
-          if (todoError) {
-            results.errors.push(`Todo ${milestone.title}: ${todoError.message}`)
-            continue
-          }
+        if (taskError) {
+          results.errors.push(`Task ${milestone.milestone_name}: ${taskError.message}`)
+          continue
         }
-
-        results.todos_synced++
+        results.tasks_synced++
       }
 
-      // 5. Update last_synced timestamp on EW case
+      // 4. Update last_synced timestamp on EW case
       await ew
         .from('cases')
         .update({ last_synced_at: new Date().toISOString() })
         .eq('id', ewCase.id)
+    }
+
+    // 5. Archive CC projects for cases that are no longer active
+    if (!caseId) {
+      results.projects_archived = await archiveInactiveCaseProjects(cc, activeCaseIds)
     }
 
     return NextResponse.json({

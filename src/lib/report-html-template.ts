@@ -86,7 +86,7 @@ export function wrapReportHtml({ header, sections, footer, reportName }: WrapRep
       text-transform: uppercase;
       letter-spacing: 0.03em;
       margin-bottom: 0.75rem;
-      border-bottom: 1px solid #C9A84C;
+      border-bottom: 1px solid #DFC06A;
       padding-bottom: 0.25rem;
     }
 
@@ -107,7 +107,7 @@ export function wrapReportHtml({ header, sections, footer, reportName }: WrapRep
     li { margin-bottom: 0.25rem; }
 
     blockquote {
-      border-left: 3px solid #C9A84C;
+      border-left: 3px solid #DFC06A;
       padding-left: 1rem;
       margin: 0.75rem 0;
       font-style: italic;

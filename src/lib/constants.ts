@@ -61,7 +61,9 @@ export const SPECIALTY_AREAS = [
 // Contact Types
 export const CONTACT_TYPES = [
   { value: 'attorney', label: 'Attorney' },
+  { value: 'law_firm', label: 'Law Firm' },
   { value: 'paralegal', label: 'Paralegal' },
+  { value: 'referral_agency', label: 'Referral Agency' },
   { value: 'expert', label: 'Expert Witness' },
   { value: 'physician', label: 'Physician' },
   { value: 'nurse', label: 'Nurse' },
@@ -96,16 +98,78 @@ export const DOCUMENT_CATEGORIES = [
   { value: 'lab_results', label: 'Lab Results' },
   { value: 'imaging', label: 'Imaging Studies' },
   { value: 'pharmacy', label: 'Pharmacy Records' },
+  { value: 'discharge_summary', label: 'Discharge Summary' },
+  { value: 'physician_notes', label: 'Physician Notes' },
   { value: 'correspondence', label: 'Correspondence' },
   { value: 'pleading', label: 'Pleading' },
-  { value: 'deposition', label: 'Deposition Transcript' },
+  { value: 'legal_filing', label: 'Legal Filing' },
+  { value: 'deposition_transcript', label: 'Deposition Transcript' },
   { value: 'expert_report', label: 'Expert Report' },
+  { value: 'opposing_expert_report', label: 'Opposing Expert Report' },
   { value: 'literature', label: 'Medical Literature' },
   { value: 'guideline', label: 'Clinical Guideline' },
-  { value: 'billing', label: 'Billing Record' },
+  { value: 'billing_record', label: 'Billing Record' },
+  { value: 'insurance_document', label: 'Insurance Document' },
   { value: 'consent_form', label: 'Consent Form' },
   { value: 'autopsy', label: 'Autopsy Report' },
+  { value: 'photograph', label: 'Photograph' },
+  { value: 'video', label: 'Video' },
+  { value: 'audio', label: 'Audio' },
   { value: 'other', label: 'Other' },
+] as const
+
+/** Document sub-tab groupings for the unified Documents page */
+export const DOCUMENT_SUB_TABS = [
+  {
+    key: 'all',
+    label: 'All Documents',
+    categories: [] as string[],
+  },
+  {
+    key: 'medical',
+    label: 'Medical Records',
+    categories: [
+      'medical_record', 'operative_report', 'nursing_notes',
+      'lab_results', 'imaging', 'pharmacy', 'discharge_summary', 'physician_notes',
+      'autopsy', 'consent_form',
+    ],
+  },
+  {
+    key: 'anesthesia',
+    label: 'Anesthesia Records',
+    categories: ['anesthesia_record'],
+    customView: true,
+  },
+  {
+    key: 'depositions',
+    label: 'Depositions',
+    categories: ['deposition_transcript'],
+  },
+  {
+    key: 'expert',
+    label: 'Expert Reports',
+    categories: ['expert_report', 'opposing_expert_report'],
+  },
+  {
+    key: 'legal',
+    label: 'Legal Filings',
+    categories: ['pleading', 'legal_filing'],
+  },
+  {
+    key: 'correspondence',
+    label: 'Correspondence',
+    categories: ['correspondence'],
+  },
+  {
+    key: 'research',
+    label: 'Research & Literature',
+    categories: ['literature', 'guideline'],
+  },
+  {
+    key: 'other',
+    label: 'Other',
+    categories: ['billing_record', 'insurance_document', 'photograph', 'video', 'audio', 'other'],
+  },
 ] as const
 
 // Activity Types
@@ -162,21 +226,29 @@ export const CHARGE_TYPES = [
 export const TIMELINE_EVENT_TYPES = [
   { value: 'admission', label: 'Admission' },
   { value: 'discharge', label: 'Discharge' },
+  { value: 'surgery', label: 'Surgery' },
   { value: 'procedure', label: 'Procedure' },
-  { value: 'medication', label: 'Medication Administration' },
-  { value: 'vital_signs', label: 'Vital Signs' },
+  { value: 'consultation', label: 'Consultation' },
+  { value: 'diagnosis', label: 'Diagnosis' },
+  { value: 'medication_start', label: 'Medication Start' },
+  { value: 'medication_stop', label: 'Medication Stop' },
+  { value: 'medication_change', label: 'Medication Change' },
   { value: 'lab_result', label: 'Lab Result' },
   { value: 'imaging', label: 'Imaging Study' },
-  { value: 'consultation', label: 'Consultation' },
+  { value: 'vital_signs', label: 'Vital Signs' },
   { value: 'nursing_note', label: 'Nursing Note' },
   { value: 'physician_note', label: 'Physician Note' },
-  { value: 'anesthesia_start', label: 'Anesthesia Start' },
-  { value: 'anesthesia_end', label: 'Anesthesia End' },
-  { value: 'intubation', label: 'Intubation' },
-  { value: 'extubation', label: 'Extubation' },
+  { value: 'anesthesia_event', label: 'Anesthesia Event' },
   { value: 'complication', label: 'Complication' },
   { value: 'code_event', label: 'Code Event' },
+  { value: 'transfer', label: 'Transfer' },
   { value: 'death', label: 'Death' },
+  { value: 'office_visit', label: 'Office Visit' },
+  { value: 'er_visit', label: 'ER Visit' },
+  { value: 'icu_admission', label: 'ICU Admission' },
+  { value: 'icu_discharge', label: 'ICU Discharge' },
+  { value: 'intubation', label: 'Intubation' },
+  { value: 'extubation', label: 'Extubation' },
   { value: 'other', label: 'Other' },
 ] as const
 

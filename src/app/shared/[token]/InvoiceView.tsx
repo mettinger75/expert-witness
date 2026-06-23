@@ -1,17 +1,21 @@
 'use client'
 
+import { useState } from 'react'
+import { useSearchParams } from 'next/navigation'
+
 interface InvoiceLineItem {
   id: string
   description: string
   quantity: number
   unit_price: number
   amount: number
-  line_type: string
-  sort_order: number
+  activity_type: string
+  line_number: number
 }
 
 interface InvoiceViewProps {
   invoice: {
+    id: string
     invoice_number: string
     invoice_date: string
     due_date: string
@@ -32,6 +36,7 @@ interface InvoiceViewProps {
     notes: string | null
   }
   lineItems: InvoiceLineItem[]
+  token: string
 }
 
 function fmtCurrency(amount: number | null | undefined): string {
@@ -45,8 +50,30 @@ function fmtDate(date: string | null | undefined): string {
   return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
 }
 
-export function InvoiceView({ invoice, lineItems }: InvoiceViewProps) {
-  const sortedItems = [...lineItems].sort((a, b) => a.sort_order - b.sort_order)
+export function InvoiceView({ invoice, lineItems, token }: InvoiceViewProps) {
+  const sortedItems = [...lineItems].sort((a, b) => a.line_number - b.line_number)
+  const searchParams = useSearchParams()
+  const paymentStatus = searchParams.get('payment')
+  const [isProcessing, setIsProcessing] = useState(false)
+
+  const canPay = invoice.balance_due > 0 && invoice.status !== 'paid' && !paymentStatus
+
+  async function handlePayOnline() {
+    setIsProcessing(true)
+    try {
+      const res = await fetch('/api/payments/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ invoiceId: invoice.id, token }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to create checkout')
+      window.location.href = data.url
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Payment failed')
+      setIsProcessing(false)
+    }
+  }
 
   return (
     <div style={{ fontFamily: 'Georgia, "Times New Roman", serif', maxWidth: '800px', margin: '0 auto' }}>
@@ -66,7 +93,7 @@ export function InvoiceView({ invoice, lineItems }: InvoiceViewProps) {
           <h1 style={{ fontSize: '28px', fontWeight: 700, margin: 0, letterSpacing: '2px' }}>
             INVOICE
           </h1>
-          <p style={{ color: '#C9A84C', fontSize: '14px', marginTop: '8px', fontWeight: 600 }}>
+          <p style={{ color: '#DFC06A', fontSize: '14px', marginTop: '8px', fontWeight: 600 }}>
             {invoice.invoice_number}
           </p>
         </div>
@@ -81,7 +108,7 @@ export function InvoiceView({ invoice, lineItems }: InvoiceViewProps) {
       </div>
 
       {/* Gold accent line */}
-      <div style={{ backgroundColor: '#C9A84C', height: '3px' }} />
+      <div style={{ backgroundColor: '#DFC06A', height: '3px' }} />
 
       {/* Invoice Body */}
       <div
@@ -172,7 +199,7 @@ export function InvoiceView({ invoice, lineItems }: InvoiceViewProps) {
                   fontWeight: 600,
                   textTransform: 'uppercase',
                   letterSpacing: '0.5px',
-                  borderBottom: '2px solid #C9A84C',
+                  borderBottom: '2px solid #DFC06A',
                 }}
               >
                 Description
@@ -187,7 +214,7 @@ export function InvoiceView({ invoice, lineItems }: InvoiceViewProps) {
                   fontWeight: 600,
                   textTransform: 'uppercase',
                   letterSpacing: '0.5px',
-                  borderBottom: '2px solid #C9A84C',
+                  borderBottom: '2px solid #DFC06A',
                   width: '80px',
                 }}
               >
@@ -203,7 +230,7 @@ export function InvoiceView({ invoice, lineItems }: InvoiceViewProps) {
                   fontWeight: 600,
                   textTransform: 'uppercase',
                   letterSpacing: '0.5px',
-                  borderBottom: '2px solid #C9A84C',
+                  borderBottom: '2px solid #DFC06A',
                   width: '120px',
                 }}
               >
@@ -219,7 +246,7 @@ export function InvoiceView({ invoice, lineItems }: InvoiceViewProps) {
                   fontWeight: 600,
                   textTransform: 'uppercase',
                   letterSpacing: '0.5px',
-                  borderBottom: '2px solid #C9A84C',
+                  borderBottom: '2px solid #DFC06A',
                   width: '120px',
                 }}
               >
@@ -285,14 +312,14 @@ export function InvoiceView({ invoice, lineItems }: InvoiceViewProps) {
 
             <div
               style={{
-                borderTop: '2px solid #C9A84C',
+                borderTop: '2px solid #DFC06A',
                 marginTop: '4px',
                 paddingTop: '12px',
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '18px', fontWeight: 700 }}>
                 <span style={{ color: '#0E1F35' }}>Balance Due</span>
-                <span style={{ color: '#C9A84C', fontVariantNumeric: 'tabular-nums' }}>{fmtCurrency(invoice.balance_due)}</span>
+                <span style={{ color: '#DFC06A', fontVariantNumeric: 'tabular-nums' }}>{fmtCurrency(invoice.balance_due)}</span>
               </div>
             </div>
           </div>
@@ -319,7 +346,7 @@ export function InvoiceView({ invoice, lineItems }: InvoiceViewProps) {
               backgroundColor: '#f8fafc',
               borderRadius: '6px',
               border: '1px solid #e2e8f0',
-              borderLeft: '3px solid #C9A84C',
+              borderLeft: '3px solid #DFC06A',
             }}
           >
             <p style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>
@@ -331,6 +358,75 @@ export function InvoiceView({ invoice, lineItems }: InvoiceViewProps) {
           </div>
         )}
       </div>
+
+      {/* Payment Status Banner */}
+      {paymentStatus === 'success' && (
+        <div
+          style={{
+            backgroundColor: '#f0fdf4',
+            border: '1px solid #bbf7d0',
+            borderRadius: '8px',
+            padding: '20px 40px',
+            marginTop: '16px',
+            textAlign: 'center',
+          }}
+        >
+          <p style={{ fontSize: '18px', fontWeight: 700, color: '#166534', margin: '0 0 4px 0' }}>
+            ✓ Payment Successful
+          </p>
+          <p style={{ fontSize: '14px', color: '#15803d', margin: 0 }}>
+            Thank you for your payment. A confirmation will be sent to your email.
+          </p>
+        </div>
+      )}
+
+      {paymentStatus === 'cancelled' && (
+        <div
+          style={{
+            backgroundColor: '#fefce8',
+            border: '1px solid #fde68a',
+            borderRadius: '8px',
+            padding: '16px 40px',
+            marginTop: '16px',
+            textAlign: 'center',
+          }}
+        >
+          <p style={{ fontSize: '14px', color: '#92400e', margin: 0 }}>
+            Payment was cancelled. You can try again using the button below.
+          </p>
+        </div>
+      )}
+
+      {/* Pay Online Button */}
+      {canPay && (
+        <div style={{ padding: '24px 40px', textAlign: 'center' }}>
+          <button
+            onClick={handlePayOnline}
+            disabled={isProcessing}
+            style={{
+              backgroundColor: '#0E1F35',
+              color: '#DFC06A',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '16px 48px',
+              fontSize: '16px',
+              fontWeight: 700,
+              fontFamily: 'Georgia, "Times New Roman", serif',
+              letterSpacing: '1px',
+              cursor: isProcessing ? 'wait' : 'pointer',
+              opacity: isProcessing ? 0.7 : 1,
+              transition: 'opacity 0.2s',
+              width: '100%',
+              maxWidth: '400px',
+            }}
+          >
+            {isProcessing ? 'Redirecting to Payment...' : `Pay Online — ${fmtCurrency(invoice.balance_due)}`}
+          </button>
+          <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '8px' }}>
+            Secure payment powered by Stripe. Card and ACH bank transfer accepted.
+          </p>
+        </div>
+      )}
 
       {/* Footer */}
       <div

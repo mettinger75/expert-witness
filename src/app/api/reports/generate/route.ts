@@ -93,14 +93,14 @@ export async function POST(request: NextRequest) {
     ] = await Promise.all([
       supabase
         .from('documents')
-        .select('id, file_name, original_file_name, category, description, ocr_text, ai_summary, ai_key_findings')
+        .select('id, file_name, original_file_name, category:document_type, description, ocr_text, ai_summary, ai_key_findings')
         .eq('case_id', caseId)
         .order('created_at', { ascending: true }),
       supabase
         .from('medical_records_timeline')
         .select('*')
         .eq('case_id', caseId)
-        .order('event_datetime', { ascending: true }),
+        .order('event_date', { ascending: true }),
       supabase
         .from('depositions')
         .select('*')
@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
 
     const timelineStrings = timelineEntries?.map(
       (entry) =>
-        `${entry.event_datetime || 'Unknown'} - ${entry.title || entry.event_type}: ${entry.description || ''} ${entry.provider_name ? `(${entry.provider_name})` : ''} ${entry.facility ? `at ${entry.facility}` : ''}`
+        `${entry.event_date || 'Unknown'}${entry.event_time ? ` ${entry.event_time}` : ''} - ${entry.event_title || entry.event_type}: ${entry.event_description || ''} ${entry.provider_name ? `(${entry.provider_name})` : ''} ${entry.facility_name ? `at ${entry.facility_name}` : ''}`
     ) || []
 
     const context = assembleContext(caseData, documentSummaries, timelineStrings)

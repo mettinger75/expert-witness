@@ -52,7 +52,7 @@ function ToolbarButton({
       className={cn(
         'p-1.5 rounded transition-colors',
         isActive
-          ? 'bg-[#C9A84C]/20 text-[#C9A84C]'
+          ? 'bg-[#DFC06A]/20 text-[#DFC06A]'
           : 'text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700',
         disabled && 'opacity-40 cursor-not-allowed'
       )}

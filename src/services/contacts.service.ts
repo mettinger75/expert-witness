@@ -74,6 +74,22 @@ export const contactsService = {
     return (await res.json()) as { success: boolean }
   },
 
+  /** Get all referral agencies */
+  async getAgencies() {
+    return contactsService.getAll({ contact_type: 'referral_agency' })
+  },
+
+  /** Get contacts belonging to an agency */
+  async getByParentId(parentId: string) {
+    const params = new URLSearchParams({ parent_contact_id: parentId })
+    const res = await fetch(`/api/contacts?${params.toString()}`)
+    if (!res.ok) {
+      const err = await res.json()
+      throw new Error(err.error || 'Failed to fetch agency contacts')
+    }
+    return (await res.json()) as ContactRow[]
+  },
+
   async search(query: string) {
     const params = new URLSearchParams({
       search: query,

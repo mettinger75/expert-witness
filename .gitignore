@@ -48,3 +48,14 @@ next-env.d.ts
 
 # Session reports
 SESSION_REPORT_*.md
+
+# Claude Code local config (machine-specific; settings.local.json may hold secrets)
+.claude/
+
+# Debug logs
+firebase-debug.log
+*-debug.log
+
+# Sensitive / case work product — never commit or deploy publicly
+/public/ettinger-w9.pdf
+/deposition-prep-*.html

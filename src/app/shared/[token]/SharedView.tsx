@@ -39,8 +39,8 @@ export function SharedView({ token, link, entity }: SharedViewProps) {
       quantity: number
       unit_price: number
       amount: number
-      line_type: string
-      sort_order: number
+      activity_type: string
+      line_number: number
     }>) || []
 
     return (
@@ -65,6 +65,7 @@ export function SharedView({ token, link, entity }: SharedViewProps) {
 
         <InvoiceView
           invoice={{
+            id: entity.id as string,
             invoice_number: entity.invoice_number as string,
             invoice_date: entity.invoice_date as string,
             due_date: entity.due_date as string,
@@ -85,6 +86,7 @@ export function SharedView({ token, link, entity }: SharedViewProps) {
             notes: entity.notes as string | null,
           }}
           lineItems={invoiceLineItems}
+          token={token}
         />
       </div>
     )
@@ -161,7 +163,7 @@ export function SharedView({ token, link, entity }: SharedViewProps) {
     if (w) {
       w.document.write(`<!DOCTYPE html><html><head><title>Document</title><style>
         body { font-family: Georgia, serif; max-width: 8.5in; margin: 0 auto; padding: 1in; font-size: 12pt; line-height: 1.6; }
-        h1, h2, h3 { color: #0E1F35; } h2 { text-transform: uppercase; border-bottom: 1px solid #C9A84C; padding-bottom: 0.25rem; }
+        h1, h2, h3 { color: #0E1F35; } h2 { text-transform: uppercase; border-bottom: 1px solid #DFC06A; padding-bottom: 0.25rem; }
         table { width: 100%; border-collapse: collapse; } th { background: #0E1F35; color: white; padding: 0.4rem 0.6rem; border: 1px solid #1C3555; text-transform: uppercase; font-size: 9pt; }
         td { padding: 0.4rem 0.6rem; border: 1px solid #d1d5db; } tr:nth-child(even) td { background: #f9fafb; }
       </style></head><body>${content}</body></html>`)
@@ -337,14 +339,14 @@ export function SharedView({ token, link, entity }: SharedViewProps) {
             <div className="w-72 shrink-0">
               <div className="bg-white rounded-lg border shadow-sm p-4 sticky top-4">
                 <div className="flex items-center gap-2 mb-3">
-                  <StickyNote className="h-4 w-4 text-[#C9A84C]" />
+                  <StickyNote className="h-4 w-4 text-[#DFC06A]" />
                   <h3 className="text-sm font-semibold text-[#0E1F35]">Editor Notes</h3>
                 </div>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Add notes for Dr. Ettinger..."
-                  className="w-full h-48 text-sm border rounded-md p-3 resize-y focus:outline-none focus:ring-2 focus:ring-[#C9A84C]/50 focus:border-[#C9A84C]"
+                  className="w-full h-48 text-sm border rounded-md p-3 resize-y focus:outline-none focus:ring-2 focus:ring-[#DFC06A]/50 focus:border-[#DFC06A]"
                 />
                 <p className="text-xs text-muted-foreground mt-2">
                   Private notes for Dr. Ettinger — not included in the document.

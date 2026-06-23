@@ -9,16 +9,20 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search')
     const contact_type = searchParams.get('contact_type')
     const is_active = searchParams.get('is_active')
+    const parent_contact_id = searchParams.get('parent_contact_id')
 
     let query = supabase
       .from('contacts')
-      .select('*, case_contacts(case_id, role, cases(case_name, case_number))')
+      .select('*, case_contacts(case_id, role, cases(case_name, case_number)), parent_contact:contacts!parent_contact_id(id, organization_name)')
       .order('last_name', { ascending: true })
       .order('first_name', { ascending: true })
 
     if (contact_type) query = query.eq('contact_type', contact_type)
     if (is_active !== null && is_active !== undefined) {
       query = query.eq('is_active', is_active === 'true')
+    }
+    if (parent_contact_id) {
+      query = query.eq('parent_contact_id', parent_contact_id)
     }
     if (search) {
       query = query.or(

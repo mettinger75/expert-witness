@@ -13,7 +13,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { EmptyState } from '@/components/shared/EmptyState'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { useCommunicationLogs, useCreateCommunicationLog, useUpdateCommunicationLog, useDeleteEmail } from '@/hooks/useCommunicationLogs'
+import { useCase } from '@/hooks/useCases'
+import { useCaseContacts } from '@/hooks/useCaseContacts'
 import { useCreateCaseNote } from '@/hooks/useCaseNotes'
+import { ComposeEmailDialog } from '@/components/emails/ComposeEmailDialog'
 import { formatDateTime } from '@/lib/formatters'
 import type { CommunicationType } from '@/types/enums'
 import {
@@ -62,12 +65,22 @@ function getDirectionFromType(type: string): string {
 export default function CaseEmailsPage() {
   const params = useParams()
   const caseId = params.id as string
+  const { data: caseData } = useCase(caseId)
+  const { data: caseContacts = [] } = useCaseContacts(caseId)
   const { data: logs = [], isLoading } = useCommunicationLogs(caseId)
   const createLog = useCreateCommunicationLog()
   const updateLog = useUpdateCommunicationLog()
   const deleteEmail = useDeleteEmail()
   const createNote = useCreateCaseNote()
   const [addOpen, setAddOpen] = useState(false)
+  const [composeOpen, setComposeOpen] = useState(false)
+
+  const composeContacts = caseContacts.map((cc) => ({
+    id: cc.contact_id,
+    name: `${cc.contacts.first_name} ${cc.contacts.last_name}`,
+    email: cc.contacts.email,
+    role: cc.role,
+  }))
 
   // Form state
   const [formType, setFormType] = useState<string>('email_sent')
@@ -138,10 +151,15 @@ export default function CaseEmailsPage() {
             {!isLoading && ` (${logs.length} entries)`}
           </p>
         </div>
-        <Dialog open={addOpen} onOpenChange={(open) => {
-          setAddOpen(open)
-          if (!open) resetForm()
-        }}>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setComposeOpen(true)}>
+            <Mail className="h-4 w-4 mr-2" />
+            Compose Email
+          </Button>
+          <Dialog open={addOpen} onOpenChange={(open) => {
+            setAddOpen(open)
+            if (!open) resetForm()
+          }}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
@@ -218,7 +236,18 @@ export default function CaseEmailsPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
+
+      {/* Compose Email Dialog */}
+      <ComposeEmailDialog
+        open={composeOpen}
+        onOpenChange={setComposeOpen}
+        caseId={caseId}
+        caseName={caseData?.case_name}
+        caseNumber={caseData?.case_number}
+        contacts={composeContacts}
+      />
 
       {isLoading ? (
         <div className="flex justify-center py-12">

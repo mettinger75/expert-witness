@@ -147,7 +147,7 @@ export function MeetingDetail({ meeting }: MeetingDetailProps) {
         <Card>
           <CardContent className="py-4">
             <div className="flex items-center gap-2 mb-3">
-              <Brain className="h-4 w-4" style={{ color: '#C9A84C' }} />
+              <Brain className="h-4 w-4" style={{ color: '#DFC06A' }} />
               <Label className="text-sm font-medium">AI Summary</Label>
             </div>
             <p className="text-sm leading-relaxed">{meeting.ai_summary}</p>
@@ -160,7 +160,7 @@ export function MeetingDetail({ meeting }: MeetingDetailProps) {
                 <ul className="space-y-1.5">
                   {keyPoints.map((point, i) => (
                     <li key={i} className="flex items-start gap-2 text-sm">
-                      <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" style={{ color: '#C9A84C' }} />
+                      <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" style={{ color: '#DFC06A' }} />
                       <span>{point}</span>
                     </li>
                   ))}

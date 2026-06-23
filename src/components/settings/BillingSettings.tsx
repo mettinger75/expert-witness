@@ -209,7 +209,7 @@ export function BillingSettings() {
                         <TableCell className="max-w-[200px] truncate text-muted-foreground">{rate.description || '-'}</TableCell>
                         <TableCell>{formatDate(rate.effective_date)}</TableCell>
                         <TableCell className="text-center">
-                          {rate.is_active && <Star className="h-4 w-4 text-[#C9A84C] fill-[#C9A84C] inline-block" />}
+                          {rate.is_active && <Star className="h-4 w-4 text-[#DFC06A] fill-[#DFC06A] inline-block" />}
                         </TableCell>
                         <TableCell>
                           {isActive ? <StatusBadge label="Active" color="green" /> : <StatusBadge label="Inactive" color="gray" />}

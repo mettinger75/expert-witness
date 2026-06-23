@@ -35,10 +35,10 @@ export async function POST(
     // Fetch all processed documents for this case
     const { data: documents, error: docsError } = await supabase
       .from('documents')
-      .select('id, file_name, original_file_name, category, ai_summary, ai_key_findings, ai_extracted_dates, ai_extracted_medications, ai_extracted_providers, date_of_document')
+      .select('id, file_name, original_file_name, category:document_type, ai_summary, ai_key_findings, ai_extracted_dates, ai_extracted_medications, ai_extracted_providers, date_of_document:document_date')
       .eq('case_id', caseId)
       .eq('ocr_status', 'completed')
-      .order('date_of_document', { ascending: true })
+      .order('document_date', { ascending: true })
 
     if (docsError) {
       return NextResponse.json({ error: 'Failed to fetch documents' }, { status: 500 })

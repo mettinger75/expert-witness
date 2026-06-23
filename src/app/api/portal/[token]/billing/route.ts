@@ -56,12 +56,12 @@ export async function GET(
         created_at,
         invoice_line_items (
           id,
-          line_type,
+          activity_type,
           description,
           quantity,
           unit_price,
           amount,
-          sort_order
+          line_number
         )
       `)
       .eq('case_id', invite.case_id)

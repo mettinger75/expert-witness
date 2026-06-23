@@ -79,7 +79,7 @@ export function RevisionTimeline({
             const isAttorney = revision.submittedBy === 'attorney'
             const isActive = activeRevisionId === revision.id
             const borderColor = isAttorney
-              ? 'border-l-[#C9A84C]'
+              ? 'border-l-[#DFC06A]'
               : 'border-l-[#0E1F35]'
 
             return (
@@ -88,7 +88,7 @@ export function RevisionTimeline({
                 <div
                   className={`absolute left-2.5 top-4 w-5 h-5 rounded-full flex items-center justify-center z-10 ${
                     isAttorney
-                      ? 'bg-[#C9A84C]/20 text-[#C9A84C]'
+                      ? 'bg-[#DFC06A]/20 text-[#DFC06A]'
                       : 'bg-[#0E1F35]/10 text-[#0E1F35]'
                   }`}
                 >
@@ -102,7 +102,7 @@ export function RevisionTimeline({
                 <Card
                   className={`cursor-pointer transition-all hover:shadow-md border-l-4 ${borderColor} ${
                     isActive
-                      ? 'ring-2 ring-[#C9A84C]/50 shadow-md'
+                      ? 'ring-2 ring-[#DFC06A]/50 shadow-md'
                       : 'hover:border-l-4'
                   }`}
                   onClick={() => onSelectRevision(revision)}

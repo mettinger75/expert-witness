@@ -44,8 +44,9 @@ export default function ContactDocumentsPage() {
       if (!caseIds.length) return []
       const { data, error } = await supabase
         .from('documents')
-        .select('*')
+        .select('*, category:document_type, file_size:file_size_bytes, file_path:storage_path, date_of_document:document_date, is_exhibit:is_key_document')
         .in('case_id', caseIds)
+        .is('deleted_at', null)
         .order('created_at', { ascending: false })
         .limit(100)
       if (error) throw error

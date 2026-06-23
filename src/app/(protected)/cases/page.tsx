@@ -14,13 +14,13 @@ import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { OPTION_KEYS } from '@/lib/constants'
 import { useAppOptions } from '@/components/providers/OptionsProvider'
 import { formatDate, formatCurrency } from '@/lib/formatters'
-import { Plus, Search, Briefcase, Filter, ChevronDown, ChevronRight } from 'lucide-react'
+import { Plus, Search, Briefcase, Filter, ChevronDown, ChevronRight, Link2 } from 'lucide-react'
+import { BulkPortalInviteDialog } from '@/components/portal/BulkPortalInviteDialog'
 import type { CaseRow } from '@/types/database.types'
 
 const STATUS_GROUP_ORDER = [
   { key: 'active', label: 'Active Cases', statuses: ['active'] },
-  { key: 'accepted', label: 'Accepted Cases', statuses: ['accepted'] },
-  { key: 'inquiry', label: 'Inquiries', statuses: ['inquiry'] },
+  { key: 'accepted', label: 'Accepted Cases', statuses: ['accepted', 'conflict_check'] },
   { key: 'closed', label: 'Closed Cases', statuses: ['closed', 'declined', 'withdrawn'] },
 ]
 
@@ -38,6 +38,7 @@ function CaseTableSection({
   getColor: (key: string, value: string) => string
 }) {
   const [open, setOpen] = useState(defaultOpen)
+  const [bulkInviteCase, setBulkInviteCase] = useState<CaseRow | null>(null)
 
   if (!cases.length) return null
 
@@ -73,13 +74,14 @@ function CaseTableSection({
                 <TableHead className="text-white/80 font-semibold">Patient</TableHead>
                 <TableHead className="text-white/80 font-semibold">Next Deadline</TableHead>
                 <TableHead className="text-white/80 font-semibold text-right">Balance</TableHead>
+                <TableHead className="text-white/80 font-semibold w-[60px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {cases.map((c) => (
                 <TableRow
                   key={c.id}
-                  className="cursor-pointer hover:bg-[#C9A84C]/5 transition-colors"
+                  className="cursor-pointer hover:bg-[#DFC06A]/5 transition-colors"
                   onClick={() => window.location.href = `/cases/${c.id}`}
                 >
                   <TableCell>
@@ -130,11 +132,34 @@ function CaseTableSection({
                       <span className="text-sm text-muted-foreground">—</span>
                     )}
                   </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0 text-muted-foreground hover:text-[#DFC06A]"
+                      title="Send portal invites"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setBulkInviteCase(c)
+                      }}
+                    >
+                      <Link2 className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </div>
+      )}
+
+      {bulkInviteCase && (
+        <BulkPortalInviteDialog
+          caseId={bulkInviteCase.id}
+          caseName={bulkInviteCase.case_name}
+          open={!!bulkInviteCase}
+          onOpenChange={(open) => !open && setBulkInviteCase(null)}
+        />
       )}
     </div>
   )
@@ -152,20 +177,23 @@ export default function CasesPage() {
     case_type: typeFilter !== 'all' ? typeFilter : undefined,
   })
 
+  // Inquiry cases are triaged on /inquiries — keep them out of the main case list
+  const nonInquiryCases = useMemo(() => {
+    return cases?.filter((c) => c.status !== 'inquiry') ?? []
+  }, [cases])
+
   const groupedCases = useMemo(() => {
-    if (!cases) return []
     return STATUS_GROUP_ORDER.map((group) => ({
       ...group,
-      cases: cases
+      cases: nonInquiryCases
         .filter((c) => group.statuses.includes(c.status))
         .sort((a, b) => {
-          // Cases with a deadline come first, sorted by soonest
           const aDate = a.deadline_next ? new Date(a.deadline_next).getTime() : Infinity
           const bDate = b.deadline_next ? new Date(b.deadline_next).getTime() : Infinity
           return aDate - bDate
         }),
     })).filter((g) => g.cases.length > 0)
-  }, [cases])
+  }, [nonInquiryCases])
 
   return (
     <div>
@@ -218,7 +246,7 @@ export default function CasesPage() {
         </Select>
       </div>
 
-      {/* Cases grouped by status */}
+      {/* Cases */}
       {isLoading ? (
         <LoadingSpinner className="py-12" />
       ) : !cases?.length ? (
@@ -237,12 +265,27 @@ export default function CasesPage() {
         />
       ) : (
         <div>
-          {groupedCases.map((group) => (
+          {/* Active/Accepted cases first */}
+          {groupedCases.filter(g => g.key !== 'closed').map((group) => (
             <CaseTableSection
               key={group.key}
               label={group.label}
               cases={group.cases}
-              defaultOpen={group.key !== 'closed'}
+              defaultOpen={true}
+              getLabel={getLabel}
+              getColor={getColor}
+            />
+          ))}
+
+          {/* Inquiries are triaged on the /inquiries page */}
+
+          {/* Closed cases last */}
+          {groupedCases.filter(g => g.key === 'closed').map((group) => (
+            <CaseTableSection
+              key={group.key}
+              label={group.label}
+              cases={group.cases}
+              defaultOpen={false}
               getLabel={getLabel}
               getColor={getColor}
             />

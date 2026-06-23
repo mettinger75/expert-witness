@@ -60,7 +60,7 @@ function wrapHtmlForPdf(html: string, reportName: string, signatureBlock: string
       letter-spacing: 0.03em;
       margin-top: 1.5rem;
       margin-bottom: 0.75rem;
-      border-bottom: 1px solid #C9A84C;
+      border-bottom: 1px solid #DFC06A;
       padding-bottom: 0.25rem;
     }
 
@@ -81,7 +81,7 @@ function wrapHtmlForPdf(html: string, reportName: string, signatureBlock: string
     li { margin-bottom: 0.25rem; }
 
     blockquote {
-      border-left: 3px solid #C9A84C;
+      border-left: 3px solid #DFC06A;
       padding-left: 1rem;
       margin: 0.75rem 0;
       font-style: italic;

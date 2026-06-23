@@ -47,7 +47,7 @@ export const milestonesService = {
       .from('case_milestones')
       .update({
         is_completed: !current.is_completed,
-        completed_date: !current.is_completed ? now : null,
+        completed_at: !current.is_completed ? now : null,
       })
       .eq('id', id)
       .select()

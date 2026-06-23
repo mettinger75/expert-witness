@@ -76,12 +76,12 @@
   --navy-light: #1C3555;
 
   /* Gold Accent */
-  --gold: #C9A84C;
+  --gold: #DFC06A;
   --gold-light: #DFC06A;
   --gold-dim: #A68B3C;
 
   /* Backgrounds */
-  --background: #F0F2F5;
+  --background: #ECEEF1;
   --foreground: #0E1F35;
 
   /* Card */
@@ -105,7 +105,7 @@
   --muted-foreground: #8892A2;
 
   /* Accent - Gold */
-  --accent: #C9A84C;
+  --accent: #DFC06A;
   --accent-foreground: #FFFFFF;
   --accent-hover: #A68B3C;
 
@@ -136,12 +136,12 @@
   /* Sidebar - Navy Gradient */
   --sidebar: #091525;
   --sidebar-foreground: #FFFFFF;
-  --sidebar-primary: #C9A84C;
+  --sidebar-primary: #DFC06A;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: rgba(201, 168, 76, 0.12);
-  --sidebar-accent-foreground: #C9A84C;
-  --sidebar-border: rgba(201, 168, 76, 0.15);
-  --sidebar-ring: #C9A84C;
+  --sidebar-accent: rgba(223, 192, 106, 0.12);
+  --sidebar-accent-foreground: #DFC06A;
+  --sidebar-border: rgba(223, 192, 106, 0.15);
+  --sidebar-ring: #DFC06A;
 }
 
 .dark {
@@ -151,13 +151,13 @@
   --card-foreground: #F8F9FB;
   --popover: #0E1F35;
   --popover-foreground: #F8F9FB;
-  --primary: #C9A84C;
+  --primary: #DFC06A;
   --primary-foreground: #091525;
   --secondary: #152A42;
   --secondary-foreground: #F8F9FB;
   --muted: #152A42;
   --muted-foreground: #8892A2;
-  --accent: #C9A84C;
+  --accent: #DFC06A;
   --accent-foreground: #FFFFFF;
   --destructive: #F87171;
   --success: #34D399;
@@ -165,18 +165,18 @@
   --border: #1E3A5F;
   --input: #1E3A5F;
   --ring: #DFC06A;
-  --chart-1: #C9A84C;
+  --chart-1: #DFC06A;
   --chart-2: #2563EB;
   --chart-3: #34D399;
   --chart-4: #FBBF24;
   --chart-5: #8892A2;
   --sidebar: #091525;
   --sidebar-foreground: #FFFFFF;
-  --sidebar-primary: #C9A84C;
+  --sidebar-primary: #DFC06A;
   --sidebar-primary-foreground: #091525;
-  --sidebar-accent: rgba(201, 168, 76, 0.12);
-  --sidebar-accent-foreground: #C9A84C;
-  --sidebar-border: rgba(201, 168, 76, 0.15);
+  --sidebar-accent: rgba(223, 192, 106, 0.12);
+  --sidebar-accent-foreground: #DFC06A;
+  --sidebar-border: rgba(223, 192, 106, 0.15);
   --sidebar-ring: #DFC06A;
 }
 
@@ -192,7 +192,9 @@
   }
 
   h1, h2, h3, h4, h5, h6 {
+    font-family: Georgia, 'Times New Roman', serif;
     letter-spacing: -0.025em;
+    font-weight: 600;
   }
 
   h1 {
@@ -236,13 +238,172 @@
 ::-webkit-scrollbar-thumb { background: #B0B8C5; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #8892A2; }
 
-/* Gold button utility */
-.btn-gold {
-  background: linear-gradient(135deg, #C9A84C 0%, #DFC06A 100%);
-  color: #091525;
-  font-weight: 600;
+/* Georgia for metric/financial numbers */
+.metric-value,
+.font-serif {
+  font-family: Georgia, 'Times New Roman', serif;
 }
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Table styling — Equinox pattern: navy header row with gold accent */
+table {
+  border-collapse: collapse;
+}
+
+thead tr {
+  background-color: var(--navy);
+  position: relative;
+}
+
+thead tr::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--gold);
+}
+
+th {
+  text-align: left;
+  font-weight: 500;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #FFFFFF;
+  padding: 0.625rem 1rem;
+}
+
+td {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+tbody tr:hover {
+  background-color: #F8F9FB;
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Input focus states */
+input, select, textarea {
+  transition: border-color 150ms, box-shadow 150ms;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(223, 192, 106, 0.15);
+}
+
+/* Button base styles */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 0.5rem;
+  transition: all 150ms;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.btn-primary {
+  background-color: var(--navy);
+  color: white;
+  border-color: var(--navy);
+}
+
+.btn-primary:hover {
+  background-color: var(--navy-light);
+  border-color: var(--navy-light);
+}
+
+.btn-secondary {
+  background-color: white;
+  color: var(--foreground);
+  border-color: var(--border);
+}
+
+.btn-secondary:hover {
+  background-color: #f5f5f5;
+  border-color: #B0B8C5;
+}
+
+/* Gold accent button */
+.btn-gold {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  transition: all 150ms;
+  cursor: pointer;
+  background: linear-gradient(135deg, #DFC06A 0%, #DFC06A 100%);
+  color: #091525;
+  border: none;
+}
+
 .btn-gold:hover {
-  background: linear-gradient(135deg, #DFC06A 0%, #C9A84C 100%);
-  box-shadow: 0 2px 8px rgba(201, 168, 76, 0.3);
+  background: linear-gradient(135deg, #A68B3C 0%, #DFC06A 100%);
+  box-shadow: 0 2px 8px rgba(223, 192, 106, 0.3);
+}
+
+/* Success / Danger buttons */
+.btn-success {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.375rem 0.875rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  border-radius: 0.375rem;
+  transition: all 150ms;
+  cursor: pointer;
+  background-color: #2D8B5F;
+  color: white;
+  border: 1px solid #2D8B5F;
+}
+
+.btn-success:hover {
+  background-color: #246f4d;
+}
+
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.375rem 0.875rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  border-radius: 0.375rem;
+  transition: all 150ms;
+  cursor: pointer;
+  background-color: #991b1b;
+  color: white;
+  border: 1px solid #991b1b;
+}
+
+.btn-danger:hover {
+  background-color: #7f1d1d;
+}
+
+/* Card styling */
+.card {
+  background: var(--card);
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
 }

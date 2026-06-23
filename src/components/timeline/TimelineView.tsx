@@ -22,14 +22,14 @@ export function TimelineView({ entries, onEdit, onDelete }: TimelineViewProps) {
     )
   }
 
-  // Sort by event_datetime chronologically
+  // Sort by event_date chronologically
   const sorted = [...entries].sort(
-    (a, b) => new Date(a.event_datetime).getTime() - new Date(b.event_datetime).getTime()
+    (a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime()
   )
 
   // Group by date
   const grouped = sorted.reduce<Record<string, MedicalRecordsTimelineRow[]>>((acc, entry) => {
-    const dateKey = entry.event_datetime.split('T')[0]
+    const dateKey = entry.event_date
     if (!acc[dateKey]) acc[dateKey] = []
     acc[dateKey].push(entry)
     return acc

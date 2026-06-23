@@ -12,11 +12,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
-import { useCaseNotes, useCreateCaseNote, useDeleteCaseNote, useTogglePin } from '@/hooks/useCaseNotes'
+import { useCaseNotes, useCreateCaseNote, useUpdateCaseNote, useDeleteCaseNote, useTogglePin } from '@/hooks/useCaseNotes'
 import { NOTE_TYPES, getLabelForValue } from '@/lib/constants'
 import { formatDateTime } from '@/lib/formatters'
 import {
-  Plus, StickyNote, Pin, Loader2, Trash2,
+  Plus, StickyNote, Pin, Loader2, Trash2, Pencil,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -25,9 +25,11 @@ export default function CaseNotesPage() {
   const caseId = params.id as string
   const { data: notes = [], isLoading } = useCaseNotes(caseId)
   const createNote = useCreateCaseNote()
+  const updateNote = useUpdateCaseNote()
   const deleteNote = useDeleteCaseNote()
   const togglePin = useTogglePin()
   const [addNoteOpen, setAddNoteOpen] = useState(false)
+  const [editingNote, setEditingNote] = useState<{ id: string; title: string; note_type: string; content: string } | null>(null)
 
   // Form state
   const [noteTitle, setNoteTitle] = useState('')
@@ -38,6 +40,18 @@ export default function CaseNotesPage() {
     setNoteTitle('')
     setNoteType('general')
     setNoteContent('')
+  }
+
+  function openEditDialog(note: { id: string; title: string | null; note_type: string; content: string }) {
+    setEditingNote({ id: note.id, title: note.title || '', note_type: note.note_type, content: note.content })
+    setNoteTitle(note.title || '')
+    setNoteType(note.note_type)
+    setNoteContent(note.content)
+  }
+
+  function closeEditDialog() {
+    setEditingNote(null)
+    resetForm()
   }
 
   async function handleAddNote() {
@@ -55,6 +69,24 @@ export default function CaseNotesPage() {
 
     resetForm()
     setAddNoteOpen(false)
+  }
+
+  async function handleEditNote() {
+    if (!editingNote || !noteContent.trim()) {
+      toast.error('Note content is required')
+      return
+    }
+
+    await updateNote.mutateAsync({
+      id: editingNote.id,
+      data: {
+        title: noteTitle || null,
+        note_type: noteType as 'general',
+        content: noteContent,
+      },
+    })
+
+    closeEditDialog()
   }
 
   async function handleTogglePin(noteId: string) {
@@ -189,6 +221,15 @@ export default function CaseNotesPage() {
                       variant="ghost"
                       size="sm"
                       className="h-8 w-8 p-0"
+                      onClick={() => openEditDialog(note)}
+                      title="Edit note"
+                    >
+                      <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0"
                       onClick={() => handleTogglePin(note.id)}
                       title={note.is_pinned ? 'Unpin' : 'Pin'}
                     >
@@ -210,6 +251,60 @@ export default function CaseNotesPage() {
           ))}
         </div>
       )}
+
+      {/* Edit Note Dialog */}
+      <Dialog open={!!editingNote} onOpenChange={(open) => { if (!open) closeEditDialog() }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Note</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Title (optional)</Label>
+              <Input
+                placeholder="Note title"
+                value={noteTitle}
+                onChange={(e) => setNoteTitle(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Type</Label>
+              <Select value={noteType} onValueChange={setNoteType}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {NOTE_TYPES.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Content *</Label>
+              <Textarea
+                placeholder="Write your note..."
+                value={noteContent}
+                onChange={(e) => setNoteContent(e.target.value)}
+                rows={8}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={closeEditDialog}>
+              Cancel
+            </Button>
+            <Button onClick={handleEditNote} disabled={updateNote.isPending}>
+              {updateNote.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Pencil className="h-4 w-4 mr-2" />
+              )}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

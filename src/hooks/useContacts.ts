@@ -10,6 +10,23 @@ export function useContacts(filters?: ContactFilters) {
   })
 }
 
+/** Fetch all referral agencies */
+export function useAgencies() {
+  return useQuery({
+    queryKey: ['contacts', 'agencies'],
+    queryFn: () => contactsService.getAgencies(),
+  })
+}
+
+/** Fetch contacts belonging to a specific agency */
+export function useAgencyContacts(parentId: string) {
+  return useQuery({
+    queryKey: ['contacts', 'agency', parentId],
+    queryFn: () => contactsService.getByParentId(parentId),
+    enabled: !!parentId,
+  })
+}
+
 export function useContact(id: string) {
   return useQuery({
     queryKey: ['contacts', id],

@@ -623,7 +623,7 @@ export function InteractiveRedlineReview({
           {/* Progress bar */}
           <div className="w-20 h-1.5 bg-gray-200 rounded-full overflow-hidden">
             <div
-              className="h-full bg-[#C9A84C] transition-all duration-300"
+              className="h-full bg-[#DFC06A] transition-all duration-300"
               style={{ width: `${progressPct}%` }}
             />
           </div>
@@ -735,7 +735,7 @@ export function InteractiveRedlineReview({
             size="sm"
             onClick={saveReviewState}
             disabled={saving || !isDirty}
-            className={`h-7 px-3 ${isDirty ? 'text-[#C9A84C] border-[#C9A84C]' : 'text-gray-400'}`}
+            className={`h-7 px-3 ${isDirty ? 'text-[#DFC06A] border-[#DFC06A]' : 'text-gray-400'}`}
             title={isDirty ? 'Save your progress (Ctrl+S)' : lastSavedAt ? `Last saved: ${lastSavedAt}` : 'No changes to save'}
           >
             {saving ? (
@@ -840,7 +840,7 @@ export function InteractiveRedlineReview({
           <ins className="text-green-700 no-underline">Added</ins>
         </span>
         <span className="flex items-center gap-1">
-          <span className="inline-block w-3 h-3 rounded border border-[#C9A84C] bg-amber-50" />
+          <span className="inline-block w-3 h-3 rounded border border-[#DFC06A] bg-amber-50" />
           Current
         </span>
         {editorName && (

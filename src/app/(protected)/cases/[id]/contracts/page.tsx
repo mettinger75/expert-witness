@@ -440,7 +440,7 @@ export default function CaseContractsPage() {
                   {contract.rendered_html && contract.status !== 'signed' && (
                     <Button
                       size="sm"
-                      className="bg-[#C9A84C] hover:bg-[#C9A84C]/90 text-[#0E1F35]"
+                      className="bg-[#DFC06A] hover:bg-[#DFC06A]/90 text-[#0E1F35]"
                       onClick={() => {
                         setSignContractId(contract.id)
                         setSignContractTitle(contract.title)

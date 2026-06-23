@@ -53,8 +53,8 @@ export function PortalReportEditor({
   return (
     <div className="space-y-4">
       {/* Info banner */}
-      <div className="flex items-start gap-3 p-4 bg-[#C9A84C]/10 border border-[#C9A84C]/30 rounded-lg">
-        <Info className="h-5 w-5 text-[#C9A84C] shrink-0 mt-0.5" />
+      <div className="flex items-start gap-3 p-4 bg-[#DFC06A]/10 border border-[#DFC06A]/30 rounded-lg">
+        <Info className="h-5 w-5 text-[#DFC06A] shrink-0 mt-0.5" />
         <p className="text-sm text-[#0E1F35]">
           You are editing <strong>{reportName}</strong>. Your changes will be
           submitted to Dr. Ettinger for review.
@@ -90,7 +90,7 @@ export function PortalReportEditor({
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Add notes for Dr. Ettinger about your changes..."
           rows={3}
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-800 placeholder:text-gray-400 focus:border-[#C9A84C] focus:ring-2 focus:ring-[#C9A84C]/20 focus:outline-none resize-none"
+          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-800 placeholder:text-gray-400 focus:border-[#DFC06A] focus:ring-2 focus:ring-[#DFC06A]/20 focus:outline-none resize-none"
         />
       </div>
 

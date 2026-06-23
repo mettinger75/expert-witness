@@ -1,6 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 
+// GET: Fetch case details for summary display
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ token: string }> }
+) {
+  try {
+    const { token } = await params
+    const supabase = getSupabaseAdmin()
+
+    const { data: invite } = await supabase
+      .from('portal_invites')
+      .select('case_id')
+      .eq('token', token)
+      .eq('is_active', true)
+      .single()
+
+    if (!invite) {
+      return NextResponse.json({ error: 'Invalid portal link' }, { status: 403 })
+    }
+
+    const { data: caseData } = await supabase
+      .from('cases')
+      .select('case_name, case_type, side, patient_name, jurisdiction_state, brief_summary, date_of_incident')
+      .eq('id', invite.case_id)
+      .single()
+
+    return NextResponse.json(caseData || {})
+  } catch (error) {
+    console.error('Get case details error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
 // POST: Attorney enters case details during onboarding
 export async function POST(
   request: NextRequest,
@@ -53,6 +86,17 @@ export async function POST(
 
     if (Object.keys(caseUpdate).length > 0) {
       caseUpdate.updated_at = new Date().toISOString()
+
+      // Auto-update case status: inquiry/conflict_check → accepted when attorney provides case details
+      const { data: currentCase } = await supabase
+        .from('cases')
+        .select('status')
+        .eq('id', invite.case_id)
+        .single()
+      if (currentCase && ['inquiry', 'conflict_check'].includes(currentCase.status)) {
+        caseUpdate.status = 'accepted'
+      }
+
       const { error: updateError } = await supabase
         .from('cases')
         .update(caseUpdate)
@@ -127,7 +171,7 @@ export async function POST(
             html: `
               <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto;">
                 <div style="background-color: #0E1F35; color: white; padding: 24px 32px;">
-                  <h1 style="margin: 0; font-size: 20px; color: #C9A84C;">Case Details Submitted</h1>
+                  <h1 style="margin: 0; font-size: 20px; color: #DFC06A;">Case Details Submitted</h1>
                 </div>
                 <div style="padding: 32px; border: 1px solid #e5e7eb; border-top: none;">
                   <p style="color: #374151; font-size: 15px; line-height: 1.6;">
@@ -136,10 +180,10 @@ export async function POST(
                   </p>
                   <p style="color: #6b7280; font-size: 14px; margin-top: 16px;">Fields provided:</p>
                   <ul style="color: #374151; font-size: 14px; line-height: 1.8; text-transform: capitalize;">${fieldsList}</ul>
-                  ${body.brief_summary ? `<p style="color: #6b7280; font-size: 13px; margin-top: 16px; border-left: 3px solid #C9A84C; padding-left: 12px;"><strong>Summary:</strong> ${body.brief_summary.substring(0, 300)}${body.brief_summary.length > 300 ? '...' : ''}</p>` : ''}
+                  ${body.brief_summary ? `<p style="color: #6b7280; font-size: 13px; margin-top: 16px; border-left: 3px solid #DFC06A; padding-left: 12px;"><strong>Summary:</strong> ${body.brief_summary.substring(0, 300)}${body.brief_summary.length > 300 ? '...' : ''}</p>` : ''}
                   <p style="color: #6b7280; font-size: 13px; margin-top: 24px;">
                     View the case in the
-                    <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'}/cases/${invite.case_id}" style="color: #C9A84C;">case dashboard</a>.
+                    <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'}/cases/${invite.case_id}" style="color: #DFC06A;">case dashboard</a>.
                   </p>
                 </div>
               </div>

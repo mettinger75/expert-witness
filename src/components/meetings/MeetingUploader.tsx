@@ -100,14 +100,14 @@ export function MeetingUploader({ caseId, onFileSelected }: MeetingUploaderProps
           flex flex-col items-center justify-center gap-3 p-8 rounded-lg
           border-2 border-dashed cursor-pointer transition-colors
           ${isDragging
-            ? 'border-[#C9A84C] bg-[#C9A84C]/5'
+            ? 'border-[#DFC06A] bg-[#DFC06A]/5'
             : 'border-slate-300 hover:border-slate-400 bg-slate-50/50'
           }
         `}
       >
         <Upload
           className="h-8 w-8"
-          style={{ color: isDragging ? '#C9A84C' : '#94a3b8' }}
+          style={{ color: isDragging ? '#DFC06A' : '#94a3b8' }}
         />
         <div className="text-center">
           <p className="text-sm font-medium text-slate-700">

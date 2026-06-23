@@ -15,7 +15,7 @@ export const timelineService = {
       .from('medical_records_timeline')
       .select('*')
       .eq('case_id', caseId)
-      .order('event_datetime', { ascending: true })
+      .order('event_date', { ascending: true })
 
     if (filters?.event_type) query = query.eq('event_type', filters.event_type)
 
@@ -29,8 +29,8 @@ export const timelineService = {
       .from('medical_records_timeline')
       .select('*')
       .eq('case_id', caseId)
-      .eq('is_significant', true)
-      .order('event_datetime', { ascending: true })
+      .eq('is_critical_event', true)
+      .order('event_date', { ascending: true })
     if (error) throw error
     return (data ?? []) as MedicalRecordsTimelineRow[]
   },

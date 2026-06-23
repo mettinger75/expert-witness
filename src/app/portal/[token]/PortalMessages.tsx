@@ -177,7 +177,7 @@ export function PortalMessages({ token, onUnreadChange }: PortalMessagesProps) {
                   className={`max-w-[75%] rounded-lg px-4 py-3 ${
                     msg.sender_type === 'provider'
                       ? 'bg-white border-l-4 border-l-[#0E1F35] border border-gray-100 shadow-sm'
-                      : 'bg-white border-l-4 border-l-[#C9A84C] border border-gray-100 shadow-sm'
+                      : 'bg-white border-l-4 border-l-[#DFC06A] border border-gray-100 shadow-sm'
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-1">

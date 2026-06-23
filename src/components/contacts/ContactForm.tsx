@@ -11,8 +11,25 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Separator } from '@/components/ui/separator'
 import { CONTACT_TYPES } from '@/lib/constants'
+import { useAgencies } from '@/hooks/useContacts'
 import type { ContactInsert, ContactRow } from '@/types/database.types'
 import { Loader2 } from 'lucide-react'
+
+const TITLE_OPTIONS = [
+  { value: 'Attorney', label: 'Attorney' },
+  { value: 'Partner', label: 'Partner' },
+  { value: 'Associate', label: 'Associate' },
+  { value: 'Paralegal', label: 'Paralegal' },
+  { value: 'Legal Assistant', label: 'Legal Assistant' },
+  { value: 'Agency Representative', label: 'Agency Representative' },
+  { value: 'Physician', label: 'Physician' },
+  { value: 'Surgeon', label: 'Surgeon' },
+  { value: 'Nurse', label: 'Nurse' },
+  { value: 'Court Reporter', label: 'Court Reporter' },
+  { value: 'Mediator', label: 'Mediator' },
+  { value: 'Insurance Adjuster', label: 'Insurance Adjuster' },
+  { value: 'Other', label: 'Other' },
+]
 
 const contactSchema = z.object({
   first_name: z.string().min(1, 'First name is required'),
@@ -20,6 +37,7 @@ const contactSchema = z.object({
   contact_type: z.string().min(1, 'Contact type is required'),
   title: z.string().optional(),
   organization_name: z.string().optional(),
+  parent_contact_id: z.string().optional(),
   email: z.string().email('Invalid email address').optional().or(z.literal('')),
   phone_primary: z.string().optional(),
   phone_secondary: z.string().optional(),
@@ -43,6 +61,7 @@ interface ContactFormProps {
 }
 
 export function ContactForm({ initialData, onSubmit, isSubmitting }: ContactFormProps) {
+  const { data: agencies = [] } = useAgencies()
   const form = useForm<ContactFormValues>({
     resolver: zodResolver(contactSchema),
     defaultValues: {
@@ -51,6 +70,7 @@ export function ContactForm({ initialData, onSubmit, isSubmitting }: ContactForm
       contact_type: initialData?.contact_type ?? 'attorney',
       title: initialData?.title ?? '',
       organization_name: initialData?.organization_name ?? '',
+      parent_contact_id: initialData?.parent_contact_id ?? '',
       email: initialData?.email ?? '',
       phone_primary: initialData?.phone_primary ?? '',
       phone_secondary: initialData?.phone_secondary ?? '',
@@ -79,6 +99,10 @@ export function ContactForm({ initialData, onSubmit, isSubmitting }: ContactForm
     cleaned.first_name = values.first_name
     cleaned.last_name = values.last_name
     cleaned.contact_type = values.contact_type
+    // Handle agency link
+    if (cleaned.parent_contact_id === 'none' || !cleaned.parent_contact_id) {
+      cleaned.parent_contact_id = null
+    }
 
     await onSubmit(cleaned as unknown as ContactInsert)
   }
@@ -121,7 +145,7 @@ export function ContactForm({ initialData, onSubmit, isSubmitting }: ContactForm
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="contact_type"
@@ -149,13 +173,25 @@ export function ContactForm({ initialData, onSubmit, isSubmitting }: ContactForm
                 name="title"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Title</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., Partner, MD" {...field} />
-                    </FormControl>
+                    <FormLabel>Title / Role</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value || ''}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select title" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {TITLE_OPTIONS.map((t) => (
+                          <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </FormItem>
                 )}
               />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="organization_name"
@@ -165,6 +201,30 @@ export function ContactForm({ initialData, onSubmit, isSubmitting }: ContactForm
                     <FormControl>
                       <Input placeholder="Law firm or organization" {...field} />
                     </FormControl>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="parent_contact_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Linked Agency</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value || ''}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="None (direct relationship)" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="none">None (direct relationship)</SelectItem>
+                        {agencies.map((a) => (
+                          <SelectItem key={a.id} value={a.id}>
+                            {a.organization_name || `${a.first_name} ${a.last_name}`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </FormItem>
                 )}
               />

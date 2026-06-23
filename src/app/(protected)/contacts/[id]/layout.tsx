@@ -110,7 +110,7 @@ export default function ContactDetailLayout({
                     ? 'text-neutral-900'
                     : 'border-transparent text-neutral-500 hover:text-neutral-800 hover:border-neutral-300'
                 )}
-                style={isActive ? { borderBottomColor: '#C9A84C' } : undefined}
+                style={isActive ? { borderBottomColor: '#DFC06A' } : undefined}
               >
                 <tab.icon className="h-4 w-4" />
                 {tab.label}

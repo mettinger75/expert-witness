@@ -139,12 +139,12 @@ export const invoicesService = {
     const lineItems = (entries ?? []).map((entry, index) => ({
       invoice_id: invoice.id,
       time_entry_id: entry.id,
-      line_type: 'time' as const,
+      activity_type: 'time' as const,
       description: entry.description,
       quantity: entry.duration_hours,
       unit_price: entry.rate_per_hour,
       amount: entry.amount,
-      sort_order: index,
+      line_number: index,
     }))
 
     if (lineItems.length > 0) {
@@ -197,11 +197,11 @@ export const invoicesService = {
     }
 
     // Fetch selected standalone charges
-    let charges: { id: string; description: string; quantity: number; unit_price: number; amount: number; line_type: string }[] = []
+    let charges: { id: string; description: string; quantity: number; unit_price: number; amount: number; activity_type: string }[] = []
     if (options.chargeIds.length > 0) {
       const { data, error } = await supabase
         .from('invoice_line_items')
-        .select('id, description, quantity, unit_price, amount, line_type')
+        .select('id, description, quantity, unit_price, amount, activity_type')
         .in('id', options.chargeIds)
       if (error) throw error
       charges = data ?? []
@@ -257,12 +257,12 @@ export const invoicesService = {
         invoice_id: invoice.id,
         case_id: caseId,
         time_entry_id: entry.id,
-        line_type: 'time' as const,
+        activity_type: 'time' as const,
         description: entry.description,
         quantity: entry.duration_hours,
         unit_price: entry.rate_per_hour,
         amount: entry.amount,
-        sort_order: sortIndex++,
+        line_number: sortIndex++,
         is_billed: true,
       }))
       const { error: lineError } = await supabase
@@ -285,7 +285,7 @@ export const invoicesService = {
           .update({
             invoice_id: invoice.id,
             is_billed: true,
-            sort_order: sortIndex++,
+            line_number: sortIndex++,
           })
           .eq('id', chargeId)
       }
@@ -311,14 +311,14 @@ export const invoicesService = {
     if (invError || !invoice) throw new Error('Invoice not found')
     if (invoice.status === 'paid') throw new Error('Cannot add items to a paid invoice')
 
-    // Get current max sort_order
+    // Get current max line_number
     const { data: existingItems } = await supabase
       .from('invoice_line_items')
-      .select('sort_order')
+      .select('line_number')
       .eq('invoice_id', invoiceId)
-      .order('sort_order', { ascending: false })
+      .order('line_number', { ascending: false })
       .limit(1)
-    let sortIndex = (existingItems?.[0]?.sort_order ?? -1) + 1
+    let sortIndex = (existingItems?.[0]?.line_number ?? -1) + 1
 
     let addedAmount = 0
 
@@ -334,12 +334,12 @@ export const invoicesService = {
         invoice_id: invoiceId,
         case_id: invoice.case_id,
         time_entry_id: entry.id,
-        line_type: 'time' as const,
+        activity_type: 'time' as const,
         description: entry.description,
         quantity: entry.duration_hours,
         unit_price: entry.rate_per_hour,
         amount: entry.amount,
-        sort_order: sortIndex++,
+        line_number: sortIndex++,
         is_billed: true,
       }))
 
@@ -367,7 +367,7 @@ export const invoicesService = {
           .update({
             invoice_id: invoiceId,
             is_billed: true,
-            sort_order: sortIndex++,
+            line_number: sortIndex++,
           })
           .eq('id', charge.id)
         addedAmount += charge.amount

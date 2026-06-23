@@ -19,8 +19,15 @@ import { formatDateTime } from '@/lib/formatters'
 import { useTimeline, useCreateTimelineEntry } from '@/hooks/useTimeline'
 import { useDocuments } from '@/hooks/useDocuments'
 import type { TimelineEventType } from '@/types/enums'
-import { Plus, Clock, Filter, AlertCircle, FileText, Loader2, Sparkles, CheckSquare } from 'lucide-react'
+import { Plus, Clock, Filter, AlertCircle, FileText, Loader2, Sparkles, CheckSquare, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
+
+function formatEventDateTime(date: string, time: string | null): string {
+  if (time) {
+    return formatDateTime(`${date}T${time}`)
+  }
+  return formatDateTime(date)
+}
 
 function getDotColor(eventType: string, isSignificant: boolean): string {
   if (isSignificant) return 'bg-red-500'
@@ -48,6 +55,7 @@ export default function CaseTimelinePage() {
   const [generating, setGenerating] = useState(false)
   const [selectRecordsOpen, setSelectRecordsOpen] = useState(false)
   const [selectedDocIds, setSelectedDocIds] = useState<string[]>([])
+  const [generationMode, setGenerationMode] = useState<'generate' | 'update'>('generate')
 
   // Real data
   const filters = eventTypeFilter !== 'all' ? { event_type: eventTypeFilter } : undefined
@@ -56,6 +64,12 @@ export default function CaseTimelinePage() {
 
   // Fetch case documents for record selection
   const { data: caseDocuments = [] } = useDocuments(caseId)
+
+  // Track which document IDs already have timeline entries
+  const docsWithTimeline = new Set(
+    entries.filter((e) => e.document_id).map((e) => e.document_id!)
+  )
+  const hasExistingEntries = entries.length > 0
 
   function resetForm() {
     setFormTitle('')
@@ -73,23 +87,34 @@ export default function CaseTimelinePage() {
       return
     }
 
+    const dt = new Date(formDatetime)
     await createMutation.mutateAsync({
       case_id: caseId,
-      title: formTitle,
-      event_datetime: new Date(formDatetime).toISOString(),
+      event_title: formTitle,
+      event_date: dt.toISOString().split('T')[0],
+      event_time: dt.toISOString().split('T')[1]?.split('.')[0] || null,
       event_type: formEventType as TimelineEventType,
       provider_name: formProvider || null,
-      description: formDescription || null,
-      is_significant: formSignificant,
-      facility: formFacility || null,
+      event_description: formDescription || null,
+      is_critical_event: formSignificant,
+      facility_name: formFacility || null,
     })
 
     resetForm()
     setAddOpen(false)
   }
 
-  function handleOpenRecordSelector() {
-    setSelectedDocIds([])
+  function handleOpenRecordSelector(mode: 'generate' | 'update' = 'generate') {
+    setGenerationMode(mode)
+    if (mode === 'update') {
+      // Pre-select documents that don't yet have timeline entries
+      const newDocIds = caseDocuments
+        .filter((d) => (d.ocr_text || d.ai_summary || d.description) && !docsWithTimeline.has(d.id))
+        .map((d) => d.id)
+      setSelectedDocIds(newDocIds)
+    } else {
+      setSelectedDocIds([])
+    }
     setSelectRecordsOpen(true)
   }
 
@@ -121,7 +146,7 @@ export default function CaseTimelinePage() {
       const res = await fetch('/api/ai/timeline', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ caseId, documentIds: selectedDocIds }),
+        body: JSON.stringify({ caseId, documentIds: selectedDocIds, mode: generationMode }),
       })
       if (!res.ok) {
         let errorMsg = `Failed to generate timeline (${res.status})`
@@ -149,12 +174,26 @@ export default function CaseTimelinePage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          {hasExistingEntries && (
+            <Button
+              variant="outline"
+              onClick={() => handleOpenRecordSelector('update')}
+              disabled={generating}
+            >
+              {generating && generationMode === 'update' ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4 mr-2" />
+              )}
+              Update Timeline
+            </Button>
+          )}
           <Button
             variant="outline"
-            onClick={handleOpenRecordSelector}
+            onClick={() => handleOpenRecordSelector('generate')}
             disabled={generating}
           >
-            {generating ? (
+            {generating && generationMode === 'generate' ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             ) : (
               <Sparkles className="h-4 w-4 mr-2" />
@@ -166,9 +205,13 @@ export default function CaseTimelinePage() {
           <Dialog open={selectRecordsOpen} onOpenChange={setSelectRecordsOpen}>
             <DialogContent className="max-w-2xl max-h-[80vh]">
               <DialogHeader>
-                <DialogTitle>Select Records for Timeline Generation</DialogTitle>
+                <DialogTitle>
+                  {generationMode === 'update' ? 'Update Timeline from New Records' : 'Select Records for Timeline Generation'}
+                </DialogTitle>
                 <p className="text-sm text-muted-foreground">
-                  Choose which medical records to extract timeline events from. Only records with extractable text are shown.
+                  {generationMode === 'update'
+                    ? 'Select new records to add to the existing timeline. Records already processed are marked.'
+                    : 'Choose which medical records to extract timeline events from. Only records with extractable text are shown.'}
                 </p>
               </DialogHeader>
               <div className="space-y-3 overflow-y-auto max-h-[50vh] pr-1">
@@ -195,18 +238,23 @@ export default function CaseTimelinePage() {
                           Select All ({availableDocs.length} records)
                         </Label>
                       </div>
-                      {availableDocs.map((doc) => (
+                      {availableDocs.map((doc) => {
+                        const alreadyProcessed = docsWithTimeline.has(doc.id)
+                        return (
                         <div
                           key={doc.id}
                           className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
                             selectedDocIds.includes(doc.id)
-                              ? 'border-[#C9A84C] bg-[#C9A84C]/5'
-                              : 'border-border hover:bg-muted/50'
+                              ? 'border-[#DFC06A] bg-[#DFC06A]/5'
+                              : alreadyProcessed
+                                ? 'border-border bg-muted/30'
+                                : 'border-border hover:bg-muted/50'
                           }`}
                           onClick={() => toggleDocSelection(doc.id)}
                         >
                           <Checkbox
                             checked={selectedDocIds.includes(doc.id)}
+                            onClick={(e) => e.stopPropagation()}
                             onCheckedChange={() => toggleDocSelection(doc.id)}
                             className="mt-0.5"
                           />
@@ -214,6 +262,11 @@ export default function CaseTimelinePage() {
                             <div className="flex items-center gap-2">
                               <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
                               <span className="text-sm font-medium truncate">{doc.file_name}</span>
+                              {alreadyProcessed && (
+                                <Badge variant="outline" className="text-xs text-emerald-700 border-emerald-200">
+                                  In Timeline
+                                </Badge>
+                              )}
                             </div>
                             <div className="flex items-center gap-2 mt-1">
                               {doc.category && (
@@ -237,7 +290,8 @@ export default function CaseTimelinePage() {
                             )}
                           </div>
                         </div>
-                      ))}
+                        )
+                      })}
                     </>
                   )
                 })()}
@@ -250,8 +304,12 @@ export default function CaseTimelinePage() {
                   onClick={handleGenerateFromRecords}
                   disabled={selectedDocIds.length === 0}
                 >
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Generate from {selectedDocIds.length} Record{selectedDocIds.length !== 1 ? 's' : ''}
+                  {generationMode === 'update' ? (
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                  ) : (
+                    <Sparkles className="h-4 w-4 mr-2" />
+                  )}
+                  {generationMode === 'update' ? 'Update' : 'Generate'} from {selectedDocIds.length} Record{selectedDocIds.length !== 1 ? 's' : ''}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -387,7 +445,7 @@ export default function CaseTimelinePage() {
           description="Add events manually or generate a timeline from uploaded medical records."
           action={
             <div className="flex gap-2">
-              <Button variant="outline" onClick={handleOpenRecordSelector} disabled={generating}>
+              <Button variant="outline" onClick={() => handleOpenRecordSelector('generate')} disabled={generating}>
                 <Sparkles className="h-4 w-4 mr-2" />
                 Generate from Records
               </Button>
@@ -408,23 +466,23 @@ export default function CaseTimelinePage() {
               <div key={entry.id} className="relative flex gap-4">
                 {/* Timeline dot */}
                 <div
-                  className={`relative z-10 mt-5 w-[10px] h-[10px] rounded-full shrink-0 ring-2 ring-background ${getDotColor(entry.event_type, entry.is_significant)}`}
+                  className={`relative z-10 mt-5 w-[10px] h-[10px] rounded-full shrink-0 ring-2 ring-background ${getDotColor(entry.event_type, entry.is_critical_event)}`}
                   style={{ marginLeft: '15px' }}
                 />
 
                 {/* Card */}
-                <Card className={`flex-1 ${entry.is_significant ? 'border-red-300' : ''}`}>
+                <Card className={`flex-1 ${entry.is_critical_event ? 'border-red-300' : ''}`}>
                   <CardContent className="py-3 px-4">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-xs font-mono text-muted-foreground">
-                            {formatDateTime(entry.event_datetime)}
+                            {formatEventDateTime(entry.event_date, entry.event_time)}
                           </span>
                           <Badge variant="secondary" className="text-xs">
                             {getLabelForValue(TIMELINE_EVENT_TYPES, entry.event_type)}
                           </Badge>
-                          {entry.is_significant && (
+                          {entry.is_critical_event && (
                             <Badge variant="destructive" className="text-xs">
                               <AlertCircle className="h-3 w-3 mr-1" />
                               Critical
@@ -437,9 +495,9 @@ export default function CaseTimelinePage() {
                             </Badge>
                           )}
                         </div>
-                        <h4 className="font-medium text-sm mt-1">{entry.title}</h4>
-                        {entry.description && (
-                          <p className="text-sm text-muted-foreground mt-1">{entry.description}</p>
+                        <h4 className="font-medium text-sm mt-1">{entry.event_title}</h4>
+                        {entry.event_description && (
+                          <p className="text-sm text-muted-foreground mt-1">{entry.event_description}</p>
                         )}
                         <div className="flex items-center gap-3 mt-1.5">
                           {entry.provider_name && (
@@ -447,9 +505,9 @@ export default function CaseTimelinePage() {
                               Provider: {entry.provider_name}
                             </p>
                           )}
-                          {entry.facility && (
+                          {entry.facility_name && (
                             <p className="text-xs text-muted-foreground">
-                              Facility: {entry.facility}
+                              Facility: {entry.facility_name}
                             </p>
                           )}
                         </div>

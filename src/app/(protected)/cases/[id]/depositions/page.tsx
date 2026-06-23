@@ -86,7 +86,7 @@ export default function CaseDepositionsPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   // Real data
-  const { data: depositions = [], isLoading } = useDepositions(caseId)
+  const { data: depositions = [], isLoading, isError } = useDepositions(caseId)
   const createDeposition = useCreateDeposition()
 
   // Form state
@@ -135,14 +135,24 @@ export default function CaseDepositionsPage() {
     return <LoadingSpinner className="py-20" />
   }
 
+  if (isError) {
+    return (
+      <EmptyState
+        icon={Gavel}
+        title="Unable to load depositions"
+        description="There was an error loading deposition data. Please refresh the page and try again."
+      />
+    )
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-lg font-semibold">Depositions</h2>
+          <h2 className="text-lg font-semibold">Deposition Preparation</h2>
           <p className="text-sm text-muted-foreground">
-            Manage depositions and testimony excerpts
-            {depositions.length > 0 && ` (${depositions.length} total)`}
+            Prepare for your expert deposition — track key testimony, excerpts, and preparation notes.
+            Deposition transcripts from other parties are in the Documents tab.
           </p>
         </div>
         <Dialog open={addOpen} onOpenChange={(open) => {
@@ -245,8 +255,8 @@ export default function CaseDepositionsPage() {
       {depositions.length === 0 ? (
         <EmptyState
           icon={Gavel}
-          title="No depositions"
-          description="Add depositions to track testimony and key excerpts."
+          title="No deposition prep started"
+          description="Add deposition details to begin preparing — track key testimony, excerpts, and notes for your expert deposition."
           action={
             <Button onClick={() => setAddOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />

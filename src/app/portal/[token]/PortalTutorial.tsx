@@ -499,7 +499,7 @@ export function PortalTutorial({
           }}
         >
           <div className="bg-white rounded-2xl shadow-2xl px-8 py-6 text-center">
-            <div className="w-8 h-8 border-2 border-[#C9A84C] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+            <div className="w-8 h-8 border-2 border-[#DFC06A] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
             <p className="text-sm font-medium text-[#0E1F35]">
               Navigating to {step.title}...
             </p>
@@ -593,7 +593,7 @@ export function PortalTutorial({
                 className="w-9 h-9 rounded-lg flex items-center justify-center"
                 style={{ backgroundColor: 'rgba(201,168,76,0.2)' }}
               >
-                <Icon className="w-4 h-4" style={{ color: '#C9A84C' }} />
+                <Icon className="w-4 h-4" style={{ color: '#DFC06A' }} />
               </div>
               <div>
                 <p
@@ -623,7 +623,7 @@ export function PortalTutorial({
           <div
             style={{
               height: 3,
-              background: `linear-gradient(90deg, #C9A84C ${((currentStep + 1) / steps.length) * 100}%, rgba(201,168,76,0.12) ${((currentStep + 1) / steps.length) * 100}%)`,
+              background: `linear-gradient(90deg, #DFC06A ${((currentStep + 1) / steps.length) * 100}%, rgba(201,168,76,0.12) ${((currentStep + 1) / steps.length) * 100}%)`,
             }}
           />
 
@@ -645,7 +645,7 @@ export function PortalTutorial({
                       className="flex-shrink-0 w-[18px] h-[18px] rounded-full flex items-center justify-center mr-2 mt-0.5 text-[10px] font-semibold"
                       style={{
                         backgroundColor: 'rgba(201,168,76,0.12)',
-                        color: '#C9A84C',
+                        color: '#DFC06A',
                       }}
                     >
                       {idx + 1}
@@ -667,7 +667,7 @@ export function PortalTutorial({
                     height: 6,
                     backgroundColor:
                       idx === currentStep
-                        ? '#C9A84C'
+                        ? '#DFC06A'
                         : idx < currentStep
                           ? 'rgba(201,168,76,0.4)'
                           : '#E5E7EB',

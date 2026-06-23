@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     // Fetch related documents
     const { data: documents } = await supabase
       .from('documents')
-      .select('id, name, filename, category, description, extracted_text')
+      .select('id, file_name, original_file_name, category:document_type, description, ocr_text')
       .eq('case_id', caseId)
       .order('created_at', { ascending: true })
 
@@ -60,17 +60,17 @@ export async function POST(request: NextRequest) {
     // Assemble context using the helper
     const documentSummaries = documents?.map(
       (doc) =>
-        `[${doc.category || 'Document'}] ${doc.name || doc.filename}: ${
-          doc.extracted_text
-            ? doc.extracted_text.substring(0, 2000)
+        `[${doc.category || 'Document'}] ${doc.file_name || doc.original_file_name}: ${
+          doc.ocr_text
+            ? doc.ocr_text.substring(0, 2000)
             : doc.description || 'No content available'
         }`
     ) || []
 
     const timelineStrings = timelineEntries?.map(
       (entry) =>
-        `${entry.event_date || 'Unknown date'} - ${entry.title || entry.event_type || 'Event'}: ${
-          entry.description || ''
+        `${entry.event_date || 'Unknown date'} - ${entry.event_title || entry.event_type || 'Event'}: ${
+          entry.event_description || ''
         }`
     ) || []
 

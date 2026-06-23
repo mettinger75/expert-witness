@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -10,11 +11,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { EmptyState } from '@/components/shared/EmptyState'
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { DocumentViewer } from '@/components/documents/DocumentViewer'
-import { DOCUMENT_CATEGORIES, getLabelForValue } from '@/lib/constants'
+import { DOCUMENT_CATEGORIES, DOCUMENT_SUB_TABS, getLabelForValue } from '@/lib/constants'
 import { formatDate } from '@/lib/formatters'
 import { useAllDocuments } from '@/hooks/useDocuments'
+import { cn } from '@/lib/utils'
 import type { DocumentRow } from '@/types/database.types'
-import { Search, FileText, Filter } from 'lucide-react'
+import { Search, FileText, Filter, ExternalLink } from 'lucide-react'
 
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -23,23 +25,85 @@ function formatFileSize(bytes: number): string {
 }
 
 export default function DocumentsPage() {
+  const [activeSubTab, setActiveSubTab] = useState('all')
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
   const [viewerOpen, setViewerOpen] = useState(false)
   const [viewingDoc, setViewingDoc] = useState<DocumentRow | null>(null)
 
+  const activeTabConfig = DOCUMENT_SUB_TABS.find(t => t.key === activeSubTab) ?? DOCUMENT_SUB_TABS[0]
+
   const filters = {
     category: categoryFilter !== 'all' ? categoryFilter : undefined,
     search: search || undefined,
   }
-  const { data: documents = [], isLoading } = useAllDocuments(filters)
+  const { data: allDocuments = [], isLoading } = useAllDocuments(filters)
+
+  // Filter by sub-tab
+  const documents = (() => {
+    let docs = allDocuments
+    if (activeTabConfig.categories.length > 0 && categoryFilter === 'all') {
+      docs = docs.filter(d => (activeTabConfig.categories as readonly string[]).includes(d.category))
+    }
+    return docs
+  })()
+
+  // Count documents per sub-tab
+  const tabCounts = DOCUMENT_SUB_TABS.map(tab => ({
+    key: tab.key,
+    count: tab.categories.length === 0
+      ? allDocuments.length
+      : allDocuments.filter(d => (tab.categories as readonly string[]).includes(d.category)).length,
+  }))
+
+  // Relevant categories for current sub-tab filter dropdown
+  const relevantCategories = activeTabConfig.categories.length > 0
+    ? DOCUMENT_CATEGORIES.filter(c => (activeTabConfig.categories as readonly string[]).includes(c.value))
+    : DOCUMENT_CATEGORIES
+
+  function handleSubTabChange(key: string) {
+    setActiveSubTab(key)
+    setCategoryFilter('all')
+  }
 
   return (
     <div>
       <PageHeader
         title="Documents"
-        description="Browse all case documents"
+        description="Browse all case documents across your practice"
       />
+
+      {/* Sub-tabs */}
+      <div className="border-b mb-4">
+        <nav className="flex gap-1 overflow-x-auto">
+          {DOCUMENT_SUB_TABS.map((tab) => {
+            const isActive = activeSubTab === tab.key
+            const count = tabCounts.find(c => c.key === tab.key)?.count ?? 0
+            return (
+              <button
+                key={tab.key}
+                onClick={() => handleSubTabChange(tab.key)}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap',
+                  isActive
+                    ? 'text-neutral-900 border-[#DFC06A]'
+                    : 'border-transparent text-neutral-500 hover:text-neutral-800 hover:border-neutral-300'
+                )}
+              >
+                {tab.label}
+                {count > 0 && (
+                  <span className={cn(
+                    'text-[10px] font-medium rounded-full px-1.5 py-0.5 min-w-[18px] text-center',
+                    isActive ? 'bg-[#DFC06A]/15 text-[#8B7333]' : 'bg-neutral-100 text-neutral-500'
+                  )}>
+                    {count}
+                  </span>
+                )}
+              </button>
+            )
+          })}
+        </nav>
+      </div>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 mb-6">
@@ -52,18 +116,20 @@ export default function DocumentsPage() {
             className="pl-9"
           />
         </div>
-        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-          <SelectTrigger className="w-[200px]">
-            <Filter className="h-4 w-4 mr-2" />
-            <SelectValue placeholder="Category" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
-            {DOCUMENT_CATEGORIES.map((c) => (
-              <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {relevantCategories.length > 1 && (
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="w-[200px]">
+              <Filter className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="Category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              {relevantCategories.map((c) => (
+                <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {/* Documents Table */}
@@ -72,7 +138,7 @@ export default function DocumentsPage() {
       ) : documents.length === 0 ? (
         <EmptyState
           icon={FileText}
-          title="No documents found"
+          title={`No ${activeTabConfig.label.toLowerCase()} found`}
           description="Upload documents within a case to see them here."
         />
       ) : (
@@ -105,9 +171,25 @@ export default function DocumentsPage() {
                           {doc.original_file_name || doc.file_name}
                         </span>
                       </div>
+                      {doc.description && (
+                        <p className="text-xs text-muted-foreground mt-0.5 ml-6 line-clamp-1">
+                          {doc.description}
+                        </p>
+                      )}
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {doc.cases?.case_name ?? '—'}
+                    <TableCell>
+                      {doc.cases?.case_name ? (
+                        <Link
+                          href={`/cases/${doc.case_id}`}
+                          className="text-sm text-muted-foreground hover:text-foreground hover:underline flex items-center gap-1"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {doc.cases.case_name}
+                          <ExternalLink className="h-3 w-3" />
+                        </Link>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">—</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="text-xs">
@@ -130,7 +212,7 @@ export default function DocumentsPage() {
         </Card>
       )}
 
-      {/* Document Viewer with PDF reader, annotations, AI analysis */}
+      {/* Document Viewer */}
       <DocumentViewer
         document={viewingDoc}
         open={viewerOpen}

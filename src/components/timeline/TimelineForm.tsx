@@ -16,16 +16,19 @@ import { Loader2 } from 'lucide-react'
 
 const timelineSchema = z.object({
   event_type: z.string().min(1, 'Event type is required'),
-  event_datetime: z.string().min(1, 'Event date is required'),
-  event_end_datetime: z.string().optional(),
+  event_date: z.string().min(1, 'Event date is required'),
+  event_time: z.string().optional(),
+  event_end_date: z.string().optional(),
+  event_end_time: z.string().optional(),
   provider_name: z.string().optional(),
-  provider_role: z.string().optional(),
-  facility: z.string().optional(),
-  title: z.string().min(1, 'Summary is required'),
-  description: z.string().optional(),
-  is_significant: z.boolean().default(false),
-  significance_note: z.string().optional(),
-  page_reference: z.string().optional(),
+  provider_specialty: z.string().optional(),
+  facility_name: z.string().optional(),
+  event_title: z.string().min(1, 'Summary is required'),
+  event_description: z.string().optional(),
+  is_critical_event: z.boolean().default(false),
+  critical_event_reason: z.string().optional(),
+  source_page_number: z.string().optional(),
+  source_bates_number: z.string().optional(),
 })
 
 type TimelineFormValues = z.infer<typeof timelineSchema>
@@ -42,25 +45,30 @@ export function TimelineForm({ caseId, initialData, onSubmit, isSubmitting }: Ti
     resolver: zodResolver(timelineSchema) as any,
     defaultValues: {
       event_type: initialData?.event_type ?? 'procedure',
-      event_datetime: initialData?.event_datetime ?? '',
-      event_end_datetime: initialData?.event_end_datetime ?? '',
+      event_date: initialData?.event_date ?? '',
+      event_time: initialData?.event_time ?? '',
+      event_end_date: initialData?.event_end_date ?? '',
+      event_end_time: initialData?.event_end_time ?? '',
       provider_name: initialData?.provider_name ?? '',
-      provider_role: initialData?.provider_role ?? '',
-      facility: initialData?.facility ?? '',
-      title: initialData?.title ?? '',
-      description: initialData?.description ?? '',
-      is_significant: initialData?.is_significant ?? false,
-      significance_note: initialData?.significance_note ?? '',
-      page_reference: initialData?.page_reference ?? '',
+      provider_specialty: initialData?.provider_specialty ?? '',
+      facility_name: initialData?.facility_name ?? '',
+      event_title: initialData?.event_title ?? '',
+      event_description: initialData?.event_description ?? '',
+      is_critical_event: initialData?.is_critical_event ?? false,
+      critical_event_reason: initialData?.critical_event_reason ?? '',
+      source_page_number: initialData?.source_page_number?.toString() ?? '',
+      source_bates_number: initialData?.source_bates_number ?? '',
     },
   })
 
-  const isSignificant = form.watch('is_significant')
+  const isCritical = form.watch('is_critical_event')
 
   async function handleFormSubmit(values: TimelineFormValues) {
     const cleaned: Record<string, unknown> = { case_id: caseId }
     for (const [key, val] of Object.entries(values)) {
-      if (val === '' || val === undefined) {
+      if (key === 'source_page_number') {
+        cleaned[key] = val ? parseInt(val as string, 10) : null
+      } else if (val === '' || val === undefined) {
         cleaned[key] = null
       } else {
         cleaned[key] = val
@@ -68,9 +76,9 @@ export function TimelineForm({ caseId, initialData, onSubmit, isSubmitting }: Ti
     }
     // Keep required fields
     cleaned.event_type = values.event_type
-    cleaned.event_datetime = values.event_datetime
-    cleaned.title = values.title
-    cleaned.is_significant = values.is_significant
+    cleaned.event_date = values.event_date
+    cleaned.event_title = values.event_title
+    cleaned.is_critical_event = values.is_critical_event
 
     await onSubmit(cleaned as unknown as MedicalRecordsTimelineInsert)
   }
@@ -109,12 +117,12 @@ export function TimelineForm({ caseId, initialData, onSubmit, isSubmitting }: Ti
               />
               <FormField
                 control={form.control}
-                name="event_datetime"
+                name="event_date"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Event Date/Time *</FormLabel>
+                    <FormLabel>Event Date *</FormLabel>
                     <FormControl>
-                      <Input type="datetime-local" {...field} />
+                      <Input type="date" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -122,12 +130,12 @@ export function TimelineForm({ caseId, initialData, onSubmit, isSubmitting }: Ti
               />
               <FormField
                 control={form.control}
-                name="event_end_datetime"
+                name="event_time"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>End Date/Time</FormLabel>
+                    <FormLabel>Event Time</FormLabel>
                     <FormControl>
-                      <Input type="datetime-local" {...field} />
+                      <Input type="time" {...field} />
                     </FormControl>
                   </FormItem>
                 )}
@@ -136,7 +144,7 @@ export function TimelineForm({ caseId, initialData, onSubmit, isSubmitting }: Ti
 
             <FormField
               control={form.control}
-              name="title"
+              name="event_title"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Summary *</FormLabel>
@@ -163,7 +171,7 @@ export function TimelineForm({ caseId, initialData, onSubmit, isSubmitting }: Ti
               />
               <FormField
                 control={form.control}
-                name="provider_role"
+                name="provider_specialty"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Provider Specialty</FormLabel>
@@ -175,7 +183,7 @@ export function TimelineForm({ caseId, initialData, onSubmit, isSubmitting }: Ti
               />
               <FormField
                 control={form.control}
-                name="facility"
+                name="facility_name"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Facility Name</FormLabel>
@@ -197,7 +205,7 @@ export function TimelineForm({ caseId, initialData, onSubmit, isSubmitting }: Ti
           <CardContent className="space-y-4">
             <FormField
               control={form.control}
-              name="description"
+              name="event_description"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Clinical Details</FormLabel>
@@ -211,7 +219,7 @@ export function TimelineForm({ caseId, initialData, onSubmit, isSubmitting }: Ti
             <div className="flex items-center gap-3">
               <FormField
                 control={form.control}
-                name="is_significant"
+                name="is_critical_event"
                 render={({ field }) => (
                   <FormItem className="flex items-center gap-3 space-y-0">
                     <FormControl>
@@ -223,10 +231,10 @@ export function TimelineForm({ caseId, initialData, onSubmit, isSubmitting }: Ti
               />
             </div>
 
-            {isSignificant && (
+            {isCritical && (
               <FormField
                 control={form.control}
-                name="significance_note"
+                name="critical_event_reason"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Critical Event Reason</FormLabel>
@@ -238,18 +246,32 @@ export function TimelineForm({ caseId, initialData, onSubmit, isSubmitting }: Ti
               />
             )}
 
-            <FormField
-              control={form.control}
-              name="page_reference"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Page Reference</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., Bates 001-005" {...field} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="source_page_number"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Source Page Number</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="e.g., 15" {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="source_bates_number"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Bates Number</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., DEF-001-005" {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </div>
           </CardContent>
         </Card>
 

@@ -105,13 +105,21 @@ export default function ContactsPage() {
                 return (
                   <TableRow
                     key={contact.id}
-                    className="cursor-pointer hover:bg-[#C9A84C]/5 transition-colors"
+                    className="cursor-pointer hover:bg-[#DFC06A]/5 transition-colors"
                     onClick={() => window.location.href = `/contacts/${contact.id}`}
                   >
                     <TableCell>
                       <p className="font-medium text-[#0E1F35]">
-                        {contact.first_name} {contact.last_name}
+                        {contact.contact_type === 'referral_agency'
+                          ? contact.organization_name || `${contact.first_name} ${contact.last_name}`
+                          : `${contact.first_name} ${contact.last_name}`
+                        }
                       </p>
+                      {contact.contact_type !== 'referral_agency' && (contact as unknown as { parent_contact?: { organization_name: string } | null }).parent_contact?.organization_name && (
+                        <p className="text-xs text-muted-foreground">
+                          {(contact as unknown as { parent_contact: { organization_name: string } }).parent_contact.organization_name}
+                        </p>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="text-xs">

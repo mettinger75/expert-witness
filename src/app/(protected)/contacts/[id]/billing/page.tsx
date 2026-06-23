@@ -95,11 +95,11 @@ export default function ContactBillingPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#C9A84C' }}>
+              <div className="h-10 w-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#DFC06A' }}>
                 <DollarSign className="h-5 w-5 text-white" />
               </div>
               <div>
-                <p className="text-2xl font-bold" style={{ color: outstandingBalance > 0 ? '#C9A84C' : '#091525' }}>
+                <p className="text-2xl font-bold" style={{ color: outstandingBalance > 0 ? '#DFC06A' : '#091525' }}>
                   {formatCurrency(outstandingBalance)}
                 </p>
                 <p className="text-xs text-muted-foreground">Outstanding Balance</p>

@@ -162,6 +162,70 @@ export async function POST(
 
       if (docError) throw docError
 
+      // Send notification email to Dr. Ettinger
+      try {
+        const resendKey = process.env.RESEND_API_KEY
+        if (resendKey) {
+          const { data: caseData } = await supabase
+            .from('cases')
+            .select('case_name, case_number')
+            .eq('id', invite.case_id)
+            .single()
+
+          const contact = invite.contacts as unknown as { first_name: string; last_name: string } | null
+          const uploaderDisplay = contact ? `${contact.first_name} ${contact.last_name}` : 'Attorney'
+
+          const fileSizeMB = fileSize ? `${(fileSize / (1024 * 1024)).toFixed(1)} MB` : 'Unknown size'
+
+          await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${resendKey}`,
+            },
+            body: JSON.stringify({
+              from: 'Expert Witness <noreply@meridian-anesthesia.com>',
+              to: 'markettingermd@gmail.com',
+              subject: `Document Uploaded: ${caseData?.case_name || 'Unknown Case'}`,
+              html: `
+                <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto;">
+                  <div style="background-color: #0E1F35; color: white; padding: 24px 32px;">
+                    <h1 style="margin: 0; font-size: 20px; color: #DFC06A;">Document Uploaded</h1>
+                  </div>
+                  <div style="padding: 32px; border: 1px solid #e5e7eb; border-top: none;">
+                    <p style="color: #374151; font-size: 15px; line-height: 1.6;">
+                      <strong>${uploaderDisplay}</strong> has uploaded a document for
+                      <strong>${caseData?.case_name || 'a case'}</strong> (${caseData?.case_number || ''}).
+                    </p>
+                    <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                      <tr>
+                        <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">File:</td>
+                        <td style="padding: 8px 0; font-size: 14px; font-weight: 600;">${fileName}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Size:</td>
+                        <td style="padding: 8px 0; font-size: 14px;">${fileSizeMB}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Category:</td>
+                        <td style="padding: 8px 0; font-size: 14px; text-transform: capitalize;">${(category || 'other').replace(/_/g, ' ')}</td>
+                      </tr>
+                      ${description ? `<tr><td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Description:</td><td style="padding: 8px 0; font-size: 14px;">${description}</td></tr>` : ''}
+                    </table>
+                    <p style="color: #6b7280; font-size: 13px; margin-top: 24px;">
+                      View documents in the
+                      <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'}/cases/${invite.case_id}" style="color: #DFC06A;">case dashboard</a>.
+                    </p>
+                  </div>
+                </div>
+              `,
+            }),
+          })
+        }
+      } catch (emailError) {
+        console.error('Failed to send document upload notification email:', emailError)
+      }
+
       return NextResponse.json({ document })
     }
 

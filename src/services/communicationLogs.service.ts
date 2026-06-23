@@ -6,6 +6,29 @@ import type {
 } from '@/types/database.types'
 
 export const communicationLogsService = {
+  /** Get all communication logs across all cases with case name joined */
+  async getAll(filters?: { direction?: string; search?: string; communicationType?: string }) {
+    let query = supabase
+      .from('communication_logs')
+      .select('*, cases(case_name)')
+      .order('communication_date', { ascending: false })
+      .limit(200)
+
+    if (filters?.direction) {
+      query = query.eq('direction', filters.direction)
+    }
+    if (filters?.communicationType) {
+      query = query.eq('communication_type', filters.communicationType)
+    }
+    if (filters?.search) {
+      query = query.or(`subject.ilike.%${filters.search}%,summary.ilike.%${filters.search}%,from_name.ilike.%${filters.search}%`)
+    }
+
+    const { data, error } = await query
+    if (error) throw error
+    return (data ?? []) as (CommunicationLogRow & { cases: { case_name: string } | null })[]
+  },
+
   async getByCaseId(caseId: string) {
     const { data, error } = await supabase
       .from('communication_logs')

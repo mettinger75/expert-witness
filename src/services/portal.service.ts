@@ -16,6 +16,17 @@ export const portalService = {
     return data as PortalInviteRow
   },
 
+  async getActiveInquiryInvites() {
+    const { data, error } = await supabase
+      .from('portal_invites')
+      .select('*, contacts(first_name, last_name, email, organization_name), cases(id, case_name, case_number, status, created_at)')
+      .eq('is_active', true)
+      .eq('onboarding_mode', true)
+      .order('created_at', { ascending: false })
+    if (error) throw error
+    return data ?? []
+  },
+
   async getInvitesByCase(caseId: string): Promise<PortalInviteRow[]> {
     const { data, error } = await supabase
       .from('portal_invites')

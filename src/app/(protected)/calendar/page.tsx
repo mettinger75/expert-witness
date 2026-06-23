@@ -116,19 +116,19 @@ function EventDetailPanel({
         <div
           className="px-5 py-4"
           style={{
-            backgroundColor: isMilestone ? '#0E1F35' : '#C9A84C',
+            backgroundColor: isMilestone ? '#0E1F35' : '#DFC06A',
           }}
         >
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-2">
               {isMilestone ? (
-                <Flag className="h-4 w-4 text-[#C9A84C]" />
+                <Flag className="h-4 w-4 text-[#DFC06A]" />
               ) : (
                 <CalendarIcon className="h-4 w-4 text-[#0E1F35]" />
               )}
               <span
                 className="text-xs font-medium uppercase tracking-wider"
-                style={{ color: isMilestone ? '#C9A84C' : '#0E1F35' }}
+                style={{ color: isMilestone ? '#DFC06A' : '#0E1F35' }}
               >
                 {isMilestone ? event.milestoneType || 'Milestone' : 'Calendar Event'}
               </span>
@@ -185,7 +185,7 @@ function EventDetailPanel({
               <Briefcase className="h-4 w-4 text-gray-400" />
               <Link
                 href={`/cases/${event.caseId}`}
-                className="text-[#C9A84C] hover:underline font-medium"
+                className="text-[#DFC06A] hover:underline font-medium"
               >
                 {event.caseName}
               </Link>
@@ -253,7 +253,7 @@ function DayCell({
         <span
           className={`text-xs font-medium inline-flex items-center justify-center w-6 h-6 rounded-full ${
             today
-              ? 'bg-[#C9A84C] text-white'
+              ? 'bg-[#DFC06A] text-white'
               : inMonth
                 ? 'text-[#0E1F35]'
                 : 'text-gray-300'
@@ -272,7 +272,7 @@ function DayCell({
             className={`w-full text-left text-[11px] leading-tight px-1.5 py-0.5 rounded truncate transition-opacity hover:opacity-80 ${
               event.type === 'milestone'
                 ? 'bg-[#0E1F35] text-white'
-                : 'bg-[#C9A84C]/15 text-[#0E1F35]'
+                : 'bg-[#DFC06A]/15 text-[#0E1F35]'
             }`}
           >
             {!event.allDay && (
@@ -322,7 +322,7 @@ function WeekView({
               </div>
               <div
                 className={`text-lg font-semibold inline-flex items-center justify-center w-8 h-8 rounded-full ${
-                  today ? 'bg-[#C9A84C] text-white' : 'text-[#0E1F35]'
+                  today ? 'bg-[#DFC06A] text-white' : 'text-[#0E1F35]'
                 }`}
               >
                 {d.getDate()}
@@ -351,7 +351,7 @@ function WeekView({
                   className={`w-full text-left text-[11px] px-1.5 py-0.5 rounded truncate hover:opacity-80 ${
                     event.type === 'milestone'
                       ? 'bg-[#0E1F35] text-white'
-                      : 'bg-[#C9A84C]/20 text-[#0E1F35]'
+                      : 'bg-[#DFC06A]/20 text-[#0E1F35]'
                   }`}
                 >
                   {event.title}
@@ -389,7 +389,7 @@ function WeekView({
                   <button
                     key={event.id}
                     onClick={() => onSelectEvent(event)}
-                    className="absolute inset-x-0.5 top-0.5 text-left text-[11px] px-1.5 py-1 rounded bg-[#C9A84C]/15 text-[#0E1F35] hover:bg-[#C9A84C]/25 truncate border border-[#C9A84C]/20"
+                    className="absolute inset-x-0.5 top-0.5 text-left text-[11px] px-1.5 py-1 rounded bg-[#DFC06A]/15 text-[#0E1F35] hover:bg-[#DFC06A]/25 truncate border border-[#DFC06A]/20"
                     style={{
                       height: Math.max(
                         24,
@@ -544,7 +544,7 @@ export default function CalendarPage() {
           {/* Legend */}
           <div className="hidden sm:flex items-center gap-3 text-xs text-gray-500 mr-2">
             <span className="flex items-center gap-1">
-              <span className="w-2.5 h-2.5 rounded-sm bg-[#C9A84C]/30" />
+              <span className="w-2.5 h-2.5 rounded-sm bg-[#DFC06A]/30" />
               Calendar
             </span>
             <span className="flex items-center gap-1">
@@ -591,7 +591,7 @@ export default function CalendarPage() {
             <p className="text-red-500 mb-2">{error}</p>
             <button
               onClick={fetchEvents}
-              className="text-sm text-[#C9A84C] hover:underline"
+              className="text-sm text-[#DFC06A] hover:underline"
             >
               Retry
             </button>

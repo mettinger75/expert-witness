@@ -2,7 +2,8 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Gavel, Calendar, MapPin, Video, Clock } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Gavel, Calendar, MapPin, Video, Clock, FileDown, Download } from 'lucide-react'
 import { formatDate, formatDuration } from '@/lib/formatters'
 
 interface DepositionPortalItem {
@@ -54,24 +55,65 @@ function getStatusVariant(
 }
 
 export function PortalDepositions({ depositions }: PortalDepositionsProps) {
+  const testimonyHistoryCard = (
+    <Card className="border-[#DFC06A]/30 bg-[#DFC06A]/5">
+      <CardContent className="py-4 flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <h4 className="text-sm font-semibold text-[#0E1F35]">
+            Dr. Ettinger&rsquo;s Testimony History
+          </h4>
+          <p className="text-xs text-gray-600 mt-0.5">
+            FRCP 26(a)(2)(B)(v) prior testimony list — last 4 years.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              window.open('/api/testimony-history/html?years=4', '_blank')
+            }
+          >
+            <FileDown className="h-4 w-4 mr-1.5" />
+            View / Print PDF
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              window.location.href = '/api/testimony-history/csv?years=4'
+            }}
+          >
+            <Download className="h-4 w-4 mr-1.5" />
+            CSV
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  )
+
   if (depositions.length === 0) {
     return (
-      <Card>
-        <CardContent className="py-12 text-center">
-          <Gavel className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-          <p className="text-sm text-gray-500">
-            No depositions recorded for this case yet.
-          </p>
-        </CardContent>
-      </Card>
+      <div className="space-y-4">
+        {testimonyHistoryCard}
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Gavel className="h-10 w-10 text-gray-300 mx-auto mb-3" />
+            <p className="text-sm text-gray-500">
+              No depositions recorded for this case yet.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
     )
   }
 
   return (
     <div className="space-y-4">
+      {testimonyHistoryCard}
       <div className="flex items-center gap-2 mb-2">
-        <Gavel className="h-5 w-5 text-[#C9A84C]" />
-        <h3 className="text-lg font-semibold text-[#0E1F35]">Depositions</h3>
+        <Gavel className="h-5 w-5 text-[#DFC06A]" />
+        <h3 className="text-lg font-semibold text-[#0E1F35]">Case Depositions</h3>
         <Badge variant="outline" className="ml-auto">
           {depositions.length} total
         </Badge>
@@ -93,7 +135,7 @@ export function PortalDepositions({ depositions }: PortalDepositionsProps) {
                   <div className="flex items-center gap-2 mt-1">
                     <Badge
                       variant="outline"
-                      className="text-xs border-[#C9A84C]/40 text-[#0E1F35]"
+                      className="text-xs border-[#DFC06A]/40 text-[#0E1F35]"
                     >
                       {roleLabel}
                     </Badge>
@@ -104,7 +146,7 @@ export function PortalDepositions({ depositions }: PortalDepositionsProps) {
                   </div>
                 </div>
                 {depo.is_video_recorded && (
-                  <div className="flex items-center gap-1 text-xs text-[#C9A84C] font-medium">
+                  <div className="flex items-center gap-1 text-xs text-[#DFC06A] font-medium">
                     <Video className="h-4 w-4" />
                     Video
                   </div>

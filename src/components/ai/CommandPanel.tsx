@@ -83,7 +83,7 @@ export function CommandPanel() {
             className="h-8 w-8 rounded-lg flex items-center justify-center"
             style={{ backgroundColor: 'rgba(201, 168, 76, 0.10)' }}
           >
-            <Terminal className="h-4 w-4" style={{ color: '#C9A84C' }} />
+            <Terminal className="h-4 w-4" style={{ color: '#DFC06A' }} />
           </div>
           <div>
             <CardTitle className="text-base">AI Command Center</CardTitle>
@@ -118,7 +118,7 @@ export function CommandPanel() {
                   style={{ color: '#8892A2', border: '1px solid #D8DCE3' }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.backgroundColor = 'rgba(201, 168, 76, 0.05)'
-                    e.currentTarget.style.borderColor = '#C9A84C'
+                    e.currentTarget.style.borderColor = '#DFC06A'
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = 'transparent'
@@ -142,7 +142,7 @@ export function CommandPanel() {
                 className="h-7 w-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
                 style={{ backgroundColor: 'rgba(201, 168, 76, 0.10)' }}
               >
-                <Bot className="h-4 w-4" style={{ color: '#C9A84C' }} />
+                <Bot className="h-4 w-4" style={{ color: '#DFC06A' }} />
               </div>
             )}
             <div
@@ -171,7 +171,7 @@ export function CommandPanel() {
               className="h-7 w-7 rounded-lg flex items-center justify-center shrink-0"
               style={{ backgroundColor: 'rgba(201, 168, 76, 0.10)' }}
             >
-              <Loader2 className="h-4 w-4 animate-spin" style={{ color: '#C9A84C' }} />
+              <Loader2 className="h-4 w-4 animate-spin" style={{ color: '#DFC06A' }} />
             </div>
             <div className="bg-[#F8F9FB] rounded-lg px-3 py-2 text-sm" style={{ color: '#8892A2' }}>
               Processing command...
@@ -190,7 +190,7 @@ export function CommandPanel() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Type a command... (Enter to send, Shift+Enter for newline)"
-            className="flex-1 resize-none rounded-md border border-[#D8DCE3] px-3 py-2 text-sm outline-none focus:border-[#C9A84C] focus:ring-[3px] focus:ring-[rgba(201,168,76,0.15)]"
+            className="flex-1 resize-none rounded-md border border-[#D8DCE3] px-3 py-2 text-sm outline-none focus:border-[#DFC06A] focus:ring-[3px] focus:ring-[rgba(201,168,76,0.15)]"
             rows={1}
             disabled={loading}
           />

@@ -15,7 +15,7 @@ import type { InvoiceRow, InvoiceLineItemRow, ContactRow, InvoiceTemplateRow } f
 // ---------------------------------------------------------------------------
 const NAVY = '#0E1F35'
 const NAVY_DARK = '#091525'
-const GOLD = '#C9A84C'
+const GOLD = '#DFC06A'
 const GRAY_50 = '#F9FAFB'
 const GRAY_200 = '#E5E7EB'
 const GRAY_500 = '#6B7280'
@@ -398,13 +398,13 @@ export interface InvoicePDFProps {
 // ---------------------------------------------------------------------------
 export function InvoicePDF({ invoice, contact, caseName, caseNumber, template }: InvoicePDFProps) {
   const lineItems = (invoice.invoice_line_items ?? []).sort(
-    (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)
+    (a, b) => (a.line_number ?? 0) - (b.line_number ?? 0)
   )
 
   const paymentInstructions =
     invoice.payment_instructions ??
     template?.payment_instructions ??
-    'Please make checks payable to Mark Ettinger, M.D.\nPayment is due upon receipt unless otherwise specified.'
+    'Please make checks payable and mail to:\nMark Ettinger, M.D.\n1115 Oakbrook Hills Ct\nRoanoke, TX 76262\n\nPayment is due upon receipt unless otherwise specified.'
 
   const footerText = template?.footer_text ?? null
   const headerText = template?.header_text ?? null

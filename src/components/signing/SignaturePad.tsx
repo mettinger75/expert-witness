@@ -47,7 +47,7 @@ export function SignaturePad({ onSign, signerLabel = 'Signer' }: SignaturePadPro
   return (
     <div className="bg-white rounded-lg border p-6">
       <div className="flex items-center gap-2 mb-4">
-        <FileSignature className="h-5 w-5 text-[#C9A84C]" />
+        <FileSignature className="h-5 w-5 text-[#DFC06A]" />
         <h3 className="font-semibold text-base" style={{ color: '#0E1F35' }}>
           Electronic Signature
         </h3>

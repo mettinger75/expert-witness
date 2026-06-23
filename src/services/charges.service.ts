@@ -4,7 +4,7 @@ import type { LineItemType } from '@/types/enums'
 
 export interface ChargeInput {
   case_id: string
-  line_type: LineItemType
+  activity_type: LineItemType
   description: string
   quantity: number
   unit_price: number
@@ -51,13 +51,13 @@ export const chargesService = {
       .insert({
         case_id: input.case_id,
         invoice_id: null,
-        line_type: input.line_type,
+        activity_type: input.activity_type,
         description: input.description,
         quantity: input.quantity,
         unit_price: input.unit_price,
         amount,
         is_billed: false,
-        sort_order: 0,
+        line_number: 0,
       } as InvoiceLineItemInsert)
       .select()
       .single()
@@ -70,7 +70,7 @@ export const chargesService = {
    */
   async update(id: string, input: Partial<ChargeInput>) {
     const updateData: InvoiceLineItemUpdate = {}
-    if (input.line_type) updateData.line_type = input.line_type
+    if (input.activity_type) updateData.activity_type = input.activity_type
     if (input.description) updateData.description = input.description
     if (input.quantity !== undefined) updateData.quantity = input.quantity
     if (input.unit_price !== undefined) updateData.unit_price = input.unit_price

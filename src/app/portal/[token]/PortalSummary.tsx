@@ -121,7 +121,7 @@ export function PortalSummary({ caseData, caseContacts }: PortalSummaryProps) {
             {/* Left column */}
             <div className="space-y-4">
               <div className="flex items-start gap-3">
-                <Scale className="h-4 w-4 text-[#C9A84C] mt-0.5 shrink-0" />
+                <Scale className="h-4 w-4 text-[#DFC06A] mt-0.5 shrink-0" />
                 <div>
                   <p className="text-xs text-gray-500 uppercase tracking-wide">
                     Side
@@ -133,7 +133,7 @@ export function PortalSummary({ caseData, caseContacts }: PortalSummaryProps) {
               </div>
 
               <div className="flex items-start gap-3">
-                <Stethoscope className="h-4 w-4 text-[#C9A84C] mt-0.5 shrink-0" />
+                <Stethoscope className="h-4 w-4 text-[#DFC06A] mt-0.5 shrink-0" />
                 <div>
                   <p className="text-xs text-gray-500 uppercase tracking-wide">
                     Specialty Area
@@ -146,7 +146,7 @@ export function PortalSummary({ caseData, caseContacts }: PortalSummaryProps) {
 
               {caseData.case_type && (
                 <div className="flex items-start gap-3">
-                  <Scale className="h-4 w-4 text-[#C9A84C] mt-0.5 shrink-0" />
+                  <Scale className="h-4 w-4 text-[#DFC06A] mt-0.5 shrink-0" />
                   <div>
                     <p className="text-xs text-gray-500 uppercase tracking-wide">
                       Case Type
@@ -163,7 +163,7 @@ export function PortalSummary({ caseData, caseContacts }: PortalSummaryProps) {
             <div className="space-y-4">
               {caseData.jurisdiction_state && (
                 <div className="flex items-start gap-3">
-                  <MapPin className="h-4 w-4 text-[#C9A84C] mt-0.5 shrink-0" />
+                  <MapPin className="h-4 w-4 text-[#DFC06A] mt-0.5 shrink-0" />
                   <div>
                     <p className="text-xs text-gray-500 uppercase tracking-wide">
                       Jurisdiction
@@ -179,7 +179,7 @@ export function PortalSummary({ caseData, caseContacts }: PortalSummaryProps) {
 
               {caseData.date_of_incident && (
                 <div className="flex items-start gap-3">
-                  <Calendar className="h-4 w-4 text-[#C9A84C] mt-0.5 shrink-0" />
+                  <Calendar className="h-4 w-4 text-[#DFC06A] mt-0.5 shrink-0" />
                   <div>
                     <p className="text-xs text-gray-500 uppercase tracking-wide">
                       Date of Incident
@@ -193,7 +193,7 @@ export function PortalSummary({ caseData, caseContacts }: PortalSummaryProps) {
 
               {caseData.date_of_referral && (
                 <div className="flex items-start gap-3">
-                  <Calendar className="h-4 w-4 text-[#C9A84C] mt-0.5 shrink-0" />
+                  <Calendar className="h-4 w-4 text-[#DFC06A] mt-0.5 shrink-0" />
                   <div>
                     <p className="text-xs text-gray-500 uppercase tracking-wide">
                       Date of Referral
@@ -213,7 +213,7 @@ export function PortalSummary({ caseData, caseContacts }: PortalSummaryProps) {
       <Card>
         <CardHeader>
           <CardTitle className="text-lg text-[#0E1F35] flex items-center gap-2">
-            <User className="h-5 w-5 text-[#C9A84C]" />
+            <User className="h-5 w-5 text-[#DFC06A]" />
             Patient Information
           </CardTitle>
         </CardHeader>
@@ -277,7 +277,7 @@ export function PortalSummary({ caseData, caseContacts }: PortalSummaryProps) {
             <ul className="space-y-2">
               {issues.map((issue, index) => (
                 <li key={index} className="flex items-start gap-2">
-                  <span className="w-1.5 h-1.5 bg-[#C9A84C] rounded-full mt-2 shrink-0" />
+                  <span className="w-1.5 h-1.5 bg-[#DFC06A] rounded-full mt-2 shrink-0" />
                   <span className="text-sm text-gray-700">{issue}</span>
                 </li>
               ))}
@@ -291,7 +291,7 @@ export function PortalSummary({ caseData, caseContacts }: PortalSummaryProps) {
         <Card>
           <CardHeader>
             <CardTitle className="text-lg text-[#0E1F35] flex items-center gap-2">
-              <Users className="h-5 w-5 text-[#C9A84C]" />
+              <Users className="h-5 w-5 text-[#DFC06A]" />
               Case Contacts
             </CardTitle>
           </CardHeader>
@@ -309,7 +309,7 @@ export function PortalSummary({ caseData, caseContacts }: PortalSummaryProps) {
                         {cc.is_primary && (
                           <Badge
                             variant="outline"
-                            className="text-[10px] border-[#C9A84C] text-[#C9A84C]"
+                            className="text-[10px] border-[#DFC06A] text-[#DFC06A]"
                           >
                             Primary
                           </Badge>
