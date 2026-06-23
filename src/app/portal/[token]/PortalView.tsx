@@ -28,6 +28,8 @@ import {
   Bookmark,
   Copy,
   Check,
+  Mail,
+  Smartphone,
 } from 'lucide-react'
 import { PortalSummary } from './PortalSummary'
 import { PortalTimeline } from './PortalTimeline'
@@ -42,6 +44,8 @@ import { PortalContract } from './PortalContract'
 import { PortalOnboarding } from './PortalOnboarding'
 import { PortalTutorial } from './PortalTutorial'
 import { PortalExpertFiles } from './PortalExpertFiles'
+import { PortalWelcomeCover } from './PortalWelcomeCover'
+import { PortalInviteColleague } from './PortalInviteColleague'
 
 interface PortalInvite {
   id: string
@@ -195,8 +199,11 @@ export function PortalView({
   contractStatus,
 }: PortalViewProps) {
   const [unreadCount, setUnreadCount] = useState(initialUnreadCount)
-  const [showWelcome, setShowWelcome] = useState(invite.view_count === 1 && !invite.onboarding_mode)
-  const [showSaveLink, setShowSaveLink] = useState(invite.view_count === 1)
+  // First-visit experience: show the cinematic cover first, then (on enter) the
+  // save-your-link prompt. Gating both on view_count === 1 previously stacked
+  // the two dialogs on top of each other — now they run in sequence.
+  const [showCover, setShowCover] = useState(invite.view_count === 1)
+  const [showSaveLink, setShowSaveLink] = useState(false)
   const [linkCopied, setLinkCopied] = useState(false)
   const [contractSigned, setContractSigned] = useState(contractStatus?.status === 'signed')
   const [showOnboarding, setShowOnboarding] = useState(invite.onboarding_mode && !invite.onboarding_completed_at)
@@ -287,6 +294,42 @@ export function PortalView({
       : enabledTabs[0]?.id || 'summary'
   const [activeTab, setActiveTab] = useState(initialTab)
 
+  // Called when the visitor dismisses the welcome cover: hand off to the
+  // save-your-link prompt, route them to the most important tab, then launch
+  // the spotlight tutorial.
+  const enterFromCover = useCallback(() => {
+    setShowCover(false)
+    setShowSaveLink(true)
+    if (!invite.onboarding_mode) {
+      if (invite.can_sign_contract && invite.contract_id && !contractSigned) {
+        setActiveTab('contract')
+      } else if (invite.can_upload_documents) {
+        setActiveTab('documents')
+      }
+    }
+  }, [
+    invite.onboarding_mode,
+    invite.can_sign_contract,
+    invite.contract_id,
+    invite.can_upload_documents,
+    contractSigned,
+  ])
+
+  // The save-your-link prompt is the last step of the first-visit sequence:
+  // cover → bookmark → (on close) spotlight tutorial. Only launch the tutorial
+  // on the genuine first visit and outside onboarding mode (onboarding launches
+  // its own tutorial after the stepper completes). launchTutorial no-ops if the
+  // tutorial was already completed.
+  const handleSaveLinkOpenChange = useCallback(
+    (open: boolean) => {
+      setShowSaveLink(open)
+      if (!open && !invite.onboarding_mode && invite.view_count === 1) {
+        launchTutorial()
+      }
+    },
+    [launchTutorial, invite.onboarding_mode, invite.view_count]
+  )
+
   // Fire a page_view event on the initial load, and feature_opened when the
   // recipient switches tabs. trackPortalEvent no-ops under ?preview=1.
   useEffect(() => {
@@ -327,10 +370,24 @@ export function PortalView({
 
     return (
       <div>
+        {showCover && (
+          <PortalWelcomeCover
+            contactName={contactName}
+            caseName={caseData.case_name}
+            caseNumber={caseData.case_number}
+            isInquiry={isInquiry}
+            invite={invite}
+            onEnter={enterFromCover}
+          />
+        )}
         <SaveLinkDialog
           open={showSaveLink}
-          onOpenChange={setShowSaveLink}
+          onOpenChange={handleSaveLinkOpenChange}
           token={token}
+          caseId={caseData.id}
+          caseName={caseData.case_name}
+          recipientName={contactName}
+          contactEmail={invite.contact?.email || null}
           linkCopied={linkCopied}
           setLinkCopied={setLinkCopied}
         />
@@ -369,89 +426,27 @@ export function PortalView({
 
   return (
     <div>
+      {showCover && (
+        <PortalWelcomeCover
+          contactName={contactName}
+          caseName={caseData.case_name}
+          caseNumber={caseData.case_number}
+          isInquiry={caseData.status === 'inquiry'}
+          invite={invite}
+          onEnter={enterFromCover}
+        />
+      )}
       <SaveLinkDialog
         open={showSaveLink}
-        onOpenChange={setShowSaveLink}
+        onOpenChange={handleSaveLinkOpenChange}
         token={token}
+        caseId={caseData.id}
+        caseName={caseData.case_name}
+        recipientName={contactName}
+        contactEmail={invite.contact?.email || null}
         linkCopied={linkCopied}
         setLinkCopied={setLinkCopied}
       />
-      {/* Welcome Dialog (first visit) */}
-      <Dialog open={showWelcome} onOpenChange={setShowWelcome}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Welcome to Your Case Portal</DialogTitle>
-            <DialogDescription>
-              Welcome, {contactName}. This portal gives you secure access to
-              case information for <strong>{caseData.case_name}</strong> (
-              {caseData.case_number}).
-            </DialogDescription>
-          </DialogHeader>
-          <div className="text-sm text-gray-600 space-y-2">
-            <p>From this portal you can:</p>
-            <ul className="list-disc list-inside space-y-1">
-              {invite.can_sign_contract && invite.contract_id && (
-                <li className="font-medium text-[#0E1F35]">Review and sign the retention agreement</li>
-              )}
-              {invite.can_view_summary && <li>View the case summary</li>}
-              {invite.can_view_timeline && (
-                <li>Review the communication timeline</li>
-              )}
-              {invite.can_message && (
-                <li>Send and receive secure messages</li>
-              )}
-              {invite.can_view_reports && <li>Access shared reports</li>}
-              {invite.can_upload_documents && (
-                <li>Upload documents and records</li>
-              )}
-              {invite.can_view_billing && (
-                <li>View invoices and billing</li>
-              )}
-              {invite.can_view_fee_schedule && (
-                <li>View the fee schedule</li>
-              )}
-              {invite.can_view_depositions && (
-                <li>Review depositions</li>
-              )}
-              {invite.can_book_scheduling && (
-                <li>Book expert calls and depositions</li>
-              )}
-            </ul>
-            {invite.can_upload_documents && (
-              <p className="mt-3 text-[#0E1F35] font-medium">
-                If you have medical records or other documents to share, please
-                use the Documents tab to upload them.
-              </p>
-            )}
-          </div>
-          <DialogFooter>
-            <Button
-              onClick={() => {
-                setShowWelcome(false)
-                if (invite.can_sign_contract && invite.contract_id && !contractSigned) {
-                  setActiveTab('contract')
-                } else if (invite.can_upload_documents) {
-                  setActiveTab('documents')
-                }
-                launchTutorial()
-              }}
-              className="bg-[#0E1F35] hover:bg-[#0E1F35]/90"
-            >
-              {invite.can_sign_contract && invite.contract_id && !contractSigned
-                ? 'Review & Sign Agreement'
-                : invite.can_upload_documents
-                  ? 'Upload Documents'
-                  : 'Get Started'}
-            </Button>
-            <Button variant="outline" onClick={() => {
-              setShowWelcome(false)
-              launchTutorial()
-            }}>
-              Explore Portal
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Case header */}
       <div className="mb-6 flex items-start justify-between">
@@ -465,13 +460,23 @@ export function PortalView({
               ` (${invite.contact.organization_name})`}
           </p>
         </div>
-        <button
-          onClick={() => setShowTutorial(true)}
-          className="text-gray-400 hover:text-[#DFC06A] transition-colors p-1.5 rounded-lg hover:bg-gray-100"
-          title="Portal tutorial"
-        >
-          <HelpCircle className="h-5 w-5" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setShowSaveLink(true)}
+            className="flex items-center gap-1.5 text-gray-500 hover:text-[#DFC06A] transition-colors px-2.5 py-1.5 rounded-lg hover:bg-gray-100 text-sm font-medium"
+            title="Save your portal link"
+          >
+            <Bookmark className="h-4 w-4" />
+            <span className="hidden sm:inline">Save link</span>
+          </button>
+          <button
+            onClick={() => setShowTutorial(true)}
+            className="text-gray-400 hover:text-[#DFC06A] transition-colors p-1.5 rounded-lg hover:bg-gray-100"
+            title="Portal tutorial"
+          >
+            <HelpCircle className="h-5 w-5" />
+          </button>
+        </div>
       </div>
 
       {/* Tab navigation - Meridian style */}
@@ -515,7 +520,10 @@ export function PortalView({
           />
         )}
         {activeTab === 'summary' && (
-          <PortalSummary caseData={caseData} caseContacts={caseContacts} />
+          <div className="space-y-6">
+            <PortalSummary caseData={caseData} caseContacts={caseContacts} />
+            <PortalInviteColleague token={token} caseName={caseData.case_name} />
+          </div>
         )}
         {activeTab === 'timeline' && (
           <PortalTimeline communications={communications} />
@@ -569,19 +577,36 @@ function SaveLinkDialog({
   open,
   onOpenChange,
   token,
+  caseId,
+  caseName,
+  recipientName,
+  contactEmail,
   linkCopied,
   setLinkCopied,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   token: string
+  caseId: string
+  caseName: string
+  recipientName: string
+  contactEmail: string | null
   linkCopied: boolean
   setLinkCopied: (v: boolean) => void
 }) {
+  const [emailState, setEmailState] = useState<'idle' | 'sending' | 'sent'>('idle')
+
   const portalUrl =
     typeof window !== 'undefined'
       ? window.location.origin + `/portal/${token}`
       : `/portal/${token}`
+
+  const isApple =
+    typeof navigator !== 'undefined' &&
+    /Mac|iPhone|iPad|iPod/.test(navigator.userAgent)
+  const isMobile =
+    typeof navigator !== 'undefined' &&
+    /Android|iPhone|iPad|iPod|Mobile/.test(navigator.userAgent)
 
   async function copyLink() {
     try {
@@ -590,6 +615,27 @@ function SaveLinkDialog({
       setTimeout(() => setLinkCopied(false), 2500)
     } catch {
       // ignore
+    }
+  }
+
+  async function emailMeLink() {
+    if (!contactEmail || emailState !== 'idle') return
+    setEmailState('sending')
+    try {
+      const res = await fetch('/api/portal/invite-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          portalUrl,
+          recipientEmail: contactEmail,
+          recipientName,
+          caseId,
+          caseName,
+        }),
+      })
+      setEmailState(res.ok ? 'sent' : 'idle')
+    } catch {
+      setEmailState('idle')
     }
   }
 
@@ -611,27 +657,65 @@ function SaveLinkDialog({
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm font-mono break-all text-[#0E1F35]">
             {portalUrl}
           </div>
-          <Button
-            onClick={copyLink}
-            variant="outline"
-            className="w-full"
-          >
-            {linkCopied ? (
-              <>
-                <Check className="h-4 w-4 mr-2 text-emerald-600" />
-                Copied!
-              </>
-            ) : (
-              <>
-                <Copy className="h-4 w-4 mr-2" />
-                Copy Link
-              </>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <Button onClick={copyLink} variant="outline" className="w-full">
+              {linkCopied ? (
+                <>
+                  <Check className="h-4 w-4 mr-2 text-emerald-600" />
+                  Copied!
+                </>
+              ) : (
+                <>
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy link
+                </>
+              )}
+            </Button>
+
+            {contactEmail && (
+              <Button
+                onClick={emailMeLink}
+                variant="outline"
+                className="w-full"
+                disabled={emailState !== 'idle'}
+              >
+                {emailState === 'sent' ? (
+                  <>
+                    <Check className="h-4 w-4 mr-2 text-emerald-600" />
+                    Sent!
+                  </>
+                ) : emailState === 'sending' ? (
+                  <>
+                    <Mail className="h-4 w-4 mr-2 animate-pulse" />
+                    Sending…
+                  </>
+                ) : (
+                  <>
+                    <Mail className="h-4 w-4 mr-2" />
+                    Email me this link
+                  </>
+                )}
+              </Button>
             )}
-          </Button>
-          <p className="text-xs text-gray-500">
-            Tip: bookmark this page in your browser, or email the link to
-            yourself so you can find it easily later.
-          </p>
+          </div>
+
+          <div className="rounded-lg bg-[#0E1F35]/[0.03] border border-gray-200 p-3 space-y-1.5">
+            <p className="flex items-center gap-2 text-xs text-gray-600">
+              <Bookmark className="h-3.5 w-3.5 text-[#DFC06A] shrink-0" />
+              Bookmark this page now —{' '}
+              <kbd className="px-1.5 py-0.5 rounded bg-white border border-gray-300 font-mono text-[11px] text-gray-700">
+                {isApple ? '⌘' : 'Ctrl'} + D
+              </kbd>
+            </p>
+            {isMobile && (
+              <p className="flex items-center gap-2 text-xs text-gray-600">
+                <Smartphone className="h-3.5 w-3.5 text-[#DFC06A] shrink-0" />
+                On mobile: tap{' '}
+                <span className="font-medium">Share → Add to Home Screen</span>.
+              </p>
+            )}
+          </div>
         </div>
         <DialogFooter>
           <Button
