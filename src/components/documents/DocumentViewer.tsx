@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAnnotations, useCreateAnnotation, useDeleteAnnotation } from '@/hooks/useAnnotations'
 import { useUpdateDocument } from '@/hooks/useDocuments'
+import { authHeaders } from '@/lib/api-client'
 import type { DocumentRow } from '@/types/database.types'
 import type { AnnotationType } from '@/types/enums'
 import {
@@ -81,7 +82,9 @@ export function DocumentViewer({ document, open, onOpenChange }: DocumentViewerP
     setError(null)
     setViewUrl(null)
     try {
-      const response = await fetch(`/api/documents/view?id=${docId}`)
+      const response = await fetch(`/api/documents/view?id=${docId}`, {
+        headers: { ...(await authHeaders()) },
+      })
       if (!response.ok) {
         const err = await response.json().catch(() => ({ error: 'Failed to load document' }))
         throw new Error(err.error || 'Failed to load document')
@@ -270,7 +273,7 @@ export function DocumentViewer({ document, open, onOpenChange }: DocumentViewerP
             <div className="h-full">
               {loading && (
                 <div className="flex flex-col items-center justify-center h-96">
-                  <Loader2 className="h-8 w-8 animate-spin text-[#C9A84C] mb-4" />
+                  <Loader2 className="h-8 w-8 animate-spin text-[#DFC06A] mb-4" />
                   <p className="text-sm text-muted-foreground">Loading document...</p>
                 </div>
               )}
@@ -417,7 +420,7 @@ export function DocumentViewer({ document, open, onOpenChange }: DocumentViewerP
                   <ul className="space-y-1.5">
                     {document.ai_key_findings.map((finding: string, i: number) => (
                       <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                        <span className="text-[#C9A84C] mt-0.5 shrink-0">&#x2022;</span>
+                        <span className="text-[#DFC06A] mt-0.5 shrink-0">&#x2022;</span>
                         {finding}
                       </li>
                     ))}
@@ -432,7 +435,7 @@ export function DocumentViewer({ document, open, onOpenChange }: DocumentViewerP
                   <div className="space-y-1">
                     {(document.ai_extracted_dates as Array<{ date: string; event: string }>).map((item, i) => (
                       <div key={i} className="flex items-start gap-3 text-sm">
-                        <span className="font-mono text-xs text-[#C9A84C] shrink-0 mt-0.5 bg-amber-50 px-1.5 py-0.5 rounded">
+                        <span className="font-mono text-xs text-[#DFC06A] shrink-0 mt-0.5 bg-amber-50 px-1.5 py-0.5 rounded">
                           {item.date}
                         </span>
                         <span className="text-muted-foreground">{item.event}</span>
@@ -651,7 +654,7 @@ function TextViewer({ url }: { url: string }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <Loader2 className="h-6 w-6 animate-spin text-[#C9A84C]" />
+        <Loader2 className="h-6 w-6 animate-spin text-[#DFC06A]" />
       </div>
     )
   }
