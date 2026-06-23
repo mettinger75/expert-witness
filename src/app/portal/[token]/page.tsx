@@ -3,6 +3,7 @@
 import { useParams } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { PortalView } from './PortalView'
+import { PortalLinkRecovery } from './PortalLinkRecovery'
 import { Loader2, AlertTriangle } from 'lucide-react'
 
 interface PortalInvite {
@@ -176,7 +177,10 @@ export default function PortalPage() {
       <div className="max-w-md mx-auto py-24 text-center">
         <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
         <h2 className="text-xl font-semibold text-gray-800 mb-2">Portal Unavailable</h2>
-        <p className="text-gray-600">{error || 'This portal link is no longer valid.'}</p>
+        <p className="text-gray-600">
+          {error || 'This portal link is no longer valid.'}
+        </p>
+        <PortalLinkRecovery />
       </div>
     )
   }
