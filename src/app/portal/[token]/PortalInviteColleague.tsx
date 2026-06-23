@@ -72,7 +72,11 @@ export function PortalInviteColleague({ token, caseName }: PortalInviteColleague
       }
       const name = `${firstName.trim()} ${lastName.trim()}`.trim()
       setInvited((prev) => [...prev, { name, email: email.trim() }])
-      toast.success(`Invitation sent to ${name || email.trim()}`)
+      if (data.emailSent === false) {
+        toast.warning(`${name || email.trim()} was added to the case, but the invitation email could not be sent.`)
+      } else {
+        toast.success(`Invitation sent to ${name || email.trim()}`)
+      }
       reset()
       setOpen(false)
     } catch {

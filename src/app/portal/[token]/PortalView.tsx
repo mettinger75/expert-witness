@@ -63,6 +63,7 @@ interface PortalInvite {
   can_view_billing: boolean
   can_book_scheduling: boolean
   can_sign_contract: boolean
+  can_invite_contacts: boolean
   contract_id: string | null
   onboarding_mode: boolean
   onboarding_steps: Record<string, string> | null
@@ -516,7 +517,9 @@ export function PortalView({
         {activeTab === 'summary' && (
           <div className="space-y-6">
             <PortalSummary caseData={caseData} caseContacts={caseContacts} />
-            <PortalInviteColleague token={token} caseName={caseData.case_name} />
+            {invite.can_invite_contacts && (
+              <PortalInviteColleague token={token} caseName={caseData.case_name} />
+            )}
           </div>
         )}
         {activeTab === 'timeline' && (

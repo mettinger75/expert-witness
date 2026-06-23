@@ -22,6 +22,7 @@ interface PortalInvite {
   can_view_billing: boolean
   can_book_scheduling: boolean
   can_sign_contract: boolean
+  can_invite_contacts: boolean
   contract_id: string | null
   onboarding_mode: boolean
   onboarding_steps: Record<string, string> | null

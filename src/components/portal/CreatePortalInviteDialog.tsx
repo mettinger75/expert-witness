@@ -69,6 +69,7 @@ export function CreatePortalInviteDialog({ caseId, contactId, contactName, conta
   const [canViewDepositions, setCanViewDepositions] = useState(true)
   const [canViewBilling, setCanViewBilling] = useState(true)
   const [canBookScheduling, setCanBookScheduling] = useState(true)
+  const [canInviteContacts, setCanInviteContacts] = useState(false)
   const [expiresInDays, setExpiresInDays] = useState('90')
   const [invitationMessage, setInvitationMessage] = useState('')
 
@@ -194,6 +195,7 @@ export function CreatePortalInviteDialog({ caseId, contactId, contactName, conta
           canViewDepositions,
           canViewBilling,
           canBookScheduling,
+          canInviteContacts,
           canSignContract: attachContract,
           contractId,
           onboardingMode: true,
@@ -709,6 +711,7 @@ export function CreatePortalInviteDialog({ caseId, contactId, contactName, conta
                   { label: 'Billing & Invoices', checked: canViewBilling, onChange: setCanViewBilling },
                   { label: 'Depositions', checked: canViewDepositions, onChange: setCanViewDepositions },
                   { label: 'Call & Deposition Booking', checked: canBookScheduling, onChange: setCanBookScheduling },
+                  { label: 'Allow inviting colleagues', checked: canInviteContacts, onChange: setCanInviteContacts },
                 ].map((item) => (
                   <div key={item.label} className="flex items-center gap-2">
                     <Checkbox

@@ -164,6 +164,7 @@ export interface ContactRow {
   last_name: string;
   title: string | null;
   organization_name: string | null;
+  parent_contact_id: string | null;
   email: string | null;
   phone_primary: string | null;
   phone_secondary: string | null;
@@ -188,6 +189,7 @@ export interface ContactInsert {
   last_name: string;
   title?: string | null;
   organization_name?: string | null;
+  parent_contact_id?: string | null;
   email?: string | null;
   phone_primary?: string | null;
   phone_secondary?: string | null;
@@ -392,26 +394,43 @@ export interface MedicalRecordsTimelineRow {
   id: string;
   case_id: string;
   document_id: string | null;
+  event_date: string;
+  event_time: string | null;
+  event_end_date: string | null;
+  event_end_time: string | null;
   event_type: TimelineEventType;
-  event_datetime: string;
-  event_end_datetime: string | null;
-  title: string;
-  description: string | null;
+  event_title: string;
+  event_description: string | null;
   provider_name: string | null;
-  provider_role: string | null;
-  facility: string | null;
-  details: Json | null;
+  provider_specialty: string | null;
+  facility_name: string | null;
+  department: string | null;
+  clinical_details: Json | null;
   vital_signs: Json | null;
   medications: Json | null;
   lab_values: Json | null;
-  is_significant: boolean;
-  significance_note: string | null;
-  page_reference: string | null;
+  diagnoses: string[] | null;
+  procedures: string[] | null;
+  is_critical_event: boolean;
+  critical_event_reason: string | null;
+  relevance_to_case: string | null;
+  standard_of_care_note: string | null;
+  causation_note: string | null;
+  source_page_number: number | null;
+  source_bates_number: string | null;
+  source_quote: string | null;
   ai_generated: boolean;
   ai_confidence: number | null;
-  verified: boolean;
+  ai_flags: string[] | null;
+  ai_suggested_importance: string | null;
+  is_verified: boolean;
+  verified_by: string | null;
   verified_at: string | null;
+  verification_notes: string | null;
   sort_order: number;
+  color_code: string | null;
+  icon: string | null;
+  tags: string[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -420,26 +439,43 @@ export interface MedicalRecordsTimelineInsert {
   id?: string;
   case_id: string;
   document_id?: string | null;
+  event_date: string;
+  event_time?: string | null;
+  event_end_date?: string | null;
+  event_end_time?: string | null;
   event_type: TimelineEventType;
-  event_datetime: string;
-  event_end_datetime?: string | null;
-  title: string;
-  description?: string | null;
+  event_title: string;
+  event_description?: string | null;
   provider_name?: string | null;
-  provider_role?: string | null;
-  facility?: string | null;
-  details?: Json | null;
+  provider_specialty?: string | null;
+  facility_name?: string | null;
+  department?: string | null;
+  clinical_details?: Json | null;
   vital_signs?: Json | null;
   medications?: Json | null;
   lab_values?: Json | null;
-  is_significant?: boolean;
-  significance_note?: string | null;
-  page_reference?: string | null;
+  diagnoses?: string[] | null;
+  procedures?: string[] | null;
+  is_critical_event?: boolean;
+  critical_event_reason?: string | null;
+  relevance_to_case?: string | null;
+  standard_of_care_note?: string | null;
+  causation_note?: string | null;
+  source_page_number?: number | null;
+  source_bates_number?: string | null;
+  source_quote?: string | null;
   ai_generated?: boolean;
   ai_confidence?: number | null;
-  verified?: boolean;
+  ai_flags?: string[] | null;
+  ai_suggested_importance?: string | null;
+  is_verified?: boolean;
+  verified_by?: string | null;
   verified_at?: string | null;
+  verification_notes?: string | null;
   sort_order?: number;
+  color_code?: string | null;
+  icon?: string | null;
+  tags?: string[] | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -1173,14 +1209,18 @@ export interface InvoiceLineItemRow {
   invoice_id: string | null;
   case_id: string | null;
   time_entry_id: string | null;
-  line_type: LineItemType;
+  line_number: number;
+  activity_type: string;
   description: string;
+  date: string | null;
   quantity: number;
   unit_price: number;
   amount: number;
-  sort_order: number;
+  is_expense: boolean;
+  is_taxable: boolean;
   is_billed: boolean;
   created_at: string;
+  updated_at: string;
 }
 
 export interface InvoiceLineItemInsert {
@@ -1188,14 +1228,18 @@ export interface InvoiceLineItemInsert {
   invoice_id?: string | null;
   case_id?: string | null;
   time_entry_id?: string | null;
-  line_type: LineItemType;
+  line_number?: number;
+  activity_type?: string;
   description: string;
+  date?: string | null;
   quantity: number;
   unit_price: number;
   amount?: number;
-  sort_order?: number;
+  is_expense?: boolean;
+  is_taxable?: boolean;
   is_billed?: boolean;
   created_at?: string;
+  updated_at?: string;
 }
 
 export type InvoiceLineItemUpdate = Partial<InvoiceLineItemInsert>;
@@ -1313,14 +1357,24 @@ export interface CaseMilestoneRow {
   id: string;
   case_id: string;
   milestone_type: MilestoneType;
-  title: string;
+  milestone_name: string;
   description: string | null;
-  due_date: string | null;
-  completed_date: string | null;
+  target_date: string | null;
+  actual_date: string | null;
+  completed_at: string | null;
   is_completed: boolean;
-  is_overdue: boolean;
-  reminder_date: string | null;
+  status: string;
+  related_document_id: string | null;
+  related_report_id: string | null;
+  related_invoice_id: string | null;
+  related_deposition_id: string | null;
+  reminder_days_before: number | null;
+  reminder_sent: boolean;
+  reminder_sent_at: string | null;
   sort_order: number;
+  color_code: string | null;
+  icon: string | null;
+  notes: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -1329,14 +1383,21 @@ export interface CaseMilestoneInsert {
   id?: string;
   case_id: string;
   milestone_type: MilestoneType;
-  title: string;
+  milestone_name: string;
   description?: string | null;
-  due_date?: string | null;
-  completed_date?: string | null;
+  target_date?: string | null;
+  actual_date?: string | null;
+  completed_at?: string | null;
   is_completed?: boolean;
-  is_overdue?: boolean;
-  reminder_date?: string | null;
+  status?: string;
+  related_document_id?: string | null;
+  related_report_id?: string | null;
+  related_invoice_id?: string | null;
+  related_deposition_id?: string | null;
+  reminder_days_before?: number | null;
+  reminder_sent?: boolean;
   sort_order?: number;
+  notes?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -1929,6 +1990,7 @@ export interface PortalInviteRow {
   can_view_fee_schedule: boolean;
   can_view_depositions: boolean;
   can_sign_contract: boolean;
+  can_invite_contacts: boolean;
   contract_id: string | null;
   onboarding_mode: boolean;
   onboarding_steps: Json | null;
@@ -1956,6 +2018,7 @@ export interface PortalInviteInsert {
   can_view_fee_schedule?: boolean;
   can_view_depositions?: boolean;
   can_sign_contract?: boolean;
+  can_invite_contacts?: boolean;
   contract_id?: string | null;
   onboarding_mode?: boolean;
   onboarding_steps?: Json | null;
@@ -1990,6 +2053,56 @@ export interface PortalMessageInsert {
 }
 
 export type PortalMessageUpdate = Partial<PortalMessageInsert>;
+
+// =============================================================================
+// leads
+// =============================================================================
+
+export type LeadStatus = 'new' | 'approved' | 'sent' | 'dismissed';
+export type LeadSide = 'plaintiff' | 'defense' | 'unknown';
+export type LeadPriority = 'normal' | 'high';
+
+export interface LeadRow {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  firm_name: string | null;
+  location: string | null;
+  email: string | null;
+  phone: string | null;
+  website: string | null;
+  side: LeadSide;
+  priority: LeadPriority;
+  status: LeadStatus;
+  context: string | null;
+  source_url: string | null;
+  notes: string | null;
+  contact_id: string | null;
+  sent_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LeadInsert {
+  id?: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  firm_name?: string | null;
+  location?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  website?: string | null;
+  side?: LeadSide;
+  priority?: LeadPriority;
+  status?: LeadStatus;
+  context?: string | null;
+  source_url?: string | null;
+  notes?: string | null;
+  contact_id?: string | null;
+  sent_at?: string | null;
+}
+
+export type LeadUpdate = Partial<LeadInsert>;
 
 // =============================================================================
 // Convenience type aliases

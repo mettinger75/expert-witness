@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { randomBytes } from 'crypto'
-import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { validatePortalInvite } from '@/lib/portal-auth'
 import { sendPortalInviteEmail } from '@/lib/portal-email'
 
 /**
@@ -23,22 +23,20 @@ export async function POST(
 ) {
   try {
     const { token } = await params
-    const supabase = getSupabaseAdmin()
 
-    // Validate token and pull the inviter's view permissions so the new
-    // collaborator inherits the same (never more) access — minus contract
-    // signing, which stays with the retaining attorney.
-    const { data: invite, error: invErr } = await supabase
-      .from('portal_invites')
-      .select(
-        'id, case_id, contact_id, is_active, can_view_summary, can_view_timeline, can_message, can_view_reports, can_upload_documents, can_view_fee_schedule, can_view_depositions, can_view_billing'
-      )
-      .eq('token', token)
-      .eq('is_active', true)
-      .single()
+    // Validate token (active + unexpired) and require the invite-colleague
+    // permission, which is off by default and granted per invite.
+    const v = await validatePortalInvite(token, { permission: 'can_invite_contacts' })
+    if (v.error) return v.error
+    const { invite, supabase } = v
 
-    if (invErr || !invite) {
-      return NextResponse.json({ error: 'Invalid or expired portal link' }, { status: 403 })
+    // The new collaborator inherits a SAFE SUBSET of the inviter's access —
+    // never reports, billing, depositions, contract signing, or invite rights.
+    const inviterPerms = invite as unknown as {
+      can_view_timeline?: boolean
+      can_message?: boolean
+      can_upload_documents?: boolean
+      can_view_fee_schedule?: boolean
     }
 
     const body = await request.json()
@@ -141,15 +139,16 @@ export async function POST(
         is_active: true,
         expires_at: expiresAt,
         onboarding_mode: false,
-        can_view_summary: invite.can_view_summary ?? true,
-        can_view_timeline: invite.can_view_timeline ?? true,
-        can_message: invite.can_message ?? true,
-        can_view_reports: invite.can_view_reports ?? false,
-        can_upload_documents: invite.can_upload_documents ?? true,
-        can_view_fee_schedule: invite.can_view_fee_schedule ?? true,
-        can_view_depositions: invite.can_view_depositions ?? false,
-        can_view_billing: invite.can_view_billing ?? false,
+        can_view_summary: true,
+        can_view_timeline: inviterPerms.can_view_timeline ?? true,
+        can_message: inviterPerms.can_message ?? true,
+        can_view_reports: false,
+        can_upload_documents: inviterPerms.can_upload_documents ?? true,
+        can_view_fee_schedule: inviterPerms.can_view_fee_schedule ?? true,
+        can_view_depositions: false,
+        can_view_billing: false,
         can_sign_contract: false,
+        can_invite_contacts: false,
       })
       .select('id')
       .single()
@@ -159,23 +158,23 @@ export async function POST(
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'
     const portalUrl = `${appUrl}/portal/${newToken}`
 
+    let emailSent = false
     try {
-      await sendPortalInviteEmail({
+      const emailResult = await sendPortalInviteEmail({
         recipientEmail: contact.email,
         recipientName: `${contact.first_name} ${contact.last_name}`.trim(),
         portalUrl,
         caseId: invite.case_id,
         isInquiry: false,
       })
+      emailSent = emailResult.success
     } catch (emailErr) {
       console.error('add-contact: invite email failed', emailErr)
     }
 
-    return NextResponse.json({
-      contact,
-      inviteId: newInvite?.id,
-      portalUrl,
-    })
+    // Do not return the raw portal URL to the inviter — the link is delivered
+    // only to the new contact's email on file.
+    return NextResponse.json({ success: true, emailSent })
   } catch (error) {
     console.error('Add contact error:', error)
     return NextResponse.json(
