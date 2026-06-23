@@ -14,6 +14,7 @@ import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { REPORT_TYPES, getLabelForValue } from '@/lib/constants'
 import type { ReportUpdate } from '@/types/database.types'
 import { formatDate } from '@/lib/formatters'
+import { authHeaders } from '@/lib/api-client'
 import {
   useReports,
   useCreateReport,
@@ -498,6 +499,12 @@ export default function CaseReportsPage() {
   const [reviewDecisionPending, setReviewDecisionPending] = useState(false)
   const reviewRef = useRef<HTMLDivElement>(null)
 
+  // View report (read-only preview)
+  const [viewingReportId, setViewingReportId] = useState<string | null>(null)
+  const [viewingReportHtml, setViewingReportHtml] = useState<string | null>(null)
+  const [viewingReportName, setViewingReportName] = useState<string>('')
+  const viewRef = useRef<HTMLDivElement>(null)
+
   const fetchAttorneyRevisions = useCallback(async (reportId: string) => {
     setReviewLoading(true)
     try {
@@ -739,7 +746,7 @@ export default function CaseReportsPage() {
     try {
       const res = await fetch('/api/reports/export-pdf', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({ reportId: idToExport, includeSignature }),
       })
 
@@ -906,7 +913,7 @@ export default function CaseReportsPage() {
       {generateReport.isPending && !activeReport && (
         <Card className="mb-6">
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-[#C9A84C] mb-4" />
+            <Loader2 className="h-8 w-8 animate-spin text-[#DFC06A] mb-4" />
             <p className="text-sm font-medium">Generating your expert report...</p>
             <p className="text-xs text-muted-foreground mt-1">
               The AI is drafting each section based on your case data. This may take a minute.
@@ -919,7 +926,7 @@ export default function CaseReportsPage() {
       {activeReport && (
         <div className="space-y-4 mb-8">
           <div className="flex items-center gap-2 mb-2">
-            <Sparkles className="h-4 w-4 text-[#C9A84C]" />
+            <Sparkles className="h-4 w-4 text-[#DFC06A]" />
             <h3 className="font-semibold text-sm">Report Editor</h3>
             <Badge variant="secondary">Draft</Badge>
           </div>
@@ -966,7 +973,7 @@ export default function CaseReportsPage() {
       {monolithicHtml && !activeReport && (
         <div className="space-y-4 mb-8">
           <div className="flex items-center gap-2 mb-2">
-            <Upload className="h-4 w-4 text-[#C9A84C]" />
+            <Upload className="h-4 w-4 text-[#DFC06A]" />
             <h3 className="font-semibold text-sm">Imported Document Editor</h3>
             <Badge variant="secondary">Draft</Badge>
           </div>
@@ -979,12 +986,42 @@ export default function CaseReportsPage() {
         </div>
       )}
 
+      {/* Read-only Report Viewer */}
+      {viewingReportId && viewingReportHtml && (
+        <div className="mb-8" ref={viewRef}>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-[#0E1F35]">
+              {viewingReportName}
+            </h2>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setViewingReportId(null)
+                setViewingReportHtml(null)
+              }}
+            >
+              Close
+            </Button>
+          </div>
+          <div className="border rounded-lg overflow-hidden">
+            <div className="tiptap-editor" style={{ border: 'none' }}>
+              <div
+                className="ProseMirror"
+                style={{ padding: '2rem', background: 'white' }}
+                dangerouslySetInnerHTML={{ __html: viewingReportHtml }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Attorney Review section — when attorney has submitted edits (status = review) */}
       {reviewReportId && (
         <div className="mb-8" ref={reviewRef}>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <Gavel className="h-5 w-5 text-[#C9A84C]" />
+              <Gavel className="h-5 w-5 text-[#DFC06A]" />
               <h3 className="font-semibold">Review Attorney Edits</h3>
               {reviewRevisions.length === 0 && !reviewLoading && (
                 <span className="text-sm text-muted-foreground">&mdash; No revisions found</span>
@@ -1007,7 +1044,7 @@ export default function CaseReportsPage() {
             const latestRevision = pending || reviewRevisions[0]
             return (
               <div className="space-y-4">
-                <div className="p-4 bg-amber-50 border border-[#C9A84C]/30 rounded-lg">
+                <div className="p-4 bg-amber-50 border border-[#DFC06A]/30 rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
                     <h4 className="text-sm font-semibold text-[#0E1F35]">
                       Round {latestRevision.revision_number} from {latestRevision.submitted_by_name}
@@ -1021,7 +1058,7 @@ export default function CaseReportsPage() {
                   </p>
                   {latestRevision.notes && (
                     <div className="mt-2 flex items-start gap-2">
-                      <StickyNote className="h-4 w-4 text-[#C9A84C] shrink-0 mt-0.5" />
+                      <StickyNote className="h-4 w-4 text-[#DFC06A] shrink-0 mt-0.5" />
                       <p className="text-sm text-gray-700">{latestRevision.notes}</p>
                     </div>
                   )}
@@ -1068,7 +1105,7 @@ export default function CaseReportsPage() {
         <div className="mb-8" ref={redlineRef}>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <GitCompareArrows className="h-5 w-5 text-[#C9A84C]" />
+              <GitCompareArrows className="h-5 w-5 text-[#DFC06A]" />
               <h3 className="font-semibold">Redline Review</h3>
               {redlineData.length === 0 && !redlineLoading && (
                 <span className="text-sm text-muted-foreground">&mdash; No edits have been made via share links yet</span>
@@ -1088,7 +1125,7 @@ export default function CaseReportsPage() {
                   onClick={() => setActiveRedlineIdx(idx)}
                   className={`px-3 py-1.5 rounded-md border text-xs transition-colors ${
                     activeRedlineIdx === idx
-                      ? 'border-[#C9A84C] bg-[#C9A84C]/10 text-[#0E1F35]'
+                      ? 'border-[#DFC06A] bg-[#DFC06A]/10 text-[#0E1F35]'
                       : 'border-gray-200 hover:bg-gray-50 text-gray-600'
                   }`}
                 >
@@ -1109,9 +1146,9 @@ export default function CaseReportsPage() {
 
               {/* Editor notes callout */}
               {redlineData[activeRedlineIdx].editor_notes && (
-                <div className="mt-4 p-4 bg-amber-50 border border-[#C9A84C]/30 rounded-lg">
+                <div className="mt-4 p-4 bg-amber-50 border border-[#DFC06A]/30 rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
-                    <StickyNote className="h-4 w-4 text-[#C9A84C]" />
+                    <StickyNote className="h-4 w-4 text-[#DFC06A]" />
                     <h4 className="text-sm font-semibold text-[#0E1F35]">Editor Notes</h4>
                     <span className="text-xs text-muted-foreground">
                       from {redlineData[activeRedlineIdx].edited_by_name || 'attorney'}
@@ -1191,7 +1228,7 @@ export default function CaseReportsPage() {
                         </form>
                       ) : (
                         <h3
-                          className="font-semibold text-sm cursor-pointer hover:text-[#C9A84C] transition-colors"
+                          className="font-semibold text-sm cursor-pointer hover:text-[#DFC06A] transition-colors"
                           onClick={() => startRename(report.id, report.report_name)}
                           title="Click to rename"
                         >
@@ -1223,6 +1260,27 @@ export default function CaseReportsPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
+                    {/* View Report — always available */}
+                    <Button
+                      variant={viewingReportId === report.id ? 'default' : 'outline'}
+                      size="sm"
+                      className={viewingReportId === report.id ? 'bg-[#0E1F35] hover:bg-[#0E1F35]/90 text-white' : ''}
+                      onClick={() => {
+                        if (viewingReportId === report.id) {
+                          setViewingReportId(null)
+                          setViewingReportHtml(null)
+                        } else {
+                          const html = (report as { rendered_html?: string | null }).rendered_html
+                          setViewingReportId(report.id)
+                          setViewingReportName(report.report_name)
+                          setViewingReportHtml(html || null)
+                          setTimeout(() => viewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
+                        }
+                      }}
+                    >
+                      <Eye className="h-4 w-4 mr-1" />
+                      {viewingReportId === report.id ? 'Close' : 'View'}
+                    </Button>
                     {/* Finalize & Sign — show for all non-final/non-sent reports */}
                     {!['final', 'sent', 'superseded', 'ai_generating'].includes(report.status) && (
                       <Button
@@ -1255,12 +1313,13 @@ export default function CaseReportsPage() {
                         Signed PDF
                       </Button>
                     )}
-                    {/* Send to Attorney — show when report is in draft/review/revision/final state */}
+                    {/* Submit for Redlines — show when report is ready to send to attorney */}
                     {['draft', 'in_progress', 'review', 'revision', 'final'].includes(report.status) && (
                       <SendToAttorneyDialog
                         reportId={report.id}
                         reportName={report.report_name}
                         caseId={caseId}
+                        onSent={() => queryClient.invalidateQueries({ queryKey: ['reports', 'case', caseId] })}
                       />
                     )}
                     {/* Review Attorney Edits — show when status is 'review' (attorney submitted edits) */}
@@ -1280,32 +1339,38 @@ export default function CaseReportsPage() {
                         Review Edits
                       </Button>
                     )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => fetchRedlineData(report.id)}
-                      disabled={redlineLoading && redlineReportId === report.id}
-                    >
-                      {redlineLoading && redlineReportId === report.id ? (
-                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                      ) : (
-                        <GitCompareArrows className="h-4 w-4 mr-1" />
-                      )}
-                      Redline
-                    </Button>
+                    {/* Redline history — show when there are revisions */}
+                    {['attorney_review', 'review'].includes(report.status) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fetchRedlineData(report.id)}
+                        disabled={redlineLoading && redlineReportId === report.id}
+                      >
+                        {redlineLoading && redlineReportId === report.id ? (
+                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        ) : (
+                          <GitCompareArrows className="h-4 w-4 mr-1" />
+                        )}
+                        Redline History
+                      </Button>
+                    )}
                     <ShareDialog
                       entityType="report"
                       entityId={report.id}
                       entityName={report.report_name}
                     />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleLoadExisting(report as { id: string; content: Record<string, unknown> | null; sections_data: Record<string, SectionData> | null; rendered_html?: string | null })}
-                    >
-                      <Pencil className="h-4 w-4 mr-1" />
-                      Edit
-                    </Button>
+                    {/* Edit — only show when NOT with attorney for redlines */}
+                    {!['attorney_review'].includes(report.status) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleLoadExisting(report as { id: string; content: Record<string, unknown> | null; sections_data: Record<string, SectionData> | null; rendered_html?: string | null })}
+                      >
+                        <Pencil className="h-4 w-4 mr-1" />
+                        Edit
+                      </Button>
+                    )}
                     {/* Unfinalize — only for final/sent reports */}
                     {['final', 'sent'].includes(report.status) && (
                       <Button

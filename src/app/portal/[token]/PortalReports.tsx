@@ -92,7 +92,7 @@ function getReportStatusColor(status: string): string {
     in_progress: 'bg-blue-100 text-blue-800',
     ai_generating: 'bg-purple-100 text-purple-800',
     review: 'bg-blue-100 text-blue-800',
-    attorney_review: 'bg-[#C9A84C]/15 text-[#0E1F35]',
+    attorney_review: 'bg-[#DFC06A]/15 text-[#0E1F35]',
     revision: 'bg-orange-100 text-orange-800',
     final: 'bg-emerald-100 text-emerald-800',
     sent: 'bg-green-100 text-green-800',
@@ -120,8 +120,8 @@ function getListStatusBadge(status: string) {
   switch (status) {
     case 'attorney_review':
       return (
-        <Badge className="bg-[#C9A84C]/15 text-[#0E1F35] border border-[#C9A84C]/40">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#C9A84C] mr-1.5 animate-pulse" />
+        <Badge className="bg-[#DFC06A]/15 text-[#0E1F35] border border-[#DFC06A]/40">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#DFC06A] mr-1.5 animate-pulse" />
           Awaiting Your Review
         </Badge>
       )
@@ -256,7 +256,7 @@ export function PortalReports({ token, caseReports }: PortalReportsProps) {
   const [viewingReport, setViewingReport] = useState<ReportContent | null>(null)
   const [revisions, setRevisions] = useState<ReportRevision[]>([])
   const [canEdit, setCanEdit] = useState(false)
-  const [viewMode, setViewMode] = useState<'current' | 'edit' | 'redline'>(
+  const [viewMode, setViewMode] = useState<'current' | 'redline'>(
     'current'
   )
   const [activeRevisionId, setActiveRevisionId] = useState<string | null>(null)
@@ -324,10 +324,10 @@ export function PortalReports({ token, caseReports }: PortalReportsProps) {
     setDownloadingPdf(true)
     setError(null)
     try {
-      const res = await fetch('/api/reports/export-pdf', {
+      const res = await fetch(`/api/portal/${token}/reports/${viewingReport.id}/pdf`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reportId: viewingReport.id, includeSignature: true }),
+        body: JSON.stringify({ includeSignature: true }),
       })
       if (!res.ok) {
         const err = await res.json()
@@ -433,8 +433,8 @@ export function PortalReports({ token, caseReports }: PortalReportsProps) {
 
         {/* Workflow state banner */}
         {isAttorneyReview && !hasRequestedFinalization && (
-          <div className="flex items-start gap-3 p-4 bg-[#C9A84C]/10 border border-[#C9A84C]/30 rounded-lg">
-            <Info className="h-5 w-5 text-[#C9A84C] shrink-0 mt-0.5" />
+          <div className="flex items-start gap-3 p-4 bg-[#DFC06A]/10 border border-[#DFC06A]/30 rounded-lg">
+            <Info className="h-5 w-5 text-[#DFC06A] shrink-0 mt-0.5" />
             <div className="text-sm text-[#0E1F35]">
               <strong>Dr. Ettinger has sent this report for your review.</strong>{' '}
               {canEdit
@@ -469,8 +469,8 @@ export function PortalReports({ token, caseReports }: PortalReportsProps) {
           </div>
         )}
         {canEdit && !isAttorneyReview && !isUnderReview && !isFinalOrSent && (
-          <div className="flex items-start gap-3 p-4 bg-[#C9A84C]/10 border border-[#C9A84C]/30 rounded-lg">
-            <Pencil className="h-5 w-5 text-[#C9A84C] shrink-0 mt-0.5" />
+          <div className="flex items-start gap-3 p-4 bg-[#DFC06A]/10 border border-[#DFC06A]/30 rounded-lg">
+            <Pencil className="h-5 w-5 text-[#DFC06A] shrink-0 mt-0.5" />
             <div className="text-sm text-[#0E1F35]">
               <strong>You have edit access to this report.</strong>{' '}
               Use the Edit tab to make changes and submit them to Dr. Ettinger for review.
@@ -559,19 +559,6 @@ export function PortalReports({ token, caseReports }: PortalReportsProps) {
           </button>
           {canEdit && (
             <button
-              onClick={() => setViewMode('edit')}
-              className={`px-3 py-1.5 text-xs font-medium transition-colors border-l ${
-                viewMode === 'edit'
-                  ? 'bg-[#0E1F35] text-white'
-                  : 'bg-white text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              <Pencil className="h-3.5 w-3.5 inline mr-1" />
-              Edit
-            </button>
-          )}
-          {revisions.length > 0 && (
-            <button
               onClick={() => setViewMode('redline')}
               className={`px-3 py-1.5 text-xs font-medium transition-colors border-l ${
                 viewMode === 'redline'
@@ -581,9 +568,11 @@ export function PortalReports({ token, caseReports }: PortalReportsProps) {
             >
               <GitCompareArrows className="h-3.5 w-3.5 inline mr-1" />
               Redline
-              <span className="ml-1 bg-[#C9A84C] text-[#0E1F35] text-[10px] font-bold rounded-full w-4 h-4 inline-flex items-center justify-center">
-                {revisions.length}
-              </span>
+              {revisions.length > 0 && (
+                <span className="ml-1 bg-[#DFC06A] text-[#0E1F35] text-[10px] font-bold rounded-full w-4 h-4 inline-flex items-center justify-center">
+                  {revisions.length}
+                </span>
+              )}
             </button>
           )}
         </div>
@@ -627,43 +616,59 @@ export function PortalReports({ token, caseReports }: PortalReportsProps) {
           </>
         )}
 
-        {/* ──── Edit View ──── */}
-        {viewMode === 'edit' && canEdit && displayHtml && (
-          <PortalReportEditor
-            token={token}
-            reportId={viewingReport.id}
-            initialHtml={displayHtml}
-            reportName={viewingReport.reportName}
-            onSubmitted={() => {
-              setViewMode('current')
-              fetchReport(viewingReport.id)
-            }}
-            onCancel={() => setViewMode('current')}
-          />
-        )}
-
-        {/* ──── Redline View ──── */}
-        {viewMode === 'redline' && revisions.length > 0 && (
-          <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
-            {/* Timeline sidebar */}
-            <div>
-              <RevisionTimeline
-                revisions={revisions}
-                onSelectRevision={(r) => setActiveRevisionId(r.id)}
-                activeRevisionId={activeRevisionId}
+        {/* ──── Redline View (Editor + Revision History) ──── */}
+        {viewMode === 'redline' && canEdit && (
+          <div className="space-y-8">
+            {/* Editor */}
+            {displayHtml && (
+              <PortalReportEditor
+                token={token}
+                reportId={viewingReport.id}
+                initialHtml={displayHtml}
+                reportName={viewingReport.reportName}
+                onSubmitted={() => {
+                  setViewMode('current')
+                  fetchReport(viewingReport.id)
+                }}
+                onCancel={() => setViewMode('current')}
               />
-            </div>
+            )}
 
-            {/* Redline diff */}
-            <div>
-              {activeRevision ? (
-                <RevisionRedlineViewer revision={activeRevision} />
-              ) : (
-                <div className="text-center py-12 text-sm text-gray-500 border rounded-lg bg-gray-50">
-                  Select a revision from the timeline to view its redline.
+            {/* Previous Revisions */}
+            {revisions.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 pt-4 border-t">
+                  <Clock className="h-4 w-4 text-gray-400" />
+                  <h3 className="text-sm font-semibold text-[#0E1F35] uppercase tracking-wider">
+                    Previous Revisions
+                  </h3>
+                  <span className="bg-[#DFC06A]/20 text-[#0E1F35] text-[10px] font-bold rounded-full w-5 h-5 inline-flex items-center justify-center">
+                    {revisions.length}
+                  </span>
                 </div>
-              )}
-            </div>
+                <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
+                  {/* Timeline sidebar */}
+                  <div>
+                    <RevisionTimeline
+                      revisions={revisions}
+                      onSelectRevision={(r) => setActiveRevisionId(r.id)}
+                      activeRevisionId={activeRevisionId}
+                    />
+                  </div>
+
+                  {/* Redline diff */}
+                  <div>
+                    {activeRevision ? (
+                      <RevisionRedlineViewer revision={activeRevision} />
+                    ) : (
+                      <div className="text-center py-12 text-sm text-gray-500 border rounded-lg bg-gray-50">
+                        Select a revision from the timeline to view the comparison.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -691,7 +696,7 @@ export function PortalReports({ token, caseReports }: PortalReportsProps) {
                     onChange={(e) => setFinalizationNotes(e.target.value)}
                     placeholder="Any final notes or comments for Dr. Ettinger..."
                     rows={3}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#C9A84C] focus:border-transparent resize-none"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#DFC06A] focus:border-transparent resize-none"
                   />
                 </div>
                 <div className="flex justify-end gap-3 pt-2">
@@ -757,8 +762,8 @@ export function PortalReports({ token, caseReports }: PortalReportsProps) {
             key={report.id}
             className={`py-4 cursor-pointer hover:shadow-md transition-shadow ${
               report.status === 'attorney_review'
-                ? 'border-[#C9A84C]/40 hover:border-[#C9A84C]/60'
-                : 'hover:border-[#C9A84C]/30'
+                ? 'border-[#DFC06A]/40 hover:border-[#DFC06A]/60'
+                : 'hover:border-[#DFC06A]/30'
             }`}
             onClick={() => fetchReport(report.id)}
           >
@@ -768,7 +773,7 @@ export function PortalReports({ token, caseReports }: PortalReportsProps) {
                   <div
                     className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
                       report.status === 'attorney_review'
-                        ? 'bg-[#C9A84C]/15 text-[#C9A84C]'
+                        ? 'bg-[#DFC06A]/15 text-[#DFC06A]'
                         : 'bg-[#0E1F35]/5 text-[#0E1F35]'
                     }`}
                   >
@@ -797,7 +802,7 @@ export function PortalReports({ token, caseReports }: PortalReportsProps) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-[#0E1F35] hover:text-[#C9A84C] shrink-0"
+                  className="text-[#0E1F35] hover:text-[#DFC06A] shrink-0"
                   onClick={(e) => {
                     e.stopPropagation()
                     fetchReport(report.id)

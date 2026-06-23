@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { generateReportPdf } from '@/lib/report-pdf-generator'
+import { requireAdminUser } from '@/lib/api-admin-auth'
 
 export const maxDuration = 60 // Allow up to 60s for PDF generation
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAdminUser(request)
+    if (auth.error) return auth.error
+
     const body = await request.json()
     const { reportId, includeSignature = true } = body
 
