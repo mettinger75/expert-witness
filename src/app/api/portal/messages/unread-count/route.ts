@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { requireAdminUser } from '@/lib/api-admin-auth'
 
 /**
  * GET /api/portal/messages/unread-count
@@ -8,8 +9,11 @@ import { getSupabaseAdmin } from '@/lib/supabase-admin'
  * Dr. Ettinger has not yet read. Used to render the unread badge in
  * the sidebar so missed portal notes stay visible until triaged.
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const auth = await requireAdminUser(request)
+    if (auth.error) return auth.error
+
     const supabase = getSupabaseAdmin()
 
     const { count, error } = await supabase

@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner'
 import { Copy, Check, Link2, Loader2, Mail, Send, FileSignature, Eye, Clock, CheckCircle2, RefreshCw, Plus, Activity as ActivityIcon, ExternalLink, SlidersHorizontal } from 'lucide-react'
 import { PortalActivityDrawer } from './PortalActivityDrawer'
+import { authHeaders } from '@/lib/api-client'
 
 interface ExistingInvite {
   id: string
@@ -101,7 +102,8 @@ export function CreatePortalInviteDialog({ caseId, contactId, contactName, conta
       setExistingInvite(null)
       setShowCreateNew(false)
       setPortalUrl(null)
-      fetch(`/api/portal?caseId=${caseId}&contactId=${contactId}`)
+      authHeaders()
+        .then((h) => fetch(`/api/portal?caseId=${caseId}&contactId=${contactId}`, { headers: { ...h } }))
         .then((res) => res.json())
         .then((data) => {
           if (data.invites && data.invites.length > 0) {
@@ -177,7 +179,7 @@ export function CreatePortalInviteDialog({ caseId, contactId, contactName, conta
       // Step 3: Create the portal invite
       const res = await fetch('/api/portal', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({
           caseId,
           contactId,
@@ -258,7 +260,7 @@ export function CreatePortalInviteDialog({ caseId, contactId, contactName, conta
 
       const res = await fetch('/api/portal/invite-email', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({
           portalUrl: urlToSend,
           recipientEmail: contactEmail,

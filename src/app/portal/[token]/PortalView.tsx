@@ -384,9 +384,6 @@ export function PortalView({
           open={showSaveLink}
           onOpenChange={handleSaveLinkOpenChange}
           token={token}
-          caseId={caseData.id}
-          caseName={caseData.case_name}
-          recipientName={contactName}
           contactEmail={invite.contact?.email || null}
           linkCopied={linkCopied}
           setLinkCopied={setLinkCopied}
@@ -440,9 +437,6 @@ export function PortalView({
         open={showSaveLink}
         onOpenChange={handleSaveLinkOpenChange}
         token={token}
-        caseId={caseData.id}
-        caseName={caseData.case_name}
-        recipientName={contactName}
         contactEmail={invite.contact?.email || null}
         linkCopied={linkCopied}
         setLinkCopied={setLinkCopied}
@@ -577,9 +571,6 @@ function SaveLinkDialog({
   open,
   onOpenChange,
   token,
-  caseId,
-  caseName,
-  recipientName,
   contactEmail,
   linkCopied,
   setLinkCopied,
@@ -587,9 +578,6 @@ function SaveLinkDialog({
   open: boolean
   onOpenChange: (open: boolean) => void
   token: string
-  caseId: string
-  caseName: string
-  recipientName: string
   contactEmail: string | null
   linkCopied: boolean
   setLinkCopied: (v: boolean) => void
@@ -622,16 +610,9 @@ function SaveLinkDialog({
     if (!contactEmail || emailState !== 'idle') return
     setEmailState('sending')
     try {
-      const res = await fetch('/api/portal/invite-email', {
+      const res = await fetch(`/api/portal/${token}/email-link`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          portalUrl,
-          recipientEmail: contactEmail,
-          recipientName,
-          caseId,
-          caseName,
-        }),
       })
       setEmailState(res.ok ? 'sent' : 'idle')
     } catch {

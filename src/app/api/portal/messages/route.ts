@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { requireAdminUser } from '@/lib/api-admin-auth'
 import { caseEmailHeaders, caseEmailSubject } from '@/lib/email-threading'
 
 type SupabaseAdmin = ReturnType<typeof getSupabaseAdmin>
@@ -137,6 +138,9 @@ async function notifyProviderMessage(opts: {
 // GET: List all portal messages for a case (dashboard view)
 export async function GET(request: NextRequest) {
   try {
+    const auth = await requireAdminUser(request)
+    if (auth.error) return auth.error
+
     const caseId = request.nextUrl.searchParams.get('caseId')
     if (!caseId) {
       return NextResponse.json({ error: 'Missing caseId' }, { status: 400 })
@@ -181,6 +185,9 @@ export async function GET(request: NextRequest) {
 // POST: Send a message from Dr. Ettinger (dashboard)
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAdminUser(request)
+    if (auth.error) return auth.error
+
     const { portalInviteId, caseId, content } = await request.json()
 
     if (!portalInviteId || !caseId || !content?.trim()) {

@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { requireAdminUser } from '@/lib/api-admin-auth'
 
 // POST: Attach a contract to an existing portal invite
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAdminUser(request)
+    if (auth.error) return auth.error
+
     const body = await request.json()
     const { portalInviteId, contractId } = body
 
@@ -20,7 +24,7 @@ export async function POST(request: NextRequest) {
     // Verify portal invite exists and is active
     const { data: invite, error: inviteError } = await supabase
       .from('portal_invites')
-      .select('id, is_active, onboarding_mode, onboarding_steps')
+      .select('id, case_id, is_active, onboarding_mode, onboarding_steps')
       .eq('id', portalInviteId)
       .single()
 
@@ -38,10 +42,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verify contract exists
+    // Verify contract exists and belongs to the same case as the invite
     const { data: contract, error: contractError } = await supabase
       .from('contracts')
-      .select('id, status')
+      .select('id, case_id, status')
       .eq('id', contractId)
       .single()
 
@@ -49,6 +53,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Contract not found' },
         { status: 404 }
+      )
+    }
+
+    if (invite.case_id !== contract.case_id) {
+      return NextResponse.json(
+        { error: 'Contract does not belong to this case' },
+        { status: 400 }
       )
     }
 

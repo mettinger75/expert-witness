@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { randomBytes } from 'crypto'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { sendPortalInviteEmail } from '@/lib/portal-email'
 
 /**
  * Maps the role chosen in the portal "Invite a colleague" UI to a contact_type
@@ -159,16 +160,12 @@ export async function POST(
     const portalUrl = `${appUrl}/portal/${newToken}`
 
     try {
-      await fetch(`${appUrl}/api/portal/invite-email`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          recipientEmail: contact.email,
-          recipientName: `${contact.first_name} ${contact.last_name}`.trim(),
-          portalUrl,
-          caseId: invite.case_id,
-          isInquiry: false,
-        }),
+      await sendPortalInviteEmail({
+        recipientEmail: contact.email,
+        recipientName: `${contact.first_name} ${contact.last_name}`.trim(),
+        portalUrl,
+        caseId: invite.case_id,
+        isInquiry: false,
       })
     } catch (emailErr) {
       console.error('add-contact: invite email failed', emailErr)

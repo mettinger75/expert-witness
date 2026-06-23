@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { sendPortalInviteEmail } from '@/lib/portal-email'
 
 /**
  * Self-serve portal-link recovery.
@@ -68,15 +69,11 @@ export async function POST(request: NextRequest) {
         const portalUrl = `${appUrl}/portal/${invite.token}`
 
         try {
-          await fetch(`${appUrl}/api/portal/invite-email`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              recipientEmail,
-              portalUrl,
-              caseId: invite.case_id,
-              isInquiry: false,
-            }),
+          await sendPortalInviteEmail({
+            recipientEmail,
+            portalUrl,
+            caseId: invite.case_id,
+            isInquiry: false,
           })
           sent++
         } catch (emailErr) {

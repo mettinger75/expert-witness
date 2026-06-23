@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { MessageSquare, Send, RefreshCw, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatDate } from '@/lib/formatters'
+import { authHeaders } from '@/lib/api-client'
 
 interface PortalMessage {
   id: string
@@ -39,7 +40,9 @@ export function PortalMessagesPanel({ caseId }: PortalMessagesPanelProps) {
 
   async function fetchMessages() {
     try {
-      const res = await fetch(`/api/portal/messages?caseId=${caseId}`)
+      const res = await fetch(`/api/portal/messages?caseId=${caseId}`, {
+        headers: { ...(await authHeaders()) },
+      })
       if (!res.ok) throw new Error('Failed to fetch')
       const { messages: msgs } = await res.json()
       setMessages(msgs || [])
@@ -65,7 +68,8 @@ export function PortalMessagesPanel({ caseId }: PortalMessagesPanelProps) {
   // Also fetch portal invites to get an invite ID for sending
   useEffect(() => {
     if (!portalInviteId) {
-      fetch(`/api/portal?caseId=${caseId}`)
+      authHeaders()
+        .then(h => fetch(`/api/portal?caseId=${caseId}`, { headers: { ...h } }))
         .then(res => res.json())
         .then(data => {
           if (data.invites && data.invites.length > 0) {
@@ -82,7 +86,7 @@ export function PortalMessagesPanel({ caseId }: PortalMessagesPanelProps) {
     try {
       const res = await fetch('/api/portal/messages', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({
           portalInviteId,
           caseId,
@@ -114,7 +118,7 @@ export function PortalMessagesPanel({ caseId }: PortalMessagesPanelProps) {
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
-            <MessageSquare className="h-4 w-4 text-[#C9A84C]" />
+            <MessageSquare className="h-4 w-4 text-[#DFC06A]" />
             Portal Messages
             {messages.filter(m => m.sender_type === 'attorney' && !m.is_read).length > 0 && (
               <Badge variant="destructive" className="text-xs px-1.5 py-0">
@@ -140,7 +144,7 @@ export function PortalMessagesPanel({ caseId }: PortalMessagesPanelProps) {
                 className={`p-3 rounded-lg text-sm ${
                   msg.sender_type === 'provider'
                     ? 'bg-[#0E1F35]/5 border-l-2 border-[#0E1F35]'
-                    : 'bg-[#C9A84C]/5 border-l-2 border-[#C9A84C]'
+                    : 'bg-[#DFC06A]/5 border-l-2 border-[#DFC06A]'
                 }`}
               >
                 <div className="flex items-center justify-between mb-1">
@@ -167,7 +171,7 @@ export function PortalMessagesPanel({ caseId }: PortalMessagesPanelProps) {
               onChange={(e) => setNewMessage(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
               placeholder="Type a message..."
-              className="flex-1 text-sm border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#C9A84C]/50 focus:border-[#C9A84C]"
+              className="flex-1 text-sm border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#DFC06A]/50 focus:border-[#DFC06A]"
             />
             <Button size="sm" onClick={handleSend} disabled={sending || !newMessage.trim()}>
               {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}

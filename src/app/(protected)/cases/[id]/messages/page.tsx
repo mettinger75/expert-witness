@@ -10,6 +10,7 @@ import { MessageSquare, Send, ExternalLink } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatDateTime } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
+import { authHeaders } from '@/lib/api-client'
 
 interface PortalMessage {
   id: string
@@ -46,7 +47,9 @@ export default function CaseMessagesPage() {
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true)
     try {
-      const res = await fetch(`/api/portal/messages?caseId=${caseId}`)
+      const res = await fetch(`/api/portal/messages?caseId=${caseId}`, {
+        headers: { ...(await authHeaders()) },
+      })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to load messages')
       setMessages(data.messages || [])
@@ -80,7 +83,7 @@ export default function CaseMessagesPage() {
     try {
       const res = await fetch('/api/portal/messages', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({ portalInviteId: invite.id, caseId, content }),
       })
       const data = await res.json()

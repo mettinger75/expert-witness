@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Loader2, Monitor, Globe, Smartphone, ChevronRight, Activity as ActivityIcon } from 'lucide-react'
+import { authHeaders } from '@/lib/api-client'
 
 interface AccessLogRow {
   id: string
@@ -110,7 +111,8 @@ export function PortalActivityDrawer({ inviteId, contactName, open, onOpenChange
     setLoading(true)
     setError(null)
     setData(null)
-    fetch(`/api/portal/invites/${inviteId}/activity`)
+    authHeaders()
+      .then((h) => fetch(`/api/portal/invites/${inviteId}/activity`, { headers: { ...h } }))
       .then(async (res) => {
         if (!res.ok) throw new Error('Failed to load activity')
         return res.json()

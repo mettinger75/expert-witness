@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { requireAdminUser } from '@/lib/api-admin-auth'
 
 /**
  * GET /api/portal/invites/[id]/activity
@@ -8,10 +9,13 @@ import { getSupabaseAdmin } from '@/lib/supabase-admin'
  * Used by the "View All Activity" drawer in the CreatePortalInviteDialog.
  */
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireAdminUser(request)
+    if (auth.error) return auth.error
+
     const { id } = await params
     const supabase = getSupabaseAdmin()
 

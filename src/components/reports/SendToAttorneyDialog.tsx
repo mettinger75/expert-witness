@@ -21,6 +21,7 @@ import {
   ShieldOff,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { authHeaders } from '@/lib/api-client'
 
 // ── Types ──
 
@@ -115,12 +116,15 @@ export function SendToAttorneyDialog({
     setError(null)
     setSelectedContactId(null)
 
-    Promise.all([
-      // Fetch case contacts
-      fetch(`/api/case-contacts?caseId=${caseId}`).then((r) => r.json()),
-      // Fetch portal invites
-      fetch(`/api/portal?caseId=${caseId}`).then((r) => r.json()),
-    ])
+    authHeaders()
+      .then((h) =>
+        Promise.all([
+          // Fetch case contacts
+          fetch(`/api/case-contacts?caseId=${caseId}`).then((r) => r.json()),
+          // Fetch portal invites
+          fetch(`/api/portal?caseId=${caseId}`, { headers: { ...h } }).then((r) => r.json()),
+        ])
+      )
       .then(([contactsData, invitesData]) => {
         setCaseContacts(contactsData.contacts || [])
         const activeInvites = (invitesData.invites || []).filter(
@@ -213,7 +217,7 @@ export function SendToAttorneyDialog({
         {trigger || (
           <Button variant="outline" size="sm">
             <Send className="h-4 w-4 mr-1" />
-            Send to Attorney
+            Submit for Redlines
           </Button>
         )}
       </DialogTrigger>
@@ -277,7 +281,7 @@ export function SendToAttorneyDialog({
                       disabled={!canSelect}
                       className={`w-full text-left p-3 rounded-lg border transition-colors ${
                         isSelected
-                          ? 'border-[#C9A84C] bg-[#C9A84C]/5 ring-1 ring-[#C9A84C]/30'
+                          ? 'border-[#DFC06A] bg-[#DFC06A]/5 ring-1 ring-[#DFC06A]/30'
                           : canSelect
                             ? 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                             : 'border-gray-100 bg-gray-50/50 opacity-60 cursor-not-allowed'
@@ -296,7 +300,7 @@ export function SendToAttorneyDialog({
                             )}
                           </div>
                           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                            <span className="text-xs text-[#C9A84C] font-medium">
+                            <span className="text-xs text-[#DFC06A] font-medium">
                               {getRoleLabel(role)}
                             </span>
                             {contact.organization_name && (
@@ -361,7 +365,7 @@ export function SendToAttorneyDialog({
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Add notes for the recipient about this report..."
                 rows={3}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-800 placeholder:text-gray-400 focus:border-[#C9A84C] focus:ring-2 focus:ring-[#C9A84C]/20 focus:outline-none resize-none"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-800 placeholder:text-gray-400 focus:border-[#DFC06A] focus:ring-2 focus:ring-[#DFC06A]/20 focus:outline-none resize-none"
               />
             </div>
           )}

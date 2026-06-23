@@ -29,6 +29,7 @@ import {
   ClipboardList,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { authHeaders } from '@/lib/api-client'
 
 interface SubItem {
   title: string
@@ -105,7 +106,7 @@ export function AppSidebar() {
     let cancelled = false
     async function fetchCount() {
       try {
-        const res = await fetch('/api/portal/messages/unread-count', { cache: 'no-store' })
+        const res = await fetch('/api/portal/messages/unread-count', { cache: 'no-store', headers: { ...(await authHeaders()) } })
         if (!res.ok) return
         const data = (await res.json()) as { total?: number }
         if (!cancelled) setUnreadPortalCount(data.total || 0)

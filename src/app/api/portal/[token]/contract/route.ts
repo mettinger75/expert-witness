@@ -47,6 +47,7 @@ export async function GET(
       .from('contracts')
       .select('id, title, contract_type, status, rendered_html, signed_at, signed_by, firm_name, retainer_amount, hourly_rate, deposition_rate, trial_rate')
       .eq('id', invite.contract_id)
+      .eq('case_id', invite.case_id)
       .single()
 
     if (contractError || !contract) {
@@ -135,6 +136,7 @@ export async function POST(
       .from('contracts')
       .select('id, status, signed_at')
       .eq('id', invite.contract_id)
+      .eq('case_id', invite.case_id)
       .single()
 
     if (contract?.status === 'signed') {
@@ -206,7 +208,7 @@ export async function POST(
             html: `
               <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto;">
                 <div style="background-color: #0E1F35; color: white; padding: 24px 32px;">
-                  <h1 style="margin: 0; font-size: 20px; color: #C9A84C;">Contract Signed</h1>
+                  <h1 style="margin: 0; font-size: 20px; color: #DFC06A;">Contract Signed</h1>
                 </div>
                 <div style="padding: 32px; border: 1px solid #e5e7eb; border-top: none;">
                   <p style="color: #374151; font-size: 15px; line-height: 1.6;">
@@ -229,7 +231,7 @@ export async function POST(
                   </table>
                   <p style="color: #6b7280; font-size: 13px; margin-top: 24px;">
                     View the signed contract in the
-                    <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'}/cases/${invite.case_id}/contracts" style="color: #C9A84C;">case dashboard</a>.
+                    <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'}/cases/${invite.case_id}/contracts" style="color: #DFC06A;">case dashboard</a>.
                   </p>
                 </div>
               </div>

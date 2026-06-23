@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/select'
 import { FileSignature, Loader2, Send, CheckCircle2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { authHeaders } from '@/lib/api-client'
 
 interface CaseContact {
   id: string
@@ -113,7 +114,7 @@ export function SendForSignatureDialog({
         // Attach contract to existing portal invite
         const res = await fetch('/api/portal/attach-contract', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
           body: JSON.stringify({
             portalInviteId: existingInvite.id,
             contractId,
@@ -130,7 +131,7 @@ export function SendForSignatureDialog({
         // Create new portal invite with contract
         const res = await fetch('/api/portal', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
           body: JSON.stringify({
             caseId,
             contactId: selectedContactId,
@@ -159,7 +160,7 @@ export function SendForSignatureDialog({
           try {
             await fetch('/api/portal/invite-email', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
               body: JSON.stringify({
                 portalInviteId: data.invite.id,
                 contactEmail: selectedContact.email,
@@ -192,7 +193,7 @@ export function SendForSignatureDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <FileSignature className="h-5 w-5 text-[#C9A84C]" />
+            <FileSignature className="h-5 w-5 text-[#DFC06A]" />
             Send for Signature
           </DialogTitle>
           <DialogDescription>

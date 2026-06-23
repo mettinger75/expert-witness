@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { requireAdminUser } from '@/lib/api-admin-auth'
 import crypto from 'crypto'
 
 // POST: Create a portal invite
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAdminUser(request)
+    if (auth.error) return auth.error
+
     const body = await request.json()
     const {
       caseId,
@@ -204,6 +208,9 @@ export async function POST(request: NextRequest) {
 // GET: List portal invites for a case (optionally filtered by contactId)
 export async function GET(request: NextRequest) {
   try {
+    const auth = await requireAdminUser(request)
+    if (auth.error) return auth.error
+
     const caseId = request.nextUrl.searchParams.get('caseId')
     const contactId = request.nextUrl.searchParams.get('contactId')
     if (!caseId) {
