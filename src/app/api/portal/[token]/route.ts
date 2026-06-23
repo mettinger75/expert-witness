@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { requireAdminUser } from '@/lib/api-admin-auth'
 
 // GET: Validate portal token and return case data
 export async function GET(
@@ -31,17 +32,14 @@ export async function GET(
       return NextResponse.json({ error: 'This portal link has expired' }, { status: 410 })
     }
 
+    let newViewCount = invite.view_count + 1
     if (!isPreview) {
-      // Increment view count
-      const nowIso = new Date().toISOString()
-      const inviteUpdates: Record<string, unknown> = {
-        view_count: invite.view_count + 1,
-        last_accessed_at: nowIso,
-      }
-      if (!invite.first_accessed_at) {
-        inviteUpdates.first_accessed_at = nowIso
-      }
-      await supabase.from('portal_invites').update(inviteUpdates).eq('id', invite.id)
+      // Atomic increment + timestamps. A read-then-write would lose concurrent
+      // increments; the RPC does it in one statement and returns the new count.
+      const { data: vc } = await supabase.rpc('increment_portal_view', {
+        p_invite_id: invite.id,
+      })
+      if (typeof vc === 'number') newViewCount = vc
 
       // Log this session. Dedup to a single row per (invite, session_id) via
       // client-provided session cookie. Fallback to a per-request id if absent.
@@ -106,9 +104,11 @@ export async function GET(
     }
 
     // Fetch case contacts
+    // Portal-safe fields only — don't over-fetch internal contact columns
+    // (bar number, internal notes, addresses, fax, etc.) into the portal payload.
     const { data: caseContacts } = await supabase
       .from('case_contacts')
-      .select('*, contacts(*)')
+      .select('id, role, is_primary, contacts(id, first_name, last_name, email, phone_primary, organization_name, contact_type)')
       .eq('case_id', invite.case_id)
 
     // Fetch reports for this case (if reports enabled)
@@ -128,7 +128,7 @@ export async function GET(
     if (invite.can_view_timeline) {
       const { data: comms } = await supabase
         .from('communication_logs')
-        .select('*')
+        .select('id, communication_type, subject, summary, communication_date, direction, participants, notes')
         .eq('case_id', invite.case_id)
         .order('communication_date', { ascending: false })
         .limit(50)
@@ -209,7 +209,7 @@ export async function GET(
         onboarding_mode: invite.onboarding_mode,
         onboarding_steps: invite.onboarding_steps,
         expires_at: invite.expires_at,
-        view_count: isPreview ? invite.view_count : invite.view_count + 1,
+        view_count: isPreview ? invite.view_count : newViewCount,
         tutorial_completed_at: invite.tutorial_completed_at ?? null,
         onboarding_completed_at: invite.onboarding_completed_at ?? null,
         contact: invite.contacts,
@@ -285,5 +285,32 @@ export async function PATCH(
   } catch (error) {
     console.error('Portal invite update error:', error)
     return NextResponse.json({ error: 'Failed to update portal invite' }, { status: 500 })
+  }
+}
+
+// DELETE: Revoke (deactivate) an invite by token. Admin-only — used by the
+// dashboard when replacing an invite so the old link stops working. Previously
+// there was no DELETE handler, so the dashboard's deactivation call silently
+// no-op'd and stale links stayed live.
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ token: string }> }
+) {
+  const auth = await requireAdminUser(request)
+  if (auth.error) return auth.error
+
+  try {
+    const { token } = await params
+    const supabase = getSupabaseAdmin()
+    const { error } = await supabase
+      .from('portal_invites')
+      .update({ is_active: false, updated_at: new Date().toISOString() })
+      .eq('token', token)
+
+    if (error) throw error
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Portal invite revoke error:', error)
+    return NextResponse.json({ error: 'Failed to revoke invite' }, { status: 500 })
   }
 }

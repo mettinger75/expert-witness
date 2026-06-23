@@ -379,7 +379,11 @@ export function PortalTutorial({
   const [mounted, setMounted] = useState(false)
   const [waitingForTab, setWaitingForTab] = useState(false)
   const tooltipRef = useRef<HTMLDivElement>(null)
+  const nextButtonRef = useRef<HTMLButtonElement>(null)
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null)
+  const titleId = 'portal-tutorial-title'
   const [tooltipSize, setTooltipSize] = useState({ width: 420, height: 400 })
+  const [reduceMotion, setReduceMotion] = useState(false)
 
   // Filter steps based on enabled tabs
   const steps = useMemo(() => {
@@ -394,7 +398,25 @@ export function PortalTutorial({
   const targetSelector = !waitingForTab && step?.targetSelector ? step.targetSelector : null
   const targetRect = useElementRect(targetSelector)
 
-  useEffect(() => setMounted(true), [])
+  // On mount, remember who had focus so we can restore it when the tutorial
+  // closes (focus management for screen-reader / keyboard users).
+  useEffect(() => {
+    previouslyFocusedRef.current =
+      (document.activeElement as HTMLElement | null) ?? null
+    setMounted(true)
+    return () => {
+      previouslyFocusedRef.current?.focus?.()
+    }
+  }, [])
+
+  // Honor prefers-reduced-motion for the spotlight transition and spinner.
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+    setReduceMotion(mq.matches)
+    const onChange = (e: MediaQueryListEvent) => setReduceMotion(e.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
 
   // Lock body scroll while tutorial is active
   useEffect(() => {
@@ -475,6 +497,35 @@ export function PortalTutorial({
     }
   }, [currentStep])
 
+  // Keyboard support: Escape closes (complete/skip), ArrowRight = Next,
+  // ArrowLeft = Back (only when a previous step exists).
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        handleComplete()
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault()
+        handleNext()
+      } else if (e.key === 'ArrowLeft') {
+        if (currentStep > 0) {
+          e.preventDefault()
+          handlePrev()
+        }
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [handleComplete, handleNext, handlePrev, currentStep])
+
+  // Move focus to the primary action button when the tutorial opens and on each
+  // step change, so keyboard users land inside the dialog.
+  useEffect(() => {
+    if (mounted && !waitingForTab) {
+      nextButtonRef.current?.focus()
+    }
+  }, [mounted, waitingForTab, currentStep])
+
   if (!mounted || !step) return null
 
   // Show loading overlay while switching tabs
@@ -499,7 +550,7 @@ export function PortalTutorial({
           }}
         >
           <div className="bg-white rounded-2xl shadow-2xl px-8 py-6 text-center">
-            <div className="w-8 h-8 border-2 border-[#DFC06A] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+            <div className="w-8 h-8 border-2 border-[#DFC06A] border-t-transparent rounded-full motion-safe:animate-spin mx-auto mb-3" />
             <p className="text-sm font-medium text-[#0E1F35]">
               Navigating to {step.title}...
             </p>
@@ -545,7 +596,9 @@ export function PortalTutorial({
             boxShadow: '0 0 0 9999px rgba(14, 31, 53, 0.72)',
             zIndex: 9998,
             pointerEvents: 'none',
-            transition: 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
+            transition: reduceMotion
+              ? 'none'
+              : 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
           }}
         />
       ) : (
@@ -573,12 +626,15 @@ export function PortalTutorial({
       {/* Tooltip Card */}
       <div
         ref={tooltipRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
         style={{
           ...tooltipStyle,
           width: tooltipWidth,
           zIndex: 9999,
-          animation: 'portalTutorialFadeIn 0.3s ease',
         }}
+        className="motion-safe:[animation:portalTutorialFadeIn_0.3s_ease]"
       >
         {arrowStyle && <div style={arrowStyle} />}
 
@@ -603,6 +659,7 @@ export function PortalTutorial({
                   Step {currentStep + 1} of {steps.length}
                 </p>
                 <h3
+                  id={titleId}
                   className="text-white font-semibold text-sm"
                   style={{ fontFamily: 'Georgia, serif' }}
                 >
@@ -699,6 +756,7 @@ export function PortalTutorial({
                 </button>
               )}
               <button
+                ref={nextButtonRef}
                 onClick={handleNext}
                 className="flex items-center px-3 py-1.5 text-xs font-medium rounded-lg text-white transition-colors hover:opacity-90"
                 style={{

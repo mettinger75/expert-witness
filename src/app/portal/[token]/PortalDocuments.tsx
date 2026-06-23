@@ -115,6 +115,7 @@ export function PortalDocuments({ token }: PortalDocumentsProps) {
   const [documents, setDocuments] = useState<CaseDocument[]>([])
   const [loadingDocs, setLoadingDocs] = useState(true)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const fileInputId = 'portal-document-upload'
 
   // Fetch existing documents on mount
   useEffect(() => {
@@ -284,15 +285,17 @@ export function PortalDocuments({ token }: PortalDocumentsProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Drag & Drop zone */}
-          <div
+          {/* Drag & Drop zone — a <label> so keyboard users can Tab to the
+              (visually hidden but focusable) file input and activate it. */}
+          <label
+            htmlFor={fileInputId}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
             className={`
-              border-2 border-dashed rounded-lg p-8 text-center cursor-pointer
+              block border-2 border-dashed rounded-lg p-8 text-center cursor-pointer
               transition-colors
+              focus-within:outline-none focus-within:ring-2 focus-within:ring-[#DFC06A] focus-within:ring-offset-2
               ${
                 isDragging
                   ? 'border-[#DFC06A] bg-[#DFC06A]/5'
@@ -304,9 +307,10 @@ export function PortalDocuments({ token }: PortalDocumentsProps) {
           >
             <input
               ref={fileInputRef}
+              id={fileInputId}
               type="file"
               onChange={handleInputChange}
-              className="hidden"
+              className="sr-only"
               accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.jpg,.jpeg,.png,.tiff,.bmp"
             />
 
@@ -343,7 +347,7 @@ export function PortalDocuments({ token }: PortalDocumentsProps) {
                 </p>
               </>
             )}
-          </div>
+          </label>
 
           {/* Category selector */}
           <div>

@@ -476,14 +476,18 @@ export function PortalView({
 
       {/* Tab navigation - Meridian style */}
       <div className="border-b border-gray-200 mb-6">
-        <nav className="flex gap-1 -mb-px" aria-label="Portal tabs" data-tour="portal-tabs">
+        <nav
+          className="flex gap-1 -mb-px overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+          aria-label="Portal tabs"
+          data-tour="portal-tabs"
+        >
           {enabledTabs.map((tab) => (
             <button
               key={tab.id}
               data-tour={`tab-${tab.id}`}
               onClick={() => setActiveTab(tab.id)}
               className={`
-                flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors
+                flex shrink-0 items-center gap-2 whitespace-nowrap px-4 py-2.5 text-sm font-medium border-b-2 transition-colors
                 ${
                   activeTab === tab.id
                     ? 'border-[#DFC06A] text-[#0E1F35]'

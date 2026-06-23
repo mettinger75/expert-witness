@@ -142,6 +142,7 @@ export function CreatePortalInviteDialog({ caseId, contactId, contactName, conta
       if (existingInvite) {
         await fetch(`/api/portal/${existingInvite.token}`, {
           method: 'DELETE',
+          headers: { ...(await authHeaders()) },
         }).catch(() => {}) // Best-effort deactivation
       }
 
