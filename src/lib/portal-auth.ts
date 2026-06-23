@@ -34,15 +34,31 @@ type ValidateErr = {
   supabase?: undefined
 }
 
+/** Word-boundary check for a column in a PostgREST select string. */
+function selectIncludes(select: string, col: string): boolean {
+  return new RegExp(`(^|[\\s,(])${col}(\\s|,|\\)|$)`).test(select)
+}
+
 export async function validatePortalInvite(
   token: string,
   opts: { select?: string; permission?: string } = {}
 ): Promise<ValidateOk | ValidateErr> {
   const supabase = getSupabaseAdmin()
 
+  // When a caller passes a trimmed select, guarantee the columns this function
+  // checks are present. Otherwise the checks silently no-op — e.g. an omitted
+  // expires_at makes `invite.expires_at` undefined and lets EXPIRED links pass.
+  let querySelect = opts.select || '*'
+  if (opts.select && opts.select !== '*') {
+    if (!selectIncludes(querySelect, 'expires_at')) querySelect += ', expires_at'
+    if (opts.permission && !selectIncludes(querySelect, opts.permission)) {
+      querySelect += `, ${opts.permission}`
+    }
+  }
+
   const { data, error } = await supabase
     .from('portal_invites')
-    .select(opts.select || '*')
+    .select(querySelect)
     .eq('token', token)
     .eq('is_active', true)
     .single()

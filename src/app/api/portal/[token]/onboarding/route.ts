@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { validatePortalInvite } from '@/lib/portal-auth'
 
 // GET: Return current onboarding steps
 export async function GET(
@@ -8,25 +8,20 @@ export async function GET(
 ) {
   try {
     const { token } = await params
-    const supabase = getSupabaseAdmin()
 
-    const { data: invite, error } = await supabase
-      .from('portal_invites')
-      .select('id, onboarding_mode, onboarding_steps')
-      .eq('token', token)
-      .eq('is_active', true)
-      .single()
-
-    if (error || !invite) {
-      return NextResponse.json(
-        { error: 'Portal invite not found' },
-        { status: 404 }
-      )
+    const v = await validatePortalInvite(token, {
+      select: 'id, onboarding_mode, onboarding_steps',
+    })
+    if (v.error) return v.error
+    const inv = v.invite as {
+      id: string
+      onboarding_mode?: boolean
+      onboarding_steps?: Record<string, string> | null
     }
 
     return NextResponse.json({
-      onboardingMode: invite.onboarding_mode,
-      onboardingSteps: invite.onboarding_steps,
+      onboardingMode: inv.onboarding_mode,
+      onboardingSteps: inv.onboarding_steps,
     })
   } catch (error) {
     console.error('Onboarding fetch error:', error)
@@ -72,23 +67,18 @@ export async function PATCH(
       )
     }
 
-    const supabase = getSupabaseAdmin()
-
-    const { data: invite, error } = await supabase
-      .from('portal_invites')
-      .select('id, onboarding_mode, onboarding_steps')
-      .eq('token', token)
-      .eq('is_active', true)
-      .single()
-
-    if (error || !invite) {
-      return NextResponse.json(
-        { error: 'Portal invite not found' },
-        { status: 404 }
-      )
+    const v = await validatePortalInvite(token, {
+      select: 'id, onboarding_mode, onboarding_steps',
+    })
+    if (v.error) return v.error
+    const { supabase } = v
+    const inv = v.invite as {
+      id: string
+      onboarding_mode?: boolean
+      onboarding_steps?: Record<string, string> | null
     }
 
-    if (!invite.onboarding_mode) {
+    if (!inv.onboarding_mode) {
       return NextResponse.json(
         { error: 'This portal is not in onboarding mode' },
         { status: 400 }
@@ -96,8 +86,8 @@ export async function PATCH(
     }
 
     const steps: Record<string, string> =
-      typeof invite.onboarding_steps === 'object' && invite.onboarding_steps !== null
-        ? { ...(invite.onboarding_steps as Record<string, string>) }
+      typeof inv.onboarding_steps === 'object' && inv.onboarding_steps !== null
+        ? { ...(inv.onboarding_steps as Record<string, string>) }
         : {
             review_fee_schedule: 'pending',
             review_cv: 'locked',
@@ -152,7 +142,7 @@ export async function PATCH(
         onboarding_steps: steps,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', invite.id)
+      .eq('id', inv.id)
 
     if (updateError) {
       throw updateError

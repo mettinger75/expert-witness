@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { randomBytes } from 'crypto'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { sendPortalInviteEmail } from '@/lib/portal-email'
+import { checkRateLimit, clientIp } from '@/lib/rate-limit'
 
 /**
  * Self-serve portal-link recovery.
@@ -29,6 +31,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Please enter a valid email address.' }, { status: 400 })
     }
 
+    // Throttle by IP and email so recovery can't be used to spam an inbox or
+    // repeatedly rotate someone's token. Blocked requests still return the
+    // generic message (no enumeration signal).
+    const ip = clientIp(request)
+    const [ipOk, emailOk] = await Promise.all([
+      checkRateLimit(`recover:ip:${ip}`, 8, 600),
+      checkRateLimit(`recover:email:${email.toLowerCase()}`, 3, 600),
+    ])
+    if (!ipOk || !emailOk) {
+      return NextResponse.json({ message: GENERIC_MESSAGE })
+    }
+
     const supabase = getSupabaseAdmin()
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'
 
@@ -55,18 +69,22 @@ export async function POST(request: NextRequest) {
       for (const invite of invites || []) {
         if (sent >= MAX_EMAILS) break
 
-        // Revive an expired (but still active) invite so the resent link works.
+        // Revive an expired invite by ROTATING its token — issue a fresh link
+        // and invalidate the old (possibly leaked) one, rather than extending
+        // the same token in place.
+        let token = invite.token
         if (new Date(invite.expires_at).getTime() < now) {
+          token = randomBytes(32).toString('hex')
           const newExpiry = new Date(now + 90 * 24 * 60 * 60 * 1000).toISOString()
           await supabase
             .from('portal_invites')
-            .update({ expires_at: newExpiry })
+            .update({ token, expires_at: newExpiry })
             .eq('id', invite.id)
         }
 
         const contact = contacts.find((c) => c.id === invite.contact_id)
         const recipientEmail = contact?.email || email
-        const portalUrl = `${appUrl}/portal/${invite.token}`
+        const portalUrl = `${appUrl}/portal/${token}`
 
         try {
           await sendPortalInviteEmail({

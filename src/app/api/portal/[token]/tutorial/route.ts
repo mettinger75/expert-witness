@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { validatePortalInvite } from '@/lib/portal-auth'
 
 // POST: Mark the portal tutorial as completed
 export async function POST(
@@ -8,28 +8,18 @@ export async function POST(
 ) {
   try {
     const { token } = await params
-    const supabase = getSupabaseAdmin()
 
-    // Validate the token
-    const { data: invite, error } = await supabase
-      .from('portal_invites')
-      .select('id')
-      .eq('token', token)
-      .eq('is_active', true)
-      .single()
-
-    if (error || !invite) {
-      return NextResponse.json(
-        { error: 'Portal invite not found' },
-        { status: 404 }
-      )
-    }
+    // Validate the token (active + unexpired)
+    const v = await validatePortalInvite(token, { select: 'id' })
+    if (v.error) return v.error
+    const { invite, supabase } = v
+    const inv = invite as { id: string }
 
     // Mark tutorial as completed
     const { error: updateError } = await supabase
       .from('portal_invites')
       .update({ tutorial_completed_at: new Date().toISOString() })
-      .eq('id', invite.id)
+      .eq('id', inv.id)
 
     if (updateError) {
       console.error('Tutorial completion update error:', updateError)

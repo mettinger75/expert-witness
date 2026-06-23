@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { randomBytes } from 'crypto'
 import { validatePortalInvite } from '@/lib/portal-auth'
 import { sendPortalInviteEmail } from '@/lib/portal-email'
+import { checkRateLimit, clientIp } from '@/lib/rate-limit'
 
 /**
  * Maps the role chosen in the portal "Invite a colleague" UI to a contact_type
@@ -37,6 +38,19 @@ export async function POST(
       can_message?: boolean
       can_upload_documents?: boolean
       can_view_fee_schedule?: boolean
+    }
+
+    // Throttle invite-colleague per token and per IP to prevent spam.
+    const ip = clientIp(request)
+    const [tokenOk, ipOk] = await Promise.all([
+      checkRateLimit(`add-contact:token:${token}`, 10, 3600),
+      checkRateLimit(`add-contact:ip:${ip}`, 20, 3600),
+    ])
+    if (!tokenOk || !ipOk) {
+      return NextResponse.json(
+        { error: 'Too many invitations from this portal. Please try again later.' },
+        { status: 429 }
+      )
     }
 
     const body = await request.json()

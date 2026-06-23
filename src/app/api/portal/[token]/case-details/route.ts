@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { validatePortalInvite } from '@/lib/portal-auth'
 
 // GET: Fetch case details for summary display
 export async function GET(
@@ -8,18 +8,10 @@ export async function GET(
 ) {
   try {
     const { token } = await params
-    const supabase = getSupabaseAdmin()
 
-    const { data: invite } = await supabase
-      .from('portal_invites')
-      .select('case_id')
-      .eq('token', token)
-      .eq('is_active', true)
-      .single()
-
-    if (!invite) {
-      return NextResponse.json({ error: 'Invalid portal link' }, { status: 403 })
-    }
+    const v = await validatePortalInvite(token)
+    if (v.error) return v.error
+    const { invite, supabase } = v
 
     const { data: caseData } = await supabase
       .from('cases')
@@ -42,21 +34,22 @@ export async function POST(
   try {
     const { token } = await params
     const body = await request.json()
-    const supabase = getSupabaseAdmin()
 
-    // Validate portal invite
-    const { data: invite, error: inviteError } = await supabase
-      .from('portal_invites')
-      .select('id, case_id, onboarding_mode, onboarding_steps, contacts(first_name, last_name)')
-      .eq('token', token)
-      .eq('is_active', true)
-      .single()
-
-    if (inviteError || !invite) {
-      return NextResponse.json({ error: 'Portal invite not found' }, { status: 404 })
+    // Validate portal invite (active + unexpired)
+    const v = await validatePortalInvite(token, {
+      select: 'id, case_id, onboarding_mode, onboarding_steps, contacts(first_name, last_name)',
+    })
+    if (v.error) return v.error
+    const { invite, supabase } = v
+    const inv = invite as {
+      id: string
+      case_id: string
+      onboarding_mode?: boolean
+      onboarding_steps?: Record<string, string> | null
+      contacts?: { first_name: string; last_name: string } | null
     }
 
-    if (!invite.onboarding_mode) {
+    if (!inv.onboarding_mode) {
       return NextResponse.json({ error: 'This portal is not in onboarding mode' }, { status: 400 })
     }
 
@@ -91,7 +84,7 @@ export async function POST(
       const { data: currentCase } = await supabase
         .from('cases')
         .select('status')
-        .eq('id', invite.case_id)
+        .eq('id', inv.case_id)
         .single()
       if (currentCase && ['inquiry', 'conflict_check'].includes(currentCase.status)) {
         caseUpdate.status = 'accepted'
@@ -100,7 +93,7 @@ export async function POST(
       const { error: updateError } = await supabase
         .from('cases')
         .update(caseUpdate)
-        .eq('id', invite.case_id)
+        .eq('id', inv.case_id)
 
       if (updateError) {
         console.error('Case update error:', updateError, 'Update payload:', caseUpdate)
@@ -110,8 +103,8 @@ export async function POST(
 
     // Mark the enter_case_details step as completed
     const steps: Record<string, string> =
-      typeof invite.onboarding_steps === 'object' && invite.onboarding_steps !== null
-        ? { ...(invite.onboarding_steps as Record<string, string>) }
+      typeof inv.onboarding_steps === 'object' && inv.onboarding_steps !== null
+        ? { ...(inv.onboarding_steps as Record<string, string>) }
         : {}
 
     steps.enter_case_details = 'completed'
@@ -136,7 +129,7 @@ export async function POST(
         onboarding_steps: steps,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', invite.id)
+      .eq('id', inv.id)
 
     if (stepError) {
       console.error('Step update error:', stepError)
@@ -149,10 +142,10 @@ export async function POST(
         const { data: caseData } = await supabase
           .from('cases')
           .select('case_name, case_number')
-          .eq('id', invite.case_id)
+          .eq('id', inv.case_id)
           .single()
 
-        const contact = invite.contacts as unknown as { first_name: string; last_name: string } | null
+        const contact = inv.contacts
         const contactName = contact ? `${contact.first_name} ${contact.last_name}` : 'Attorney'
 
         const fieldsEntered = Object.keys(caseUpdate).filter(k => k !== 'updated_at')
@@ -183,7 +176,7 @@ export async function POST(
                   ${body.brief_summary ? `<p style="color: #6b7280; font-size: 13px; margin-top: 16px; border-left: 3px solid #DFC06A; padding-left: 12px;"><strong>Summary:</strong> ${body.brief_summary.substring(0, 300)}${body.brief_summary.length > 300 ? '...' : ''}</p>` : ''}
                   <p style="color: #6b7280; font-size: 13px; margin-top: 24px;">
                     View the case in the
-                    <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'}/cases/${invite.case_id}" style="color: #DFC06A;">case dashboard</a>.
+                    <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'}/cases/${inv.case_id}" style="color: #DFC06A;">case dashboard</a>.
                   </p>
                 </div>
               </div>

@@ -1,21 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { validatePortalInvite } from '@/lib/portal-auth'
 
 export const maxDuration = 60
-
-// Helper to validate portal token
-async function validatePortalToken(token: string) {
-  const supabase = getSupabaseAdmin()
-  const { data: invite } = await supabase
-    .from('portal_invites')
-    .select('id, case_id, contact_id, can_upload_documents, can_view_reports, contacts(first_name, last_name)')
-    .eq('token', token)
-    .eq('is_active', true)
-    .single()
-
-  if (!invite) return { error: 'Portal not found', status: 404 }
-  return { invite }
-}
 
 // GET: Fetch all documents for this portal's case
 export async function GET(
@@ -24,22 +10,26 @@ export async function GET(
 ) {
   try {
     const { token } = await params
-    const supabase = getSupabaseAdmin()
 
-    const validation = await validatePortalToken(token)
-    if ('error' in validation) {
-      return NextResponse.json({ error: validation.error }, { status: validation.status })
+    const v = await validatePortalInvite(token, {
+      select: 'id, case_id, contact_id, can_upload_documents, can_view_reports, contacts(first_name, last_name)',
+    })
+    if (v.error) return v.error
+    const { invite, supabase } = v
+    const inv = invite as {
+      case_id: string
+      can_upload_documents?: boolean
+      contacts?: { first_name: string; last_name: string } | null
     }
-    const { invite } = validation
 
-    if (!invite.can_upload_documents) {
+    if (!inv.can_upload_documents) {
       return NextResponse.json({ error: 'Document access not enabled' }, { status: 403 })
     }
 
     const { data: documents, error } = await supabase
       .from('documents')
       .select('id, file_name, original_file_name, file_size_bytes, document_type, description, source_provider, created_at, mime_type')
-      .eq('case_id', invite.case_id)
+      .eq('case_id', inv.case_id)
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
 
@@ -52,21 +42,6 @@ export async function GET(
   }
 }
 
-// Helper to validate portal token and upload permissions
-async function validatePortalUpload(token: string) {
-  const supabase = getSupabaseAdmin()
-  const { data: invite } = await supabase
-    .from('portal_invites')
-    .select('id, case_id, contact_id, can_upload_documents, contacts(first_name, last_name)')
-    .eq('token', token)
-    .eq('is_active', true)
-    .single()
-
-  if (!invite) return { error: 'Portal not found', status: 404 }
-  if (!invite.can_upload_documents) return { error: 'Document upload not enabled', status: 403 }
-  return { invite }
-}
-
 // POST: Two-step upload
 // Step 1: { action: 'get-upload-url', fileName, fileType } → returns uploadUrl + storagePath
 // Step 2: { action: 'confirm-upload', storagePath, fileName, fileSize, mimeType, category, description } → creates DB record
@@ -76,13 +51,21 @@ export async function POST(
 ) {
   try {
     const { token } = await params
-    const supabase = getSupabaseAdmin()
 
-    const validation = await validatePortalUpload(token)
-    if ('error' in validation) {
-      return NextResponse.json({ error: validation.error }, { status: validation.status })
+    const v = await validatePortalInvite(token, {
+      select: 'id, case_id, contact_id, can_upload_documents, contacts(first_name, last_name)',
+    })
+    if (v.error) return v.error
+    const { invite, supabase } = v
+    const inv = invite as {
+      case_id: string
+      can_upload_documents?: boolean
+      contacts?: { first_name: string; last_name: string } | null
     }
-    const { invite } = validation
+
+    if (!inv.can_upload_documents) {
+      return NextResponse.json({ error: 'Document upload not enabled' }, { status: 403 })
+    }
 
     const body = await request.json()
 
@@ -94,7 +77,7 @@ export async function POST(
       }
 
       const timestamp = Date.now()
-      const storagePath = `cases/${invite.case_id}/documents/${timestamp}_${fileName}`
+      const storagePath = `cases/${inv.case_id}/documents/${timestamp}_${fileName}`
 
       const { data: signedData, error: signError } = await supabase.storage
         .from('case-documents')
@@ -136,13 +119,13 @@ export async function POST(
       const ext = fileName.split('.').pop()?.toLowerCase() || ''
       const fileType = ext || 'unknown'
 
-      const contact = invite.contacts as unknown as { first_name: string; last_name: string } | null
+      const contact = inv.contacts
       const uploaderName = contact ? `${contact.first_name} ${contact.last_name}` : 'Attorney'
 
       const { data: document, error: docError } = await supabase
         .from('documents')
         .insert({
-          case_id: invite.case_id,
+          case_id: inv.case_id,
           file_name: fileName,
           original_file_name: fileName,
           file_type: fileType,
@@ -169,10 +152,10 @@ export async function POST(
           const { data: caseData } = await supabase
             .from('cases')
             .select('case_name, case_number')
-            .eq('id', invite.case_id)
+            .eq('id', inv.case_id)
             .single()
 
-          const contact = invite.contacts as unknown as { first_name: string; last_name: string } | null
+          const contact = inv.contacts
           const uploaderDisplay = contact ? `${contact.first_name} ${contact.last_name}` : 'Attorney'
 
           const fileSizeMB = fileSize ? `${(fileSize / (1024 * 1024)).toFixed(1)} MB` : 'Unknown size'
@@ -214,7 +197,7 @@ export async function POST(
                     </table>
                     <p style="color: #6b7280; font-size: 13px; margin-top: 24px;">
                       View documents in the
-                      <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'}/cases/${invite.case_id}" style="color: #DFC06A;">case dashboard</a>.
+                      <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'}/cases/${inv.case_id}" style="color: #DFC06A;">case dashboard</a>.
                     </p>
                   </div>
                 </div>

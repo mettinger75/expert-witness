@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { validatePortalInvite } from '@/lib/portal-auth'
 import { caseEmailHeaders, caseEmailSubject } from '@/lib/email-threading'
 
 type SupabaseAdmin = ReturnType<typeof getSupabaseAdmin>
@@ -117,19 +118,13 @@ export async function GET(
 ) {
   try {
     const { token } = await params
-    const supabase = getSupabaseAdmin()
 
-    const { data: invite } = await supabase
-      .from('portal_invites')
-      .select('id, can_message')
-      .eq('token', token)
-      .eq('is_active', true)
-      .single()
+    const v = await validatePortalInvite(token, { select: 'id, can_message' })
+    if (v.error) return v.error
+    const { invite, supabase } = v
+    const inv = invite as { id: string; can_message?: boolean }
 
-    if (!invite) {
-      return NextResponse.json({ error: 'Portal not found' }, { status: 404 })
-    }
-    if (!invite.can_message) {
+    if (!inv.can_message) {
       return NextResponse.json({ error: 'Messaging not enabled' }, { status: 403 })
     }
 
@@ -137,14 +132,14 @@ export async function GET(
     await supabase
       .from('portal_messages')
       .update({ is_read: true, read_at: new Date().toISOString() })
-      .eq('portal_invite_id', invite.id)
+      .eq('portal_invite_id', inv.id)
       .eq('sender_type', 'provider')
       .eq('is_read', false)
 
     const { data: messages, error } = await supabase
       .from('portal_messages')
       .select('*')
-      .eq('portal_invite_id', invite.id)
+      .eq('portal_invite_id', inv.id)
       .order('created_at', { ascending: true })
 
     if (error) throw error
@@ -169,31 +164,31 @@ export async function POST(
       return NextResponse.json({ error: 'Message content required' }, { status: 400 })
     }
 
-    const supabase = getSupabaseAdmin()
-
-    const { data: invite } = await supabase
-      .from('portal_invites')
-      .select('id, case_id, contact_id, can_message, contacts(first_name, last_name)')
-      .eq('token', token)
-      .eq('is_active', true)
-      .single()
-
-    if (!invite) {
-      return NextResponse.json({ error: 'Portal not found' }, { status: 404 })
+    const v = await validatePortalInvite(token, {
+      select: 'id, case_id, contact_id, can_message, contacts(first_name, last_name)',
+    })
+    if (v.error) return v.error
+    const { invite, supabase } = v
+    const inv = invite as {
+      id: string
+      case_id: string
+      can_message?: boolean
+      contacts?: { first_name: string; last_name: string } | null
     }
-    if (!invite.can_message) {
+
+    if (!inv.can_message) {
       return NextResponse.json({ error: 'Messaging not enabled' }, { status: 403 })
     }
 
-    const contact = invite.contacts as unknown as { first_name: string; last_name: string } | null
+    const contact = inv.contacts
     const senderName = contact ? `${contact.first_name} ${contact.last_name}` : 'Attorney'
     const trimmedContent = content.trim()
 
     const { data: message, error } = await supabase
       .from('portal_messages')
       .insert({
-        portal_invite_id: invite.id,
-        case_id: invite.case_id,
+        portal_invite_id: inv.id,
+        case_id: inv.case_id,
         sender_type: 'attorney',
         sender_name: senderName,
         content: trimmedContent,
@@ -206,7 +201,7 @@ export async function POST(
     // Fire-and-forget: notify Dr. Ettinger of the new portal note
     void notifyPortalMessage({
       supabase,
-      caseId: invite.case_id,
+      caseId: inv.case_id,
       messageId: message.id,
       senderName,
       content: trimmedContent,

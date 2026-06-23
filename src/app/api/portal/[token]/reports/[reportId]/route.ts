@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { editsSubmittedEmail, sendReportNotification } from '@/lib/report-notification-email'
+import { sanitizeReportHtml } from '@/lib/sanitize-html'
 
 // Statuses in which an attorney with can_edit_reports may edit
 const ATTORNEY_EDITABLE_STATUSES = ['draft', 'in_progress', 'review', 'attorney_review', 'revision']
@@ -168,6 +169,10 @@ export async function PUT(
       )
     }
 
+    // Sanitize attorney-submitted HTML before storing — it is later rendered
+    // with dangerouslySetInnerHTML in the portal and dashboard (stored-XSS).
+    const cleanHtml = sanitizeReportHtml(editedHtml)
+
     const supabase = getSupabaseAdmin()
 
     // Validate the portal invite
@@ -265,7 +270,7 @@ export async function PUT(
         revision_number: nextRevisionNumber,
         submitted_by: 'attorney',
         submitted_by_name: contactName,
-        submitted_html: editedHtml,
+        submitted_html: cleanHtml,
         base_html: report.collaboration_html || '',
         notes: notes || null,
         status: 'pending_review',
@@ -280,7 +285,7 @@ export async function PUT(
     const { error: updateError } = await supabase
       .from('reports')
       .update({
-        collaboration_html: editedHtml,
+        collaboration_html: cleanHtml,
         status: 'review',
       })
       .eq('id', reportId)
