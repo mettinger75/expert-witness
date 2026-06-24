@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
     const resendKey = process.env.RESEND_API_KEY
     if (resendKey) {
       const caseName = `Inquiry — ${firstName} ${lastName}`
-      const notifyAppUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'
+      const notifyAppUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://markettingermd.com'
       const rootSubject = caseEmailSubject(caseNumber, caseName, true)
       const rootHeaders = caseEmailHeaders(newCase.id, { isRoot: true })
       fetch('https://api.resend.com/emails', {
@@ -173,7 +173,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 6. Send inquiry email directly via Resend (not via internal fetch)
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://markettingermd.com'
     const portalUrl = `${appUrl}/portal/${token}`
 
     try {

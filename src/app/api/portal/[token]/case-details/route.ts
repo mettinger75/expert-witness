@@ -176,7 +176,7 @@ export async function POST(
                   ${body.brief_summary ? `<p style="color: #6b7280; font-size: 13px; margin-top: 16px; border-left: 3px solid #DFC06A; padding-left: 12px;"><strong>Summary:</strong> ${body.brief_summary.substring(0, 300)}${body.brief_summary.length > 300 ? '...' : ''}</p>` : ''}
                   <p style="color: #6b7280; font-size: 13px; margin-top: 24px;">
                     View the case in the
-                    <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'}/cases/${inv.case_id}" style="color: #DFC06A;">case dashboard</a>.
+                    <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://markettingermd.com'}/cases/${inv.case_id}" style="color: #DFC06A;">case dashboard</a>.
                   </p>
                 </div>
               </div>

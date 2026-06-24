@@ -199,7 +199,7 @@ export async function POST(request: NextRequest) {
         .eq('id', contractId)
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://markettingermd.com'
     const portalUrl = `${appUrl}/portal/${token}`
 
     return NextResponse.json({ invite, portalUrl })
