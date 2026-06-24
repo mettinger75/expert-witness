@@ -167,7 +167,7 @@ export async function POST(
               Authorization: `Bearer ${resendKey}`,
             },
             body: JSON.stringify({
-              from: 'Expert Witness <noreply@meridian-anesthesia.com>',
+              from: 'Mark Ettinger, M.D. <mark@markettingermd.com>',
               to: 'markettingermd@gmail.com',
               subject: `Document Uploaded: ${caseData?.case_name || 'Unknown Case'}`,
               html: `

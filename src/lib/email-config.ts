@@ -88,7 +88,6 @@ export const EMAIL_EVENT_TYPES = [
   'follow_up',
   'retainer_request',
   'freeform',
-  'outreach',
 ] as const
 
 export type EmailEventType = (typeof EMAIL_EVENT_TYPES)[number]

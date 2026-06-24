@@ -21,7 +21,6 @@ const EMAIL_TEMPLATES = [
   { value: 'deposition_scheduled', label: 'Deposition Scheduled', description: 'Confirm deposition scheduling' },
   { value: 'case_update', label: 'Case Update', description: 'General case update' },
   { value: 'follow_up', label: 'Follow Up', description: 'Follow up on pending items' },
-  { value: 'outreach', label: 'Cold Outreach', description: 'Introduce your practice to a new attorney' },
 ] as const
 
 interface ComposeEmailDialogProps {

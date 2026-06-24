@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${resendKey}` },
         body: JSON.stringify({
-          from: 'Expert Witness <noreply@meridian-anesthesia.com>',
+          from: 'Mark Ettinger, M.D. <mark@markettingermd.com>',
           to: 'markettingermd@gmail.com',
           subject,
           headers,

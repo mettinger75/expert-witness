@@ -3,6 +3,9 @@
  * Follows the same pattern as the contract signing notification emails.
  */
 
+import { wrapEmail, htmlToText } from './email-templates'
+import { EMAIL_REPLY_TO } from './email-config'
+
 interface ReportNotificationOptions {
   recipientName: string
   caseName: string
@@ -17,39 +20,22 @@ interface ReportNotificationOptions {
 export function buildReportNotificationEmail(options: ReportNotificationOptions): string {
   const { recipientName, caseName, caseNumber, reportName, actionText, bodyText, ctaText, ctaUrl } = options
 
-  return `
-    <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto;">
-      <div style="background-color: #0E1F35; color: white; padding: 24px 32px;">
-        <h1 style="margin: 0; font-size: 20px; color: #DFC06A;">${actionText}</h1>
-      </div>
-      <div style="padding: 32px; border: 1px solid #e5e7eb; border-top: none;">
-        <p style="color: #374151; font-size: 15px; line-height: 1.6;">
-          Dear ${recipientName},
-        </p>
-        <p style="color: #374151; font-size: 15px; line-height: 1.6;">
-          ${bodyText}
-        </p>
-        <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-          <tr>
-            <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Report:</td>
-            <td style="padding: 8px 0; font-size: 14px; font-weight: 600;">${reportName}</td>
-          </tr>
-          <tr>
-            <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Case:</td>
-            <td style="padding: 8px 0; font-size: 14px;">${caseName} (${caseNumber})</td>
-          </tr>
-        </table>
-        <div style="text-align: center; margin: 28px 0;">
-          <a href="${ctaUrl}" style="display: inline-block; background-color: #0E1F35; color: white; text-decoration: none; padding: 12px 32px; border-radius: 6px; font-size: 14px; font-weight: 600;">
-            ${ctaText}
-          </a>
-        </div>
-        <p style="color: #9ca3af; font-size: 12px; margin-top: 24px; text-align: center;">
-          Mark Ettinger, M.D. &mdash; Expert Witness Practice
-        </p>
-      </div>
-    </div>
-  `
+  return wrapEmail({
+    subject: actionText,
+    previewText: `${actionText} — ${reportName}`,
+    heading: actionText,
+    skipSignature: true,
+    bodyHtml: `
+      <p>Dear ${recipientName},</p>
+      <p>${bodyText}</p>
+      <p style="margin: 12px 0 0;">
+        <strong style="color: #0E1F35;">Report:</strong> ${reportName}<br>
+        <strong style="color: #0E1F35;">Case:</strong> ${caseName} (${caseNumber})
+      </p>
+    `,
+    ctaLabel: ctaText,
+    ctaUrl,
+  })
 }
 
 /** Attorney submitted edits → email to Dr. Ettinger */
@@ -193,10 +179,12 @@ export async function sendReportNotification(opts: {
         Authorization: `Bearer ${resendKey}`,
       },
       body: JSON.stringify({
-        from: 'Expert Witness <noreply@meridian-anesthesia.com>',
+        from: 'Mark Ettinger, M.D. <mark@markettingermd.com>',
         to: opts.to,
+        reply_to: EMAIL_REPLY_TO,
         subject: opts.subject,
         html: opts.html,
+        text: htmlToText(opts.html),
       }),
     })
     return res.ok

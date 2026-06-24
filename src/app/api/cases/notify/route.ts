@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
         Authorization: `Bearer ${resendKey}`,
       },
       body: JSON.stringify({
-        from: 'Expert Witness <noreply@meridian-anesthesia.com>',
+        from: 'Mark Ettinger, M.D. <mark@markettingermd.com>',
         to: 'markettingermd@gmail.com',
         subject,
         html: bodyHtml,

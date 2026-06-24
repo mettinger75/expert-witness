@@ -92,7 +92,7 @@ async function notifyPortalMessage(opts: {
         Authorization: `Bearer ${resendKey}`,
       },
       body: JSON.stringify({
-        from: 'Expert Witness <noreply@meridian-anesthesia.com>',
+        from: 'Mark Ettinger, M.D. <mark@markettingermd.com>',
         to: NOTIFY_EMAIL,
         subject,
         ...(headers ? { headers } : {}),

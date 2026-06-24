@@ -24,7 +24,6 @@ import {
   ChevronDown,
   ChevronRight,
   Mail,
-  Target,
   Gavel,
   ClipboardList,
 } from 'lucide-react'
@@ -66,7 +65,6 @@ const navItems: NavItem[] = [
       { title: 'All Contacts', href: '/contacts' },
     ],
   },
-  { title: 'Outreach', href: '/outreach', icon: Target },
   { title: 'Tasks', href: '/tasks', icon: ListTodo },
   { title: 'Documents', href: '/documents', icon: FileText },
   {

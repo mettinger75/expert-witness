@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { emailSendDefaults, EMAIL_COLORS } from '@/lib/email-config'
-import { wrapEmail } from '@/lib/email-templates'
+import { wrapEmail, htmlToText } from '@/lib/email-templates'
 
 export async function POST(request: NextRequest) {
   try {
@@ -133,6 +133,7 @@ export async function POST(request: NextRequest) {
       to: [recipientEmail],
       subject,
       html,
+      text: htmlToText(html),
     })
 
     if (error) {

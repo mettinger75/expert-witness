@@ -3,7 +3,7 @@ import { buildEmail } from '@/lib/email-templates'
 import type { EmailEventType } from '@/lib/email-config'
 
 export async function GET(request: NextRequest) {
-  const eventType = (request.nextUrl.searchParams.get('type') || 'outreach') as EmailEventType
+  const eventType = (request.nextUrl.searchParams.get('type') || 'portal_invite') as EmailEventType
   const recipientName = request.nextUrl.searchParams.get('name') || 'Mr. Johnson'
 
   const email = buildEmail(eventType, {

@@ -45,6 +45,7 @@ export async function POST(request: NextRequest) {
       to: recipientEmail,
       subject: customSubject || emailData.subject,
       html: emailData.html,
+      text: emailData.text,
     })
 
     if (resendError) {

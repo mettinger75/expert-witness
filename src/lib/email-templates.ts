@@ -7,7 +7,6 @@
 
 import {
   EMAIL_COLORS,
-  EMAIL_LOGO_URL,
   SITE_URL,
   type EmailEventType,
 } from './email-config'
@@ -18,6 +17,8 @@ export interface EmailOutput {
   subject: string
   html: string
   previewText: string
+  /** Plain-text alternative (auto-derived in buildEmail) */
+  text?: string
 }
 
 export interface EmailMetadata {
@@ -86,21 +87,35 @@ function wrap(opts: {
 }): string {
   const c = EMAIL_COLORS
 
-  const cta = opts.ctaLabel && opts.ctaUrl
-    ? `
-    <div style="padding: 0 32px 32px; text-align: center;">
-      <a href="${opts.ctaUrl}" style="display: inline-block; background: ${c.navy}; color: white; padding: 14px 36px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px; letter-spacing: 0.3px;">
-        ${opts.ctaLabel}
-      </a>
+  // Light-brand, inbox-first layout: a plain text wordmark instead of a logo
+  // banner, an inline link instead of a marketing button, and a personal
+  // signature — so Gmail files it under Primary, not Promotions. No images
+  // (Gmail cannot render SVG and a hero banner reads as marketing).
+  const headingBlock =
+    opts.skipBadge || (!opts.heading && !opts.badge)
+      ? ''
+      : `
+    <div style="padding-top: 20px;">
+      ${opts.badge ? `<p style="margin: 0 0 3px; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: ${c.textMuted};">${opts.badge}</p>` : ''}
+      ${opts.heading ? `<p style="margin: 0; font-size: 17px; font-weight: 600; color: ${c.navy};">${opts.heading}</p>` : ''}
     </div>`
-    : ''
 
   const footerNote = opts.footerNote
-    ? `<div style="background: #FFFDF5; border-left: 3px solid ${c.gold}; padding: 10px 14px; margin-top: 16px; border-radius: 0 6px 6px 0;">
-        <p style="font-size: 12px; font-weight: 700; color: ${c.navy}; margin: 0 0 2px; text-transform: uppercase; letter-spacing: 0.5px;">Note</p>
-        <p style="font-size: 13px; color: ${c.navy}; margin: 0; line-height: 1.5;">${opts.footerNote}</p>
-      </div>`
+    ? `<p style="margin: 18px 0 0; padding: 10px 14px; background: ${c.bgLight}; border-left: 3px solid ${c.gold}; font-size: 13px; color: ${c.navy}; line-height: 1.5;">${opts.footerNote}</p>`
     : ''
+
+  const cta =
+    opts.ctaLabel && opts.ctaUrl
+      ? `<p style="margin: 18px 0;"><a href="${opts.ctaUrl}" style="color: ${c.navy}; font-weight: 600; text-decoration: underline;">${opts.ctaLabel} &rarr;</a></p>`
+      : ''
+
+  const signature = opts.skipSignature
+    ? ''
+    : `
+      <p style="margin: 20px 0 4px;">Sincerely,</p>
+      <p style="margin: 0; font-weight: 600; color: ${c.navy};">Mark Ettinger, M.D.</p>
+      <p style="margin: 2px 0 0; font-size: 13px; color: ${c.textSecondary};">Board-Certified Anesthesiologist</p>
+      <p style="margin: 2px 0 0; font-size: 13px; color: ${c.textSecondary};">markettingermd@gmail.com &bull; (214) 930-4698</p>`
 
   return `<!DOCTYPE html>
 <html>
@@ -108,62 +123,35 @@ function wrap(opts: {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${opts.subject}</title>
-  <span style="display:none;font-size:0;line-height:0;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">${opts.previewText}</span>
 </head>
-<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: ${c.bgLight};">
-<div style="max-width: 640px; margin: 0 auto; padding: 24px 16px;">
-<div style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+<body style="margin: 0; padding: 0; background: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; color: #1f2933;">
+  <span style="display:none;font-size:0;line-height:0;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">${opts.previewText}</span>
+  <div style="max-width: 600px; margin: 0 auto; padding: 24px 20px;">
 
-  <!-- Logo header -->
-  <div style="background: ${c.navyDark}; text-align: center; padding: 28px 32px;">
-    <img src="${EMAIL_LOGO_URL}" alt="Mark Ettinger, M.D." width="300" height="75" style="display: inline-block; max-width: 100%; height: auto;" />
-  </div>
-  <div style="height: 3px; background: ${c.gold};"></div>
-
-  ${opts.skipBadge ? '' : `<!-- Badge + Heading -->
-  <div style="padding: 32px 32px 0;">
-    <div style="background: ${c.navyDark}; border-radius: 8px; padding: 16px 20px; margin-bottom: 20px;">
-      <p style="font-family: Georgia, serif; font-size: 12px; color: ${opts.badgeColor || c.gold}; letter-spacing: 2px; text-transform: uppercase; margin: 0 0 4px;">${opts.badge || ''}</p>
-      <h1 style="font-family: Georgia, serif; font-size: 20px; color: white; font-weight: 400; margin: 0;">${opts.heading || ''}</h1>
+    <!-- Wordmark -->
+    <div style="padding-bottom: 10px; border-bottom: 2px solid ${c.gold};">
+      <p style="margin: 0; font-size: 18px; font-weight: 600; color: ${c.navy};">Mark Ettinger, M.D.</p>
+      <p style="margin: 3px 0 0; font-size: 12px; color: ${c.textSecondary};">Board-Certified Anesthesiologist &bull; Expert Witness</p>
     </div>
-  </div>`}
 
-  <!-- Body content -->
-  <div style="padding: 0 32px 24px; color: #333; font-size: 14px; line-height: 1.7;">
-    ${opts.bodyHtml}
-    ${footerNote}
+    ${headingBlock}
+
+    <!-- Body -->
+    <div style="padding-top: 18px; font-size: 15px; line-height: 1.7; color: #1f2933;">
+      ${opts.bodyHtml}
+      ${footerNote}
+      ${cta}
+      ${signature}
+    </div>
+
+    <!-- Footer -->
+    <div style="padding-top: 18px; margin-top: 22px; border-top: 1px solid ${c.border};">
+      <p style="margin: 0; font-size: 11px; color: ${c.textMuted}; line-height: 1.5;">
+        This email and any attachments are confidential and intended solely for the named recipient. If you received it in error, please delete it and notify the sender.
+      </p>
+    </div>
+
   </div>
-
-  ${cta}
-
-  ${opts.skipSignature ? '' : `<!-- Signature -->
-  <div style="padding: 0 32px 32px;">
-    <p style="color: #333; font-size: 14px; line-height: 1.7; margin: 0 0 16px;">
-      Sincerely,
-    </p>
-    <table cellpadding="0" cellspacing="0" style="border-collapse: collapse; border-top: 1px solid ${c.border}; padding-top: 16px;">
-      <tr>
-        <td style="padding-top: 16px;">
-          <p style="margin: 0; font-family: Georgia, serif; font-size: 16px; font-weight: 600; color: ${c.navy};">Mark Ettinger, M.D.</p>
-          <p style="margin: 4px 0 0; font-size: 12px; color: ${c.textSecondary};">Board Certified Anesthesiologist</p>
-          <p style="margin: 2px 0 0; font-size: 12px; color: ${c.textSecondary};">markettingermd@gmail.com &bull; (214) 930-4698</p>
-        </td>
-      </tr>
-    </table>
-  </div>`}
-
-  <!-- Footer -->
-  <div style="background: #F8F9FB; padding: 20px 32px; text-align: center; border-top: 1px solid ${c.border};">
-    <p style="font-size: 11px; color: ${c.textMuted}; margin: 0;">
-      <span style="font-weight: 600; color: ${c.navy};">Mark Ettinger, M.D.</span> &mdash; Expert Witness Practice
-    </p>
-    <p style="font-size: 11px; color: ${c.textMuted}; margin: 4px 0 0;">
-      This email and any attachments are confidential and intended solely for the recipient.
-    </p>
-  </div>
-
-</div>
-</div>
 </body>
 </html>`
 }
@@ -435,32 +423,6 @@ function retainerRequestEmail(m: EmailMetadata): EmailOutput {
   }
 }
 
-function outreachEmail(m: EmailMetadata): EmailOutput {
-  const subject = m.customSubject || 'Expert Witness Services — Anesthesiology'
-  return {
-    subject,
-    previewText: 'Board-certified anesthesiologist with 200+ expert witness cases.',
-    html: wrap({
-      subject,
-      previewText: 'Board-certified anesthesiologist — 200+ expert witness cases',
-      badge: 'Introduction',
-      badgeColor: EMAIL_COLORS.gold,
-      heading: 'Expert Witness Services',
-      bodyHtml: `
-        <p>${greeting(m.recipientName)}</p>
-        <p>I am writing to make myself available for any expert witness needs you have in the field of anesthesiology. I am currently in full-time clinical practice and the President of a large anesthesia group in Dallas-Fort Worth. My practice covers nearly every subspecialty in anesthesiology, and I perform approximately 1,200 anesthetics per year at facilities ranging from community surgery centers to a Level 1 trauma hospital. There is essentially no type of anesthesia case I am not comfortable reviewing.</p>
-        <p>I have reviewed over 200 cases as an expert witness, many of which have proceeded to deposition and trial. I also serve as Chair of the Medical Ethics Committee and sit on the peer review committee at a Level 2 trauma center, where I review an additional 50+ cases per year. Prior to my anesthesia residency, I trained in neurosurgery and neurocritical care, which gives me the ability to evaluate a case not just from the perspective of the anesthesiologist, but from the surgical side as well.</p>
-        ${m.message ? `<p>${m.message}</p>` : ''}
-        <p>I do not accept a case unless I can defend it with integrity, and I would never compromise that integrity to win a case. If I review a case and cannot support it, I do not charge for that initial review. I am available for both plaintiff and defense retention.</p>
-        <p>When I am retained, you will also have access to a <strong>secure attorney portal</strong> where you can track case progress, review and redline report drafts, schedule calls and depositions, and communicate with me directly throughout the engagement.</p>
-        <p>I would welcome the opportunity to discuss any current or upcoming cases. Please feel free to reach out, or use the link below to submit case details for review.</p>
-      `,
-      ctaLabel: 'Request a Consultation',
-      ctaUrl: m.portalUrl || `${SITE_URL}/portal/consult`,
-    }),
-  }
-}
-
 function freeformEmail(m: EmailMetadata): EmailOutput {
   const subject = m.customSubject || `Re: ${m.caseName || 'Case'}`
   const bodyContent = m.customBody || m.message || ''
@@ -509,7 +471,38 @@ function freeformEmail(m: EmailMetadata): EmailOutput {
 
 // ── Dispatcher ──────────────────────────────────────────────────────
 
-export function buildEmail(eventType: EmailEventType, metadata: EmailMetadata): EmailOutput {
+/**
+ * Derive a readable text/plain alternative from rendered HTML. Sending a
+ * plain-text part alongside the HTML avoids the spam-score penalty Gmail and
+ * other providers apply to HTML-only mail.
+ */
+export function htmlToText(html: string): string {
+  return html
+    .replace(/<head[\s\S]*?<\/head>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/<a\b[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi, '$2 ($1)')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|tr|h[1-6]|li|table)>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&mdash;/gi, '—')
+    .replace(/&bull;/gi, '•')
+    .replace(/&rarr;/gi, '→')
+    .replace(/&#10003;/g, '✓')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .split('\n')
+    .map((line) => line.replace(/[ \t]{2,}/g, ' ').trim())
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
+function dispatchEmail(eventType: EmailEventType, metadata: EmailMetadata): EmailOutput {
   switch (eventType) {
     case 'portal_invite':
       return portalInviteEmail(metadata)
@@ -535,11 +528,14 @@ export function buildEmail(eventType: EmailEventType, metadata: EmailMetadata): 
       return retainerRequestEmail(metadata)
     case 'freeform':
       return freeformEmail(metadata)
-    case 'outreach':
-      return outreachEmail(metadata)
     default:
       throw new Error(`Unknown email event type: ${eventType}`)
   }
+}
+
+export function buildEmail(eventType: EmailEventType, metadata: EmailMetadata): EmailOutput {
+  const out = dispatchEmail(eventType, metadata)
+  return { ...out, text: out.text ?? htmlToText(out.html) }
 }
 
 /** Re-export wrap for custom one-off templates */

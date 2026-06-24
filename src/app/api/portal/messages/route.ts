@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { requireAdminUser } from '@/lib/api-admin-auth'
 import { caseEmailHeaders, caseEmailSubject } from '@/lib/email-threading'
+import { EMAIL_REPLY_TO } from '@/lib/email-config'
+import { wrapEmail, htmlToText } from '@/lib/email-templates'
 
 type SupabaseAdmin = ReturnType<typeof getSupabaseAdmin>
 
@@ -63,35 +65,30 @@ async function notifyProviderMessage(opts: {
 
     // 1. Email to attorney
     if (attorneyEmail) {
-      const html = `
-        <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto;">
-          <div style="background-color: #0E1F35; color: white; padding: 24px 32px;">
-            <h1 style="margin: 0; font-size: 20px; color: #DFC06A;">Message from Dr. Ettinger</h1>
-          </div>
-          <div style="padding: 32px; border: 1px solid #e5e7eb; border-top: none;">
-            <p style="color: #374151; font-size: 15px; line-height: 1.6;">
-              ${escape(attorneyName)}, you have a new message on <strong>${escape(caseName)}</strong>:
-            </p>
-            <blockquote style="margin: 16px 0; padding: 12px 16px; background: #F0F2F5; border-left: 3px solid #DFC06A; color: #0E1F35; font-size: 14px; line-height: 1.6;">
-              ${snippet}
-            </blockquote>
-            <div style="text-align: center; margin: 28px 0;">
-              <a href="${portalUrl}" style="display: inline-block; background-color: #DFC06A; color: #0E1F35; text-decoration: none; padding: 12px 32px; border-radius: 6px; font-size: 14px; font-weight: 600;">
-                Reply in portal
-              </a>
-            </div>
-          </div>
-        </div>`
+      const html = wrapEmail({
+        subject,
+        previewText: `New message on ${escape(caseName)}`,
+        heading: 'New message',
+        skipSignature: true,
+        bodyHtml: `
+          <p>${escape(attorneyName)}, you have a new message on <strong>${escape(caseName)}</strong>:</p>
+          <blockquote style="margin: 14px 0; padding: 12px 16px; background: #f7f8fa; border-left: 3px solid #DFC06A; color: #1f2933; font-size: 14px; line-height: 1.6;">${snippet}</blockquote>
+        `,
+        ctaLabel: 'Reply in portal',
+        ctaUrl: portalUrl,
+      })
 
       void fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${resendKey}` },
         body: JSON.stringify({
-          from: 'Dr. Mark Ettinger <noreply@meridian-anesthesia.com>',
+          from: 'Mark Ettinger, M.D. <mark@markettingermd.com>',
           to: attorneyEmail,
+          reply_to: EMAIL_REPLY_TO,
           subject,
           headers,
           html,
+          text: htmlToText(html),
         }),
       }).catch((err) => console.error('[provider-message-notify] attorney email error:', err))
     }
@@ -123,7 +120,7 @@ async function notifyProviderMessage(opts: {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${resendKey}` },
       body: JSON.stringify({
-        from: 'Expert Witness <noreply@meridian-anesthesia.com>',
+        from: 'Mark Ettinger, M.D. <mark@markettingermd.com>',
         to: SELF_NOTIFY_EMAIL,
         subject,
         headers: selfHeaders,
