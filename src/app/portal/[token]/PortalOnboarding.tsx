@@ -15,6 +15,7 @@ import {
   Download,
   CalendarClock,
   Eye,
+  UserPlus,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -36,6 +37,7 @@ import {
 } from '@/components/ui/dialog'
 import { PortalContract } from './PortalContract'
 import { PortalDocuments } from './PortalDocuments'
+import { PortalInviteColleague } from './PortalInviteColleague'
 import { PortalFeeSchedule, type FeeScheduleItem } from './PortalFeeSchedule'
 
 type StepStatus = 'pending' | 'completed' | 'locked' | 'not_applicable'
@@ -44,6 +46,7 @@ interface OnboardingSteps {
   review_fee_schedule: StepStatus
   review_cv: StepStatus
   enter_case_details: StepStatus
+  invite_colleague?: StepStatus
   schedule_call?: StepStatus
   sign_contract: StepStatus
   retainer_payment: StepStatus
@@ -84,6 +87,12 @@ const STEP_CONFIGS: StepConfig[] = [
     label: 'Enter Case Details',
     description: 'Provide case information, patient details, and questions to be addressed',
     icon: <ClipboardList className="h-5 w-5" />,
+  },
+  {
+    key: 'invite_colleague',
+    label: 'Add Colleagues to the Case',
+    description: 'Invite co-counsel, a paralegal, or others on your team to this portal',
+    icon: <UserPlus className="h-5 w-5" />,
   },
   {
     key: 'schedule_call',
@@ -358,6 +367,27 @@ export function PortalOnboarding({
                               onComplete={() => updateStep('enter_case_details', 'completed')}
                             />
                           )
+                        )}
+
+                        {config.key === 'invite_colleague' && (
+                          <div className="space-y-4">
+                            <PortalInviteColleague token={token} caseName={caseName} />
+                            <div className="flex items-center justify-between">
+                              <Button
+                                variant="outline"
+                                onClick={() => updateStep('invite_colleague', 'completed')}
+                                className="text-gray-500 hover:text-gray-700"
+                              >
+                                Skip — It&apos;s Just Me
+                              </Button>
+                              <Button
+                                onClick={() => updateStep('invite_colleague', 'completed')}
+                                className="bg-[#0E1F35] hover:bg-[#0E1F35]/90"
+                              >
+                                Continue
+                              </Button>
+                            </div>
+                          </div>
                         )}
 
                         {config.key === 'schedule_call' && (

@@ -205,6 +205,7 @@ export async function GET(
         can_view_billing: invite.can_view_billing,
         can_book_scheduling: invite.can_book_scheduling,
         can_sign_contract: invite.can_sign_contract,
+        can_invite_contacts: invite.can_invite_contacts,
         contract_id: invite.contract_id,
         onboarding_mode: invite.onboarding_mode,
         onboarding_steps: invite.onboarding_steps,

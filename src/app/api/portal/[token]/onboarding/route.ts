@@ -50,7 +50,7 @@ export async function PATCH(
       )
     }
 
-    const validSteps = ['review_fee_schedule', 'review_cv', 'enter_case_details', 'schedule_call', 'sign_contract', 'retainer_payment', 'upload_documents']
+    const validSteps = ['review_fee_schedule', 'review_cv', 'enter_case_details', 'invite_colleague', 'schedule_call', 'sign_contract', 'retainer_payment', 'upload_documents']
     const validStatuses = ['pending', 'completed', 'locked', 'not_applicable']
 
     if (!validSteps.includes(step)) {
@@ -108,6 +108,7 @@ export async function PATCH(
         'review_fee_schedule',
         'review_cv',
         'enter_case_details',
+        'invite_colleague',
         'schedule_call',
         'sign_contract',
         'retainer_payment',

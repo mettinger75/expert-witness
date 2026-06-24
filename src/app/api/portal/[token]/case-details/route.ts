@@ -111,7 +111,7 @@ export async function POST(
 
     // Auto-unlock next step after enter_case_details
     // Walk forward through the step order, skipping not_applicable, unlocking the first locked step
-    const nextStepOrder = ['schedule_call', 'sign_contract', 'retainer_payment', 'upload_documents']
+    const nextStepOrder = ['invite_colleague', 'schedule_call', 'sign_contract', 'retainer_payment', 'upload_documents']
     for (const nextStep of nextStepOrder) {
       if (steps[nextStep] === 'locked') {
         steps[nextStep] = 'pending'
