@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://markettingermd.com'
     const url = `${appUrl}/shared/${token}`
 
     return NextResponse.json({ sharedLink, url })

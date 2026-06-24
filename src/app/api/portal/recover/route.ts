@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = getSupabaseAdmin()
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://markettingermd.com'
 
     // Case-insensitive exact match (ilike with no wildcards). Stored emails are
     // inconsistently cased across older contacts.

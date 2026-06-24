@@ -102,7 +102,7 @@ export async function POST(
           : 'Attorney'
         const contactEmail = contact?.email
         const appUrl =
-          process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'
+          process.env.NEXT_PUBLIC_APP_URL || 'https://markettingermd.com'
         const portalUrl = `${appUrl}/portal/${invite.token}`
 
         // Create portal message
@@ -151,7 +151,7 @@ export async function POST(
 
       if (invites && invites.length > 0) {
         const appUrl =
-          process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'
+          process.env.NEXT_PUBLIC_APP_URL || 'https://markettingermd.com'
 
         for (const invite of invites) {
           const contact = invite.contacts as unknown as {

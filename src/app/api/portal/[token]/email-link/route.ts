@@ -29,7 +29,7 @@ export async function POST(
       return NextResponse.json({ error: 'No email on file for this portal' }, { status: 400 })
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://markettingermd.com'
     const portalUrl = `${appUrl}/portal/${token}`
 
     const result = await sendPortalInviteEmail({

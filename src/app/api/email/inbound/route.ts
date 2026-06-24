@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
     // Unassigned (inbox) emails get a more urgent subject since they need
     // manual triage. Matched emails still notify so he sees activity on
     // a case without having to open the dashboard.
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://markettingermd.com'
     const senderDisplay = fromName ? `${fromName} <${fromEmail}>` : fromEmail || 'Unknown sender'
     const snippet = (text || html || '').toString().slice(0, 500).trim()
     const ctaUrl = caseId ? `${appUrl}/cases/${caseId}/emails` : `${appUrl}/inbox`

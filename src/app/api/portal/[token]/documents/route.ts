@@ -197,7 +197,7 @@ export async function POST(
                     </table>
                     <p style="color: #6b7280; font-size: 13px; margin-top: 24px;">
                       View documents in the
-                      <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'}/cases/${inv.case_id}" style="color: #DFC06A;">case dashboard</a>.
+                      <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://markettingermd.com'}/cases/${inv.case_id}" style="color: #DFC06A;">case dashboard</a>.
                     </p>
                   </div>
                 </div>

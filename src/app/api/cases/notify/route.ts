@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing event or caseId' }, { status: 400 })
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://markettingermd.com'
     const caseUrl = `${appUrl}/cases/${caseId}`
 
     let subject: string

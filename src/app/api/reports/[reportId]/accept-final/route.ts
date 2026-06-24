@@ -122,7 +122,7 @@ export async function POST(
 
     // Send email to Dr. Ettinger
     if (caseData) {
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://markettingermd.com'
       const emailHtml = buildReportNotificationEmail({
         recipientName: 'Dr. Ettinger',
         caseName: caseData.case_name || '',

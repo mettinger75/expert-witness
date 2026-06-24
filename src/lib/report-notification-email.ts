@@ -47,7 +47,7 @@ export function editsSubmittedEmail(opts: {
   caseId: string
   notes?: string
 }): { subject: string; html: string } {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://markettingermd.com'
   return {
     subject: `Report Edits Submitted — ${opts.caseName}`,
     html: buildReportNotificationEmail({
@@ -120,7 +120,7 @@ export function finalizationRequestedEmail(opts: {
   caseId: string
   notes?: string
 }): { subject: string; html: string } {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://markettingermd.com'
   return {
     subject: `Finalization Requested — ${opts.caseName}`,
     html: buildReportNotificationEmail({

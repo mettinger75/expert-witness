@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://markettingermd.com'
     const payerName = session.customer_details?.name || session.customer_details?.email || 'Unknown payer'
     const formattedAmount = amountPaid.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
     const methodLabel = paymentMethod === 'ach' ? 'ACH bank transfer' : 'Credit card'

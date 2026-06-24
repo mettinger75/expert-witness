@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
       .eq('id', invoice.case_id)
       .single()
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://markettingermd.com'
 
     // Create Stripe Checkout Session
     const session = await getStripe().checkout.sessions.create({

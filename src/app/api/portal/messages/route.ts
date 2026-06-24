@@ -59,7 +59,7 @@ async function notifyProviderMessage(opts: {
       s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     const snippet = escape(content).replace(/\n/g, '<br/>')
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://markettingermd.com'
     const portalUrl = token ? `${appUrl}/portal/${token}` : appUrl
     const adminUrl = `${appUrl}/cases/${caseId}/messages`
 

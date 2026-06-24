@@ -33,7 +33,7 @@ async function notifyPortalMessage(opts: {
     let caseNumber: string | null = null
     let caseName = 'a case'
     let isInquiry = false
-    let caseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'
+    let caseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://markettingermd.com'
     if (caseId) {
       const { data: caseRow } = await supabase
         .from('cases')

@@ -169,7 +169,7 @@ export async function POST(
 
     // Send the portal invite email. Passing caseId lets invite-email resolve
     // the case name; EMAIL_BCC means Dr. Ettinger is copied on every invite.
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://markettingermd.com'
     const portalUrl = `${appUrl}/portal/${newToken}`
 
     let emailSent = false

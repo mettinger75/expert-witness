@@ -443,7 +443,7 @@ export function InvoiceView({ invoice, lineItems, token }: InvoiceViewProps) {
           Mark Ettinger, M.D. &mdash; Anesthesiology Expert Witness
         </p>
         <p style={{ fontSize: '12px', color: '#94a3b8', margin: 0 }}>
-          Expert Witness Practice Manager &bull; expert-witness.vercel.app
+          Expert Witness Practice Manager &bull; markettingermd.com
         </p>
       </div>
     </div>

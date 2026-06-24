@@ -231,7 +231,7 @@ export async function POST(
                   </table>
                   <p style="color: #6b7280; font-size: 13px; margin-top: 24px;">
                     View the signed contract in the
-                    <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'}/cases/${invite.case_id}/contracts" style="color: #DFC06A;">case dashboard</a>.
+                    <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://markettingermd.com'}/cases/${invite.case_id}/contracts" style="color: #DFC06A;">case dashboard</a>.
                   </p>
                 </div>
               </div>

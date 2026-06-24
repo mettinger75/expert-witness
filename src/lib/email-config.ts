@@ -8,7 +8,7 @@
  */
 
 export const SITE_URL =
-  process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'
+  process.env.NEXT_PUBLIC_APP_URL || 'https://markettingermd.com'
 
 /**
  * Domain used inside Message-ID / In-Reply-To / References headers so that
@@ -59,7 +59,7 @@ export const EMAIL_COLORS = {
 // ── Logo ─────────────────────────────────────────────────────────
 // Always use the production domain so images load in any email client
 export const EMAIL_LOGO_URL =
-  'https://expert-witness.vercel.app/logo-expert-witness.svg'
+  'https://markettingermd.com/logo-expert-witness.svg'
 
 // ── Convenience: Resend send options ─────────────────────────────
 /**

@@ -174,7 +174,7 @@ export function ShareDialog({
     }
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://markettingermd.com'
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

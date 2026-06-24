@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
     if (resendKey) {
       const c = EMAIL_COLORS
       const fullName = `${firstName} ${lastName}`
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://markettingermd.com'
       const caseName = organizationName ? `${lastName} — ${organizationName}` : fullName
 
       const turnaroundLabel = turnaroundClean ? (TURNAROUND_LABELS[turnaroundClean] ?? turnaroundClean) : ''

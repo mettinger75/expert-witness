@@ -130,7 +130,7 @@ export async function POST(
 
     // Send email to attorney
     if (contactEmail && caseData) {
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://markettingermd.com'
       const portalUrl = `${appUrl}/portal/${invite.token}`
 
       const email = reportSentForReviewEmail({

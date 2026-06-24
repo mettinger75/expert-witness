@@ -76,7 +76,7 @@ export async function POST(
     const contact = invite?.contacts as unknown as { first_name: string; last_name: string; email: string } | null
     const contactName = contact ? `${contact.first_name} ${contact.last_name}` : 'Attorney'
     const contactEmail = contact?.email
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://expert-witness.vercel.app'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://markettingermd.com'
     const portalUrl = invite ? `${appUrl}/portal/${invite.token}` : appUrl
 
     if (action === 'approve') {
