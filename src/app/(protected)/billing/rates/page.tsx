@@ -163,7 +163,7 @@ export default function BillingRatesPage() {
                       {rate.description || '-'}
                     </TableCell>
                     <TableCell className="text-right text-sm font-medium">
-                      {formatCurrency(rate.rate_per_hour)}/hr
+                      {rate.rate_per_hour ? `${formatCurrency(rate.rate_per_hour)}/hr` : '—'}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {formatDate(rate.effective_date)}

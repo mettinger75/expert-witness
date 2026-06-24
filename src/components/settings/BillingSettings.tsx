@@ -203,7 +203,7 @@ export function BillingSettings() {
                     return (
                       <TableRow key={rate.id} className={!isActive ? 'opacity-60' : undefined}>
                         <TableCell className="font-medium">{getLabelForValue(ACTIVITY_TYPES, rate.activity_type)}</TableCell>
-                        <TableCell className="text-right font-mono">{formatCurrency(rate.rate_per_hour)}/hr</TableCell>
+                        <TableCell className="text-right font-mono">{rate.rate_per_hour ? `${formatCurrency(rate.rate_per_hour)}/hr` : <span className="text-gray-300">—</span>}</TableCell>
                         <TableCell className="text-right font-mono">{rate.flat_fee != null ? formatCurrency(rate.flat_fee) : <span className="text-gray-300">—</span>}</TableCell>
                         <TableCell className="text-right font-mono">{rate.daily_rate != null ? `${formatCurrency(rate.daily_rate)}/day` : <span className="text-gray-300">—</span>}</TableCell>
                         <TableCell className="max-w-[200px] truncate text-muted-foreground">{rate.description || '-'}</TableCell>

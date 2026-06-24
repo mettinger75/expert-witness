@@ -78,7 +78,7 @@ export function PortalFeeSchedule({ feeSchedule }: PortalFeeScheduleProps) {
                       {label}
                     </TableCell>
                     <TableCell className="text-right font-semibold text-[#DFC06A]">
-                      {formatCurrency(item.rate_per_hour)}
+                      {item.rate_per_hour ? formatCurrency(item.rate_per_hour) : <span className="text-gray-300">—</span>}
                     </TableCell>
                     <TableCell className="text-right font-semibold text-[#0E1F35]">
                       {item.flat_fee != null ? formatCurrency(item.flat_fee) : <span className="text-gray-300">—</span>}
