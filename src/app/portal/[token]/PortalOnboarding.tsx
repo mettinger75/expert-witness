@@ -14,6 +14,7 @@ import {
   ClipboardList,
   Download,
   CalendarClock,
+  Eye,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -26,6 +27,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { PortalContract } from './PortalContract'
 import { PortalDocuments } from './PortalDocuments'
 import { PortalFeeSchedule, type FeeScheduleItem } from './PortalFeeSchedule'
@@ -459,6 +467,8 @@ function FeeScheduleReviewStep({
 
 /** Step 2: CV Review */
 function CVReviewStep({ onReviewed }: { onReviewed: () => void }) {
+  const [previewOpen, setPreviewOpen] = useState(false)
+
   return (
     <div className="space-y-4">
       <div className="bg-[#0E1F35]/5 border border-[#0E1F35]/10 rounded-lg p-5">
@@ -472,20 +482,66 @@ function CVReviewStep({ onReviewed }: { onReviewed: () => void }) {
             </h4>
             <p className="text-sm text-gray-600 mb-3">
               Board-certified anesthesiologist with extensive experience in expert witness consultation.
-              Download the CV below to review qualifications, publications, and prior expert witness experience.
+              Preview the CV here, or download a copy to review qualifications, publications, and prior
+              expert witness experience.
             </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                type="button"
+                onClick={() => setPreviewOpen(true)}
+                className="bg-[#0E1F35] hover:bg-[#0E1F35]/90"
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                Preview CV
+              </Button>
+              <a
+                href="/ettinger-cv.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+                download
+                className="inline-flex items-center gap-2 border border-[#0E1F35]/20 text-[#0E1F35] px-4 py-2 rounded-md text-sm font-medium hover:bg-[#0E1F35] hover:text-white transition-colors"
+              >
+                <Download className="h-4 w-4" />
+                Download CV (PDF)
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* CV preview screen */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="w-[95vw] max-w-4xl sm:max-w-4xl p-0 gap-0 overflow-hidden">
+          <DialogHeader className="px-5 py-3 border-b text-left">
+            <DialogTitle className="text-[#0E1F35] flex items-center gap-2 text-base">
+              <FileText className="h-5 w-5 text-[#DFC06A]" />
+              Curriculum Vitae — Mark Ettinger, M.D.
+            </DialogTitle>
+          </DialogHeader>
+          <iframe
+            src="/ettinger-cv.pdf#view=FitH"
+            title="Curriculum Vitae — Mark Ettinger, M.D."
+            className="w-full h-[75vh] border-0 bg-gray-100"
+          />
+          <DialogFooter className="px-5 py-3 border-t flex-row items-center justify-between gap-2 sm:justify-between">
             <a
               href="/ettinger-cv.pdf"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 bg-[#0E1F35] text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-[#0E1F35]/90 transition-colors"
+              className="text-sm text-[#0E1F35]/70 underline underline-offset-2 hover:text-[#0E1F35]"
             >
-              <Download className="h-4 w-4" />
-              Download CV (PDF)
+              Open in new tab
             </a>
-          </div>
-        </div>
-      </div>
+            <a href="/ettinger-cv.pdf" download>
+              <Button className="bg-[#0E1F35] hover:bg-[#0E1F35]/90">
+                <Download className="h-4 w-4 mr-2" />
+                Download CV
+              </Button>
+            </a>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <div className="flex justify-end">
         <Button
           onClick={onReviewed}
