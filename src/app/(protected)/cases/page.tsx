@@ -19,6 +19,7 @@ import { BulkPortalInviteDialog } from '@/components/portal/BulkPortalInviteDial
 import type { CaseRow } from '@/types/database.types'
 
 const STATUS_GROUP_ORDER = [
+  { key: 'inquiry', label: 'New Inquiries', statuses: ['inquiry'] },
   { key: 'active', label: 'Active Cases', statuses: ['active'] },
   { key: 'accepted', label: 'Accepted Cases', statuses: ['accepted', 'conflict_check'] },
   { key: 'closed', label: 'Closed Cases', statuses: ['closed', 'declined', 'withdrawn'] },
@@ -177,15 +178,14 @@ export default function CasesPage() {
     case_type: typeFilter !== 'all' ? typeFilter : undefined,
   })
 
-  // Inquiry cases are triaged on /inquiries — keep them out of the main case list
-  const nonInquiryCases = useMemo(() => {
-    return cases?.filter((c) => c.status !== 'inquiry') ?? []
-  }, [cases])
+  // Inquiry cases are surfaced here in a top "New Inquiries" group, in addition
+  // to the dedicated /inquiries review queue.
+  const visibleCases = useMemo(() => cases ?? [], [cases])
 
   const groupedCases = useMemo(() => {
     return STATUS_GROUP_ORDER.map((group) => ({
       ...group,
-      cases: nonInquiryCases
+      cases: visibleCases
         .filter((c) => group.statuses.includes(c.status))
         .sort((a, b) => {
           const aDate = a.deadline_next ? new Date(a.deadline_next).getTime() : Infinity
@@ -193,7 +193,7 @@ export default function CasesPage() {
           return aDate - bDate
         }),
     })).filter((g) => g.cases.length > 0)
-  }, [nonInquiryCases])
+  }, [visibleCases])
 
   return (
     <div>
@@ -276,8 +276,6 @@ export default function CasesPage() {
               getColor={getColor}
             />
           ))}
-
-          {/* Inquiries are triaged on the /inquiries page */}
 
           {/* Closed cases last */}
           {groupedCases.filter(g => g.key === 'closed').map((group) => (

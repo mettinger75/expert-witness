@@ -191,14 +191,14 @@ export default function DashboardPage() {
 
       {/* Row 2: Cases, Schedule, Tasks */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Active Cases */}
+        {/* Recent Cases (includes new inquiries) */}
         <div className="bg-white border border-[#D8DCE3] rounded-xl overflow-hidden shadow-sm">
-          <WidgetHeader title="Active Cases" href="/cases" />
+          <WidgetHeader title="Recent Cases" href="/cases" />
           <div className="divide-y" style={{ borderColor: '#F0F1F4' }}>
-            {nonInquiryCases.length === 0 ? (
-              <div className="p-5 text-sm text-neutral-500">No active cases</div>
+            {activeCases.length === 0 ? (
+              <div className="p-5 text-sm text-neutral-500">No cases yet</div>
             ) : (
-              nonInquiryCases.slice(0, 6).map((c) => {
+              activeCases.slice(0, 6).map((c) => {
                 const activity = dashData?.caseActivity?.[c.id]
                 return (
                   <Link key={c.id} href={`/cases/${c.id}`} className="block px-5 py-3 hover:bg-neutral-50 transition-colors">
