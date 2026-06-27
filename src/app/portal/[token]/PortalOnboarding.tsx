@@ -59,6 +59,9 @@ interface PortalOnboardingProps {
   contactName: string
   initialSteps: OnboardingSteps
   feeSchedule: FeeScheduleItem[]
+  /** Fired once when the attorney leaves the intro screen via "Get Started" —
+   *  used to hand off to the save-your-link prompt. */
+  onBegin?: () => void
   onComplete?: () => void
 }
 
@@ -136,16 +139,127 @@ const CASE_SIDES = [
   { value: 'neutral', label: 'Neutral' },
 ]
 
+const SPECIALTY_AREAS = [
+  { value: 'general_anesthesia', label: 'General Anesthesia' },
+  { value: 'regional', label: 'Regional Anesthesia' },
+  { value: 'obstetric', label: 'Obstetric Anesthesia' },
+  { value: 'pediatric', label: 'Pediatric Anesthesia' },
+  { value: 'cardiac', label: 'Cardiac Anesthesia' },
+  { value: 'neuro', label: 'Neuroanesthesia' },
+  { value: 'pain_management', label: 'Pain Management' },
+  { value: 'critical_care', label: 'Critical Care' },
+  { value: 'airway_management', label: 'Airway Management' },
+  { value: 'sedation', label: 'Sedation / MAC' },
+  { value: 'monitoring', label: 'Monitoring' },
+  { value: 'pharmacology', label: 'Pharmacology' },
+  { value: 'patient_safety', label: 'Patient Safety' },
+  { value: 'simulation', label: 'Simulation' },
+  { value: 'other', label: 'Other / Not sure' },
+]
+
+const PATIENT_OUTCOMES = [
+  { value: 'death', label: 'Death' },
+  { value: 'permanent_injury', label: 'Permanent Injury' },
+  { value: 'disability', label: 'Disability' },
+  { value: 'temporary_injury', label: 'Temporary Injury' },
+  { value: 'partial_recovery', label: 'Partial Recovery' },
+  { value: 'full_recovery', label: 'Full Recovery' },
+  { value: 'no_injury', label: 'No Injury' },
+  { value: 'unknown', label: 'Unknown' },
+]
+
+// ---------------------------------------------------------------------------
+// Introduction Screen — the welcome the attorney lands on before the step flow
+// ---------------------------------------------------------------------------
+function IntroductionScreen({
+  contactName,
+  caseName,
+  isInquiry,
+  steps,
+  onStart,
+}: {
+  contactName: string
+  caseName: string
+  isInquiry: boolean
+  steps: StepConfig[]
+  onStart: () => void
+}) {
+  return (
+    <div className="max-w-2xl mx-auto">
+      <div className="rounded-2xl overflow-hidden border border-gray-200 shadow-sm">
+        {/* Hero */}
+        <div className="bg-[#0E1F35] px-8 py-10 text-center">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-[#DFC06A]/15 border border-[#DFC06A]/40 mb-4">
+            <ClipboardList className="h-7 w-7 text-[#DFC06A]" />
+          </div>
+          <h2 className="text-2xl font-bold text-white">
+            Welcome{contactName ? `, ${contactName}` : ''}
+          </h2>
+          <p className="mt-2 text-sm text-white/70 max-w-md mx-auto leading-relaxed">
+            {isInquiry ? (
+              'Thank you for considering Mark Ettinger, M.D. as your anesthesiology expert. This secure portal walks you through everything needed to evaluate the engagement — including providing the details of your case.'
+            ) : (
+              <>This secure portal will help you get started with{' '}
+                <span className="text-[#DFC06A] font-medium">{caseName}</span>.</>
+            )}
+          </p>
+        </div>
+
+        {/* Body */}
+        <div className="bg-white px-8 py-7">
+          <p className="text-sm font-semibold uppercase tracking-wider text-[#0E1F35]/70 mb-4">
+            What to expect
+          </p>
+          <ol className="space-y-4">
+            {steps.map((s) => (
+              <li key={s.key} className="flex gap-4">
+                <div className="flex-shrink-0 w-9 h-9 rounded-full bg-[#0E1F35]/5 flex items-center justify-center text-[#0E1F35]">
+                  {s.icon}
+                </div>
+                <div className="pt-0.5">
+                  <p className="font-semibold text-[#0E1F35] text-sm">{s.label}</p>
+                  <p className="text-sm text-gray-500">{s.description}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+
+          <div className="mt-7 rounded-lg bg-[#F0F2F5] border border-gray-200 px-4 py-3">
+            <p className="text-xs text-gray-500 leading-relaxed">
+              <Lock className="inline h-3.5 w-3.5 -mt-0.5 mr-1 text-gray-400" />
+              This portal is private and unique to you. Anything you share is kept confidential. You can
+              complete the steps at your own pace and return any time using your link.
+            </p>
+          </div>
+
+          <Button
+            onClick={onStart}
+            className="w-full mt-6 bg-[#0E1F35] hover:bg-[#0E1F35]/90 h-11 text-base"
+          >
+            Get Started
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function PortalOnboarding({
   token,
   caseName,
   contactName,
   initialSteps,
   feeSchedule,
+  onBegin,
   onComplete,
 }: PortalOnboardingProps) {
   const [steps, setSteps] = useState<OnboardingSteps>(initialSteps)
   const [activeStep, setActiveStep] = useState<keyof OnboardingSteps | 'complete' | null>(null)
+
+  // One-time welcome screen the attorney lands on before the step-by-step flow.
+  // Once they begin (or any step is completed) the stepper takes over; the intro
+  // only ever shows while nothing has been done yet.
+  const [introDismissed, setIntroDismissed] = useState(false)
 
   // Determine the first actionable step
   useEffect(() => {
@@ -241,6 +355,23 @@ export function PortalOnboarding({
   const completedCount = applicableSteps.filter((c) => steps[c.key] === 'completed').length
   const totalSteps = applicableSteps.length
   const allComplete = completedCount === totalSteps && totalSteps > 0
+
+  // Land brand-new visitors on the introductory screen first, then drop them
+  // into the existing step-by-step flow once they choose to begin.
+  if (!introDismissed && completedCount === 0 && !allComplete) {
+    return (
+      <IntroductionScreen
+        contactName={contactName}
+        caseName={caseName}
+        isInquiry={isInquiryMode}
+        steps={applicableSteps}
+        onStart={() => {
+          setIntroDismissed(true)
+          onBegin?.()
+        }}
+      />
+    )
+  }
 
   return (
     <div className="space-y-8">
@@ -599,12 +730,24 @@ function CaseDetailsStep({
     case_name: '',
     case_type: '',
     side: '',
+    specialty_area: '',
     date_of_incident: '',
+    date_of_referral: '',
     jurisdiction_state: '',
+    jurisdiction_county: '',
+    court_name: '',
+    court_case_number: '',
     patient_name: '',
     patient_dob: '',
+    patient_age_at_incident: '',
+    patient_outcome: '',
     brief_summary: '',
     key_issues: '',
+    opposing_counsel_first_name: '',
+    opposing_counsel_last_name: '',
+    opposing_counsel_firm: '',
+    opposing_counsel_email: '',
+    defendant_name: '',
   })
 
   function updateField(field: string, value: string) {
@@ -627,12 +770,24 @@ function CaseDetailsStep({
           case_name: form.case_name || undefined,
           case_type: form.case_type || undefined,
           side: form.side || undefined,
+          specialty_area: form.specialty_area || undefined,
           date_of_incident: form.date_of_incident || undefined,
+          date_of_referral: form.date_of_referral || undefined,
           jurisdiction_state: form.jurisdiction_state || undefined,
+          jurisdiction_county: form.jurisdiction_county || undefined,
+          court_name: form.court_name || undefined,
+          court_case_number: form.court_case_number || undefined,
           patient_name: form.patient_name || undefined,
           patient_dob: form.patient_dob || undefined,
+          patient_age_at_incident: form.patient_age_at_incident || undefined,
+          patient_outcome: form.patient_outcome || undefined,
           brief_summary: form.brief_summary || undefined,
           key_issues: form.key_issues || undefined,
+          opposing_counsel_first_name: form.opposing_counsel_first_name || undefined,
+          opposing_counsel_last_name: form.opposing_counsel_last_name || undefined,
+          opposing_counsel_firm: form.opposing_counsel_firm || undefined,
+          opposing_counsel_email: form.opposing_counsel_email || undefined,
+          defendant_name: form.defendant_name || undefined,
         }),
       })
       if (!res.ok) {
@@ -706,7 +861,69 @@ function CaseDetailsStep({
         </div>
       </div>
 
-      {/* Date of Incident & Jurisdiction */}
+      {/* Anesthesia Specialty Area */}
+      <div className="space-y-1.5">
+        <Label>Anesthesia Specialty Area</Label>
+        <Select value={form.specialty_area} onValueChange={(v) => updateField('specialty_area', v)}>
+          <SelectTrigger>
+            <SelectValue placeholder="Which area of anesthesiology is at issue?" />
+          </SelectTrigger>
+          <SelectContent>
+            {SPECIALTY_AREAS.map((s) => (
+              <SelectItem key={s.value} value={s.value}>
+                {s.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Court & Jurisdiction */}
+      <div className="pt-3 border-t border-gray-100">
+        <p className="text-xs font-semibold uppercase tracking-wider text-[#0E1F35]/70">
+          Court &amp; Jurisdiction
+        </p>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="jurisdiction_state">State</Label>
+          <Input
+            id="jurisdiction_state"
+            placeholder="e.g., California"
+            value={form.jurisdiction_state}
+            onChange={(e) => updateField('jurisdiction_state', e.target.value)}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="jurisdiction_county">County</Label>
+          <Input
+            id="jurisdiction_county"
+            placeholder="e.g., Los Angeles"
+            value={form.jurisdiction_county}
+            onChange={(e) => updateField('jurisdiction_county', e.target.value)}
+          />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="court_name">Court</Label>
+          <Input
+            id="court_name"
+            placeholder="e.g., Superior Court of California"
+            value={form.court_name}
+            onChange={(e) => updateField('court_name', e.target.value)}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="court_case_number">Docket / Case No.</Label>
+          <Input
+            id="court_case_number"
+            placeholder="Court case number, if filed"
+            value={form.court_case_number}
+            onChange={(e) => updateField('court_case_number', e.target.value)}
+          />
+        </div>
+      </div>
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <Label htmlFor="date_of_incident">Date of Incident</Label>
@@ -718,17 +935,22 @@ function CaseDetailsStep({
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="jurisdiction_state">Jurisdiction (State)</Label>
+          <Label htmlFor="date_of_referral">Date Referred to Expert</Label>
           <Input
-            id="jurisdiction_state"
-            placeholder="e.g., California"
-            value={form.jurisdiction_state}
-            onChange={(e) => updateField('jurisdiction_state', e.target.value)}
+            id="date_of_referral"
+            type="date"
+            value={form.date_of_referral}
+            onChange={(e) => updateField('date_of_referral', e.target.value)}
           />
         </div>
       </div>
 
-      {/* Patient Info */}
+      {/* Patient */}
+      <div className="pt-3 border-t border-gray-100">
+        <p className="text-xs font-semibold uppercase tracking-wider text-[#0E1F35]/70">
+          Patient
+        </p>
+      </div>
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <Label htmlFor="patient_name">Patient Name</Label>
@@ -748,6 +970,42 @@ function CaseDetailsStep({
             onChange={(e) => updateField('patient_dob', e.target.value)}
           />
         </div>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="patient_age_at_incident">Age at Incident</Label>
+          <Input
+            id="patient_age_at_incident"
+            type="number"
+            min={0}
+            max={130}
+            placeholder="e.g., 54"
+            value={form.patient_age_at_incident}
+            onChange={(e) => updateField('patient_age_at_incident', e.target.value)}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label>Patient Outcome</Label>
+          <Select value={form.patient_outcome} onValueChange={(v) => updateField('patient_outcome', v)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select outcome..." />
+            </SelectTrigger>
+            <SelectContent>
+              {PATIENT_OUTCOMES.map((o) => (
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Case Narrative */}
+      <div className="pt-3 border-t border-gray-100">
+        <p className="text-xs font-semibold uppercase tracking-wider text-[#0E1F35]/70">
+          The Case
+        </p>
       </div>
 
       {/* Brief Summary */}
@@ -771,6 +1029,53 @@ function CaseDetailsStep({
           rows={3}
           value={form.key_issues}
           onChange={(e) => updateField('key_issues', e.target.value)}
+        />
+      </div>
+
+      {/* Other Parties (optional) */}
+      <div className="pt-3 border-t border-gray-100">
+        <p className="text-xs font-semibold uppercase tracking-wider text-[#0E1F35]/70">
+          Other Parties <span className="font-normal normal-case tracking-normal text-gray-400">— optional, helps with conflict checks</span>
+        </p>
+      </div>
+      <div className="space-y-1.5">
+        <Label>Opposing Counsel</Label>
+        <div className="grid grid-cols-2 gap-4">
+          <Input
+            placeholder="First name"
+            value={form.opposing_counsel_first_name}
+            onChange={(e) => updateField('opposing_counsel_first_name', e.target.value)}
+          />
+          <Input
+            placeholder="Last name"
+            value={form.opposing_counsel_last_name}
+            onChange={(e) => updateField('opposing_counsel_last_name', e.target.value)}
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <Input
+            placeholder="Law firm"
+            value={form.opposing_counsel_firm}
+            onChange={(e) => updateField('opposing_counsel_firm', e.target.value)}
+          />
+          <Input
+            type="email"
+            placeholder="Email (optional)"
+            value={form.opposing_counsel_email}
+            onChange={(e) => updateField('opposing_counsel_email', e.target.value)}
+          />
+        </div>
+        <p className="text-xs text-gray-400">
+          Recorded for Dr. Ettinger&apos;s reference only — opposing counsel is never sent a portal link or email.
+        </p>
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="defendant_name">Defendant(s) / Party Being Sued</Label>
+        <Input
+          id="defendant_name"
+          placeholder="e.g., Memorial Regional Hospital; Dr. Jane Roe"
+          value={form.defendant_name}
+          onChange={(e) => updateField('defendant_name', e.target.value)}
         />
       </div>
 
@@ -876,8 +1181,11 @@ function CaseDetailsSummary({ token }: { token: string }) {
     { label: 'Case Name', value: caseData.case_name },
     { label: 'Case Type', value: caseData.case_type?.replace(/_/g, ' ') },
     { label: 'Side', value: caseData.side },
+    { label: 'Specialty Area', value: caseData.specialty_area?.replace(/_/g, ' ') },
     { label: 'Patient', value: caseData.patient_name },
-    { label: 'State', value: caseData.jurisdiction_state },
+    { label: 'Outcome', value: caseData.patient_outcome?.replace(/_/g, ' ') },
+    { label: 'Jurisdiction', value: [caseData.jurisdiction_county, caseData.jurisdiction_state].filter(Boolean).join(', ') || null },
+    { label: 'Court', value: caseData.court_name },
   ].filter(f => f.value)
 
   return (

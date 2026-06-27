@@ -371,16 +371,10 @@ export function PortalView({
 
     return (
       <div>
-        {showCover && (
-          <PortalWelcomeCover
-            contactName={contactName}
-            caseName={caseData.case_name}
-            caseNumber={caseData.case_number}
-            isInquiry={isInquiry}
-            invite={invite}
-            onEnter={enterFromCover}
-          />
-        )}
+        {/* Onboarding has its own intake-focused introduction screen (rendered
+            inside PortalOnboarding), so the generic feature cover is suppressed
+            here to avoid a double welcome. The save-your-link prompt is handed
+            off from the intro's "Get Started" via onBegin below. */}
         <SaveLinkDialog
           open={showSaveLink}
           onOpenChange={handleSaveLinkOpenChange}
@@ -407,6 +401,7 @@ export function PortalView({
           contactName={contactName}
           initialSteps={onboardingSteps}
           feeSchedule={feeSchedule}
+          onBegin={() => setShowSaveLink(true)}
           onComplete={() => {
             setShowOnboarding(false)
             // Persist onboarding completion
