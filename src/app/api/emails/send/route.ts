@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { requireAdminUser } from '@/lib/api-admin-auth'
 import { buildEmail } from '@/lib/email-templates'
 import { emailSendDefaults, EMAIL_EVENT_TYPES, type EmailEventType } from '@/lib/email-config'
 
@@ -8,6 +9,9 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAdminUser(request)
+    if (auth.error) return auth.error
+
     const body = await request.json()
     const {
       eventType,
