@@ -56,10 +56,14 @@ export const EMAIL_COLORS = {
   textMuted: '#8892A2',
 } as const
 
-// ── Logo ─────────────────────────────────────────────────────────
-// Always use the production domain so images load in any email client
+// ── Logo & signature ─────────────────────────────────────────────
+// Always use the production domain so images load in any email client.
+// PNG (not SVG) — Gmail and Outlook do not render SVG in email. The logo
+// is the light-background wordmark (navy text) generated from the brand SVG.
 export const EMAIL_LOGO_URL =
-  'https://markettingermd.com/logo-expert-witness.svg'
+  'https://markettingermd.com/logo-expert-witness-email.png'
+export const EMAIL_SIGNATURE_URL =
+  'https://markettingermd.com/ettinger-signature-email.png'
 
 // ── Convenience: Resend send options ─────────────────────────────
 /**

@@ -7,6 +7,8 @@
 
 import {
   EMAIL_COLORS,
+  EMAIL_LOGO_URL,
+  EMAIL_SIGNATURE_URL,
   SITE_URL,
   type EmailEventType,
 } from './email-config'
@@ -112,7 +114,8 @@ function wrap(opts: {
   const signature = opts.skipSignature
     ? ''
     : `
-      <p style="margin: 20px 0 4px;">Sincerely,</p>
+      <p style="margin: 20px 0 2px;">Sincerely,</p>
+      <img src="${EMAIL_SIGNATURE_URL}" width="200" alt="Mark Ettinger signature" style="display: block; width: 200px; max-width: 70%; height: auto; margin: 4px 0 2px; border: 0;" />
       <p style="margin: 0; font-weight: 600; color: ${c.navy};">Mark Ettinger, M.D.</p>
       <p style="margin: 2px 0 0; font-size: 13px; color: ${c.textSecondary};">Board-Certified Anesthesiologist</p>
       <p style="margin: 2px 0 0; font-size: 13px; color: ${c.textSecondary};">markettingermd@gmail.com &bull; (214) 930-4698</p>`
@@ -128,10 +131,9 @@ function wrap(opts: {
   <span style="display:none;font-size:0;line-height:0;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">${opts.previewText}</span>
   <div style="max-width: 600px; margin: 0 auto; padding: 24px 20px;">
 
-    <!-- Wordmark -->
-    <div style="padding-bottom: 10px; border-bottom: 2px solid ${c.gold};">
-      <p style="margin: 0; font-size: 18px; font-weight: 600; color: ${c.navy};">Mark Ettinger, M.D.</p>
-      <p style="margin: 3px 0 0; font-size: 12px; color: ${c.textSecondary};">Board-Certified Anesthesiologist &bull; Expert Witness</p>
+    <!-- Logo -->
+    <div style="padding-bottom: 12px; border-bottom: 2px solid ${c.gold};">
+      <img src="${EMAIL_LOGO_URL}" width="260" alt="Mark Ettinger, M.D. — Expert Witness, Anesthesiology" style="display: block; width: 260px; max-width: 80%; height: auto; border: 0;" />
     </div>
 
     ${headingBlock}
