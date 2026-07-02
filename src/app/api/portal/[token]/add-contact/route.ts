@@ -32,7 +32,8 @@ export async function POST(
     const { invite, supabase } = v
 
     // The new collaborator inherits a SAFE SUBSET of the inviter's access —
-    // never reports, billing, depositions, contract signing, or invite rights.
+    // never reports, billing, depositions, or contract signing. They DO get
+    // invite rights so the team can keep adding people (chaining).
     const inviterPerms = invite as unknown as {
       can_view_timeline?: boolean
       can_message?: boolean
@@ -69,9 +70,15 @@ export async function POST(
     // Inherit the inviting firm's organization for any newly created contact.
     const { data: invitingContact } = await supabase
       .from('contacts')
-      .select('organization_name')
+      .select('organization_name, first_name, last_name')
       .eq('id', invite.contact_id)
       .single()
+
+    // Name of the person doing the adding, so the invite email can read
+    // "X has added you to this case" instead of a generic invitation.
+    const addedByName = invitingContact
+      ? `${invitingContact.first_name || ''} ${invitingContact.last_name || ''}`.trim()
+      : ''
 
     // Find an existing contact by email, or create one. Re-using the existing
     // record (instead of erroring on a duplicate) means a colleague who is
@@ -162,7 +169,9 @@ export async function POST(
         can_view_depositions: false,
         can_view_billing: false,
         can_sign_contract: false,
-        can_invite_contacts: false,
+        // Added people can add others too (invite chaining); still gated by the
+        // same permission on their own link and rate-limited per token and IP.
+        can_invite_contacts: true,
       })
       .select('id')
       .single()
@@ -179,6 +188,7 @@ export async function POST(
         recipientName: `${contact.first_name} ${contact.last_name}`.trim(),
         portalUrl,
         caseId: invite.case_id,
+        addedByName: addedByName || undefined,
         isInquiry: false,
       })
       emailSent = emailResult.success

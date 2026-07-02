@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
       canViewBilling = true,
       canBookScheduling = true,
       canSignContract = false,
-      canInviteContacts = false,
+      canInviteContacts = true,
       contractId = null,
       onboardingMode = false,
       invitationMessage,

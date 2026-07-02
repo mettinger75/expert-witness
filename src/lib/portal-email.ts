@@ -44,6 +44,8 @@ export interface PortalInviteEmailOptions {
   invitationMessage?: string
   features?: string[]
   contractTitle?: string
+  /** When set, the email is framed as "X has added you to this case" (used by the portal add-colleague flow). */
+  addedByName?: string
   isInquiry?: boolean
 }
 
@@ -63,6 +65,7 @@ export async function sendPortalInviteEmail(
     invitationMessage,
     features,
     contractTitle,
+    addedByName,
     isInquiry = false,
   } = opts
 
@@ -100,6 +103,7 @@ export async function sendPortalInviteEmail(
 
   const safeCaseName = escapeHtml(resolvedCaseName || 'your case')
   const safeContractTitle = contractTitle ? escapeHtml(contractTitle) : ''
+  const safeAddedBy = addedByName ? escapeHtml(addedByName) : ''
 
   const resolvedFeatures: string[] =
     features && Array.isArray(features) && features.length > 0
@@ -137,14 +141,18 @@ export async function sendPortalInviteEmail(
     ? `Action Required: Sign Agreement — ${resolvedCaseName}`
     : isInquiry
       ? `Expert Witness Consultation — Dr. Mark Ettinger`
-      : `Case Portal Invitation — ${resolvedCaseName}`
+      : addedByName
+        ? `You've been added to a case — ${resolvedCaseName}`
+        : `Case Portal Invitation — ${resolvedCaseName}`
 
   const bodyHtml = `
     <p>${greeting}</p>
     <p>${
       isInquiry
         ? 'Thank you for your interest. I would like to invite you to review my qualifications and fee schedule for a potential expert witness engagement in anesthesiology.'
-        : `You have been granted secure access to the case portal for <strong>${safeCaseName}</strong>.`
+        : addedByName
+          ? `${safeAddedBy} has added you to the case <strong>${safeCaseName}</strong>. You now have your own secure access to the case portal.`
+          : `You have been granted secure access to the case portal for <strong>${safeCaseName}</strong>.`
     }</p>
     ${contractCalloutHtml}
     ${personalMessageHtml}
@@ -156,12 +164,16 @@ export async function sendPortalInviteEmail(
     subject,
     previewText: isInquiry
       ? 'Review qualifications and fee schedule for an anesthesiology expert engagement'
-      : `Secure portal access for ${safeCaseName}`,
+      : addedByName
+        ? `You've been added to ${safeCaseName}`
+        : `Secure portal access for ${safeCaseName}`,
     heading: contractTitle
       ? 'Review & Sign Agreement'
       : isInquiry
         ? 'Expert Witness Consultation'
-        : 'Case Portal Access',
+        : addedByName
+          ? "You've Been Added to a Case"
+          : 'Case Portal Access',
     bodyHtml,
     ctaLabel: contractTitle ? 'Review & Sign Agreement' : isInquiry ? 'Get Started' : 'Access Case Portal',
     ctaUrl: portalUrl,
