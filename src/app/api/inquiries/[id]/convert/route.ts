@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { requireAdminUser } from '@/lib/api-admin-auth'
 import crypto from 'crypto'
 
 /**
@@ -22,6 +23,8 @@ const ALLOWED_TARGET_STATUSES = new Set(['accepted', 'conflict_check', 'active']
 
 export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
+    const auth = await requireAdminUser(request)
+    if (auth.error) return auth.error
     const { id: caseId } = await context.params
     if (!caseId) return NextResponse.json({ error: 'Missing case id' }, { status: 400 })
 

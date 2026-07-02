@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import mammoth from 'mammoth'
+import { requireAdminUser } from '@/lib/api-admin-auth'
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAdminUser(request)
+    if (auth.error) return auth.error
+
     const formData = await request.formData()
     const file = formData.get('file') as File | null
 

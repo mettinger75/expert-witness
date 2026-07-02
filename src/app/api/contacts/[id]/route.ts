@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { requireAdminUser } from '@/lib/api-admin-auth'
 
 // GET: Fetch a single contact by ID
 export async function GET(
@@ -7,6 +8,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireAdminUser(request)
+    if (auth.error) return auth.error
     const { id } = await params
     const supabase = getSupabaseAdmin()
 
@@ -34,6 +37,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireAdminUser(request)
+    if (auth.error) return auth.error
     const { id } = await params
     const supabase = getSupabaseAdmin()
 
@@ -95,6 +100,8 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireAdminUser(request)
+    if (auth.error) return auth.error
     const { id } = await params
     const supabase = getSupabaseAdmin()
     const body = await request.json()

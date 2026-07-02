@@ -24,6 +24,7 @@ import { supabase } from '@/lib/supabase'
 import type { InvoiceUpdate, InvoiceLineItemRow, PaymentRow } from '@/types/database.types'
 import { ArrowLeft, CheckCircle2, CreditCard, Download, Eye, FileText, Mail, Pencil, Plus, Trash2, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { authHeaders } from '@/lib/api-client'
 
 interface EditableLineItem {
   id: string | null // null = new item
@@ -281,7 +282,7 @@ export default function InvoiceDetailPage() {
       // Step 1: Create a shared link for the invoice
       const createRes = await fetch('/api/shared-links', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({
           entityType: 'invoice',
           entityId: invoice.id,
@@ -301,7 +302,7 @@ export default function InvoiceDetailPage() {
       // Step 2: Send the email
       const emailRes = await fetch('/api/shared-links/send-email', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({
           recipientEmail: sendEmail,
           recipientName: sendName || null,
@@ -405,7 +406,7 @@ export default function InvoiceDetailPage() {
               try {
                 const res = await fetch('/api/invoices/export-pdf', {
                   method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
+                  headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
                   body: JSON.stringify({ invoiceId: invoice.id }),
                 })
                 if (!res.ok) throw new Error('Export failed')
@@ -423,7 +424,7 @@ export default function InvoiceDetailPage() {
               try {
                 const res = await fetch('/api/invoices/export-pdf', {
                   method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
+                  headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
                   body: JSON.stringify({ invoiceId: invoice.id }),
                 })
                 if (!res.ok) throw new Error('Export failed')

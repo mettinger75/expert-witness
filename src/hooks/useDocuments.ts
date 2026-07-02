@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { authHeaders } from '@/lib/api-client'
 import { documentsService, type DocumentFilters } from '@/services/documents.service'
 import type { DocumentInsert, DocumentUpdate } from '@/types/database.types'
 import { toast } from 'sonner'
@@ -91,7 +92,7 @@ export function useUploadDocument() {
       // Step 1: Get a signed upload URL (small JSON request — no file data)
       const urlRes = await fetch('/api/documents/upload', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({
           action: 'get-upload-url',
           caseId,
@@ -123,7 +124,7 @@ export function useUploadDocument() {
       // Step 3: Confirm upload and create DB record
       const confirmRes = await fetch('/api/documents/upload', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({
           action: 'confirm-upload',
           storagePath,
@@ -163,7 +164,7 @@ export function useProcessDocument() {
     mutationFn: async (documentId: string) => {
       const response = await fetch('/api/documents/process', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({ documentId }),
       })
       if (!response.ok) {

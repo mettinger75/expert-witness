@@ -7,6 +7,7 @@ import { ChatMessage } from '@/components/ai/ChatMessage'
 import { ChatInput } from '@/components/ai/ChatInput'
 import { Sparkles, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { authHeaders } from '@/lib/api-client'
 
 interface Message {
   id: string
@@ -80,7 +81,7 @@ export function ChatInterface({
       try {
         const response = await fetch('/api/ai/chat', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
           body: JSON.stringify({
             messages: [...messages, userMessage].map((m) => ({
               role: m.role,

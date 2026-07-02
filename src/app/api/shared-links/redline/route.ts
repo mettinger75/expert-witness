@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { requireAdminUser } from '@/lib/api-admin-auth'
 
 export async function GET(request: NextRequest) {
   try {
+    const auth = await requireAdminUser(request)
+    if (auth.error) return auth.error
+
     const entityId = request.nextUrl.searchParams.get('entityId')
     const entityType = request.nextUrl.searchParams.get('entityType') || 'report'
 

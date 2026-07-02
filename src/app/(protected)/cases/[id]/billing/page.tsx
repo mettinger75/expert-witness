@@ -78,6 +78,7 @@ import {
   X,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { authHeaders } from '@/lib/api-client'
 
 // ---------------------------------------------------------------------------
 // Unified unbilled item type for the combined table
@@ -461,7 +462,7 @@ export default function CaseBillingPage() {
       try {
         const response = await fetch('/api/invoices/export-pdf', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
           body: JSON.stringify({ invoiceId }),
         })
 

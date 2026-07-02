@@ -152,7 +152,7 @@ export function CreatePortalInviteDialog({ caseId, contactId, contactName, conta
       if (attachContract) {
         const contractRes = await fetch('/api/contracts', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
           body: JSON.stringify({
             caseId,
             contactId,
@@ -172,7 +172,7 @@ export function CreatePortalInviteDialog({ caseId, contactId, contactName, conta
         // Step 2: Generate HTML for the contract
         const pdfRes = await fetch('/api/contracts/generate-pdf', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
           body: JSON.stringify({ contractId }),
         })
         if (!pdfRes.ok) throw new Error('Failed to generate contract')

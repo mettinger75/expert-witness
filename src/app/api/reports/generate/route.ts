@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { AI_CONFIG, MODEL_BY_TASK, SYSTEM_PROMPTS, assembleContext } from '@/lib/ai'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { requireAdminUser } from '@/lib/api-admin-auth'
 
 export const maxDuration = 180 // 3 minutes for report generation
 
@@ -32,6 +33,9 @@ ${SYSTEM_PROMPTS.report_generation}`
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAdminUser(request)
+    if (auth.error) return auth.error
+
     const apiKey = process.env.ANTHROPIC_API_KEY
     if (!apiKey) {
       return NextResponse.json({ error: 'Anthropic API key not configured' }, { status: 500 })

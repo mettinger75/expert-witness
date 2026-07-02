@@ -21,6 +21,7 @@ import { useDocuments } from '@/hooks/useDocuments'
 import type { TimelineEventType } from '@/types/enums'
 import { Plus, Clock, Filter, AlertCircle, FileText, Loader2, Sparkles, CheckSquare, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
+import { authHeaders } from '@/lib/api-client'
 
 function formatEventDateTime(date: string, time: string | null): string {
   if (time) {
@@ -145,7 +146,7 @@ export default function CaseTimelinePage() {
     try {
       const res = await fetch('/api/ai/timeline', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({ caseId, documentIds: selectedDocIds, mode: generationMode }),
       })
       if (!res.ok) {

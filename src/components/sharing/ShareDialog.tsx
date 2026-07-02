@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { useSharedLinks, useCreateSharedLink, useRevokeSharedLink } from '@/hooks/useSharedLinks'
 import { useCaseContacts } from '@/hooks/useCaseContacts'
 import { formatDate } from '@/lib/formatters'
+import { authHeaders } from '@/lib/api-client'
 import {
   Share2,
   Copy,
@@ -132,7 +133,7 @@ export function ShareDialog({
     try {
       const res = await fetch('/api/shared-links/send-email', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({
           recipientEmail: createdRecipientEmail,
           recipientName: createdRecipientName,

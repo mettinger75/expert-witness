@@ -12,6 +12,7 @@ import {
   Loader2,
 } from 'lucide-react'
 import Link from 'next/link'
+import { authHeaders } from '@/lib/api-client'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -444,7 +445,8 @@ export default function CalendarPage() {
 
     try {
       const res = await fetch(
-        `/api/calendar/events?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`
+        `/api/calendar/events?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`,
+        { headers: { ...(await authHeaders()) } }
       )
       if (!res.ok) {
         const data = await res.json()

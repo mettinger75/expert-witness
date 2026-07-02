@@ -42,6 +42,7 @@ import {
   CheckCircle2,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { authHeaders } from '@/lib/api-client'
 
 export default function BillingPage() {
   const [activeTab, setActiveTab] = useState('invoices')
@@ -171,7 +172,7 @@ export default function BillingPage() {
     try {
       const response = await fetch('/api/invoices/export-pdf', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({ invoiceId }),
       })
 

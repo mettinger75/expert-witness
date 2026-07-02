@@ -10,6 +10,7 @@ import { LoadingSpinner } from '@/components/shared/LoadingSpinner'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { ClipboardList, ArrowRight, Archive, ExternalLink, MessageSquare } from 'lucide-react'
 import { toast } from 'sonner'
+import { authHeaders } from '@/lib/api-client'
 
 interface ContactRow {
   id: string
@@ -136,7 +137,7 @@ export default function InquiriesPage() {
     try {
       const res = await fetch(`/api/inquiries/${row.id}/convert`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({ targetStatus: 'accepted' }),
       })
       const data = await res.json()

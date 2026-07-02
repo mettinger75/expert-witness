@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { EMAIL_COLORS } from '@/lib/email-config'
 import { findOrCreateAttorneyContact, createInquiryCase } from '@/lib/inquiry-helpers'
 import { caseEmailHeaders, caseEmailSubject } from '@/lib/email-threading'
+import { checkRateLimit, clientIp } from '@/lib/rate-limit'
 
 /**
  * POST /api/portal/consult
@@ -65,6 +66,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Missing required fields: firstName, lastName, email' },
         { status: 400 }
+      )
+    }
+
+    // Public endpoint — throttle by IP and by submitted email so it can't be
+    // used to mass-create inquiry cases or spam Dr. Ettinger's inbox (each
+    // request creates a contact + case and sends a notification email).
+    const ip = clientIp(request)
+    const [ipOk, emailOk] = await Promise.all([
+      checkRateLimit(`consult:ip:${ip}`, 5, 3600),
+      checkRateLimit(`consult:email:${String(email).toLowerCase()}`, 3, 3600),
+    ])
+    if (!ipOk || !emailOk) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later or contact us directly.' },
+        { status: 429 }
       )
     }
 

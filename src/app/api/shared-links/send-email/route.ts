@@ -2,9 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { emailSendDefaults, EMAIL_COLORS } from '@/lib/email-config'
 import { wrapEmail, htmlToText } from '@/lib/email-templates'
+import { requireAdminUser } from '@/lib/api-admin-auth'
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAdminUser(request)
+    if (auth.error) return auth.error
+
     const resend = new Resend(process.env.RESEND_API_KEY)
 
     const {

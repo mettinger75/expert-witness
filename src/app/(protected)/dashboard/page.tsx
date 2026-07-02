@@ -16,6 +16,7 @@ import {
   Calendar, CheckSquare, Link2, Users, TrendingUp, Eye, Send, ExternalLink,
 } from 'lucide-react'
 import { PortalActivityDrawer } from '@/components/portal/PortalActivityDrawer'
+import { authHeaders } from '@/lib/api-client'
 
 interface DashboardDeadline {
   id: string
@@ -86,7 +87,9 @@ function useDashboardData() {
   return useQuery<DashboardData>({
     queryKey: ['dashboard'],
     queryFn: async () => {
-      const res = await fetch('/api/dashboard')
+      const res = await fetch('/api/dashboard', {
+        headers: { ...(await authHeaders()) },
+      })
       if (!res.ok) throw new Error('Failed to fetch dashboard data')
       return res.json()
     },

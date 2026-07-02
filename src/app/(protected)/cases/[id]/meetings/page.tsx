@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
+import { authHeaders } from '@/lib/api-client'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
@@ -262,7 +263,7 @@ export default function CaseMeetingsPage() {
     try {
       const response = await fetch('/api/meetings/transcribe', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({ meetingId }),
       })
       if (!response.ok) {
@@ -285,7 +286,7 @@ export default function CaseMeetingsPage() {
     try {
       const response = await fetch('/api/meetings/summarize', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({ meetingId }),
       })
       if (!response.ok) {

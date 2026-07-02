@@ -1,4 +1,5 @@
 import type { ContactRow, ContactInsert, ContactUpdate } from '@/types/database.types'
+import { authHeaders } from '@/lib/api-client'
 
 export interface ContactFilters {
   search?: string
@@ -13,7 +14,9 @@ export const contactsService = {
     if (filters?.contact_type) params.set('contact_type', filters.contact_type)
     if (filters?.is_active !== undefined) params.set('is_active', String(filters.is_active))
 
-    const res = await fetch(`/api/contacts?${params.toString()}`)
+    const res = await fetch(`/api/contacts?${params.toString()}`, {
+      headers: { ...(await authHeaders()) },
+    })
     if (!res.ok) {
       const err = await res.json()
       throw new Error(err.error || 'Failed to fetch contacts')
@@ -22,7 +25,9 @@ export const contactsService = {
   },
 
   async getById(id: string) {
-    const res = await fetch(`/api/contacts/${id}`)
+    const res = await fetch(`/api/contacts/${id}`, {
+      headers: { ...(await authHeaders()) },
+    })
     if (!res.ok) {
       const err = await res.json()
       throw new Error(err.error || 'Failed to fetch contact')
@@ -33,7 +38,7 @@ export const contactsService = {
   async create(input: ContactInsert) {
     const res = await fetch('/api/contacts', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
       body: JSON.stringify(input),
     })
     if (!res.ok) {
@@ -46,7 +51,7 @@ export const contactsService = {
   async update(id: string, input: ContactUpdate) {
     const res = await fetch(`/api/contacts/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
       body: JSON.stringify(input),
     })
     if (!res.ok) {
@@ -62,7 +67,7 @@ export const contactsService = {
 
   async delete(id: string, force = false) {
     const url = force ? `/api/contacts/${id}?force=true` : `/api/contacts/${id}`
-    const res = await fetch(url, { method: 'DELETE' })
+    const res = await fetch(url, { method: 'DELETE', headers: { ...(await authHeaders()) } })
     if (!res.ok) {
       const err = await res.json()
       throw Object.assign(new Error(err.error || 'Failed to delete contact'), {
@@ -82,7 +87,9 @@ export const contactsService = {
   /** Get contacts belonging to an agency */
   async getByParentId(parentId: string) {
     const params = new URLSearchParams({ parent_contact_id: parentId })
-    const res = await fetch(`/api/contacts?${params.toString()}`)
+    const res = await fetch(`/api/contacts?${params.toString()}`, {
+      headers: { ...(await authHeaders()) },
+    })
     if (!res.ok) {
       const err = await res.json()
       throw new Error(err.error || 'Failed to fetch agency contacts')
@@ -95,7 +102,9 @@ export const contactsService = {
       search: query,
       is_active: 'true',
     })
-    const res = await fetch(`/api/contacts?${params.toString()}`)
+    const res = await fetch(`/api/contacts?${params.toString()}`, {
+      headers: { ...(await authHeaders()) },
+    })
     if (!res.ok) {
       const err = await res.json()
       throw new Error(err.error || 'Failed to search contacts')

@@ -4,6 +4,7 @@ import { useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Upload, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { authHeaders } from '@/lib/api-client'
 
 interface DocxImportButtonProps {
   onImport: (html: string, filename: string) => void
@@ -33,6 +34,7 @@ export function DocxImportButton({ onImport, disabled }: DocxImportButtonProps) 
 
       const res = await fetch('/api/reports/import-docx', {
         method: 'POST',
+        headers: { ...(await authHeaders()) },
         body: formData,
       })
 

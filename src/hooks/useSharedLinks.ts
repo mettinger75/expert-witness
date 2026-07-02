@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { sharedLinksService } from '@/services/shared-links.service'
 import type { SharedLinkInsert } from '@/types/database.types'
+import { authHeaders } from '@/lib/api-client'
 import { toast } from 'sonner'
 
 export function useSharedLinks(entityType: string, entityId: string) {
@@ -26,7 +27,7 @@ export function useCreateSharedLink() {
     }) => {
       const res = await fetch('/api/shared-links', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify(input),
       })
       if (!res.ok) {

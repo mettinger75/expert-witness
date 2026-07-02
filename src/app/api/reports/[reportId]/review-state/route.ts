@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { requireAdminUser } from '@/lib/api-admin-auth'
 
 // PUT: Auto-save review state (per-change accept/reject/modify decisions)
 export async function PUT(
@@ -7,6 +8,9 @@ export async function PUT(
   { params }: { params: Promise<{ reportId: string }> }
 ) {
   try {
+    const auth = await requireAdminUser(request)
+    if (auth.error) return auth.error
+
     const { reportId } = await params
     const { revisionId, reviewState } = await request.json()
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { requireAdminUser } from '@/lib/api-admin-auth'
 
 export const maxDuration = 300 // 5 minutes for long recordings
 
@@ -28,6 +29,9 @@ function getGroqMimeType(fileName: string, originalMime: string): string {
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAdminUser(request)
+    if (auth.error) return auth.error
+
     const apiKey = process.env.GROQ_API_KEY
     if (!apiKey) {
       return NextResponse.json(

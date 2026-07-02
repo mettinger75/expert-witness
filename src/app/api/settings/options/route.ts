@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { requireAdminUser } from '@/lib/api-admin-auth'
 import { OPTION_KEYS, CONSTRAINT_MAP } from '@/lib/constants'
 
 // GET /api/settings/options — fetch all option settings
@@ -39,6 +40,9 @@ export async function GET() {
 // PUT /api/settings/options — save an option list + update CHECK constraint if needed
 export async function PUT(req: NextRequest) {
   try {
+    const auth = await requireAdminUser(req)
+    if (auth.error) return auth.error
+
     const body = await req.json()
     const { settingKey, options } = body as {
       settingKey: string

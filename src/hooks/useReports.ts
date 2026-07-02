@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { reportsService } from '@/services/reports.service'
 import type { ReportInsert, ReportUpdate } from '@/types/database.types'
+import { authHeaders } from '@/lib/api-client'
 import { toast } from 'sonner'
 
 export function useReports(caseId: string) {
@@ -90,7 +91,7 @@ export function useGenerateReport() {
     }) => {
       const response = await fetch('/api/reports/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify(params),
       })
       if (!response.ok) {

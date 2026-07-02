@@ -120,7 +120,7 @@ export function SendToAttorneyDialog({
       .then((h) =>
         Promise.all([
           // Fetch case contacts
-          fetch(`/api/case-contacts?caseId=${caseId}`).then((r) => r.json()),
+          fetch(`/api/case-contacts?caseId=${caseId}`, { headers: { ...h } }).then((r) => r.json()),
           // Fetch portal invites
           fetch(`/api/portal?caseId=${caseId}`, { headers: { ...h } }).then((r) => r.json()),
         ])
@@ -184,7 +184,7 @@ export function SendToAttorneyDialog({
     try {
       const res = await fetch(`/api/reports/${reportId}/send-to-attorney`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({
           portalInviteId: selectedEntry.portalInvite.id,
           notes: notes || null,
