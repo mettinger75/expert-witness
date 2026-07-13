@@ -545,7 +545,7 @@ export function PortalView({
           <PortalDepositions depositions={depositions} />
         )}
         {activeTab === 'booking' && <PortalBooking />}
-        {activeTab === 'expert-files' && <PortalExpertFiles />}
+        {activeTab === 'expert-files' && <PortalExpertFiles token={token} />}
       </div>
 
       {/* Spotlight Tutorial */}
