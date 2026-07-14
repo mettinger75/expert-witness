@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback } from 'react'
+import { authHeaders } from '@/lib/api-client'
 import { OptionListManager } from '@/components/settings/OptionListManager'
 import { useAppOptions } from '@/components/providers/OptionsProvider'
 import { OPTION_KEYS, type OptionItem } from '@/lib/constants'
@@ -12,7 +13,7 @@ export function ReportsContractsSettings() {
     async (settingKey: string, options: OptionItem[]) => {
       const res = await fetch('/api/settings/options', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({ settingKey, options }),
       })
       if (!res.ok) throw new Error('Failed to save')

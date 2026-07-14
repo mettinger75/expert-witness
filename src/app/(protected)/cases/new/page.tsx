@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useCreateCase } from '@/hooks/useCases'
+import { authHeaders } from '@/lib/api-client'
 import { useUploadDocument, useCreateDocument } from '@/hooks/useDocuments'
 import { CaseForm } from '@/components/cases/CaseForm'
 import { PageHeader } from '@/components/layout/PageHeader'
@@ -129,6 +130,7 @@ export default function NewCasePage() {
 
       const res = await fetch('/api/ai/extract-case', {
         method: 'POST',
+        headers: { ...(await authHeaders()) },
         body: formData,
       })
 

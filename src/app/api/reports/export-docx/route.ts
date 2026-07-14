@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { requireAdminUser } from '@/lib/api-admin-auth'
 import { wrapReportHtml } from '@/lib/report-html-template'
 import HTMLtoDOCX from 'html-to-docx'
 
@@ -15,6 +16,9 @@ const SECTION_ORDER = [
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAdminUser(request)
+    if (auth.error) return auth.error
+
     const { reportId } = await request.json()
 
     if (!reportId) {

@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import { Loader2, Send, Eye, Mail } from 'lucide-react'
 import { toast } from 'sonner'
+import { authHeaders } from '@/lib/api-client'
 
 const EMAIL_TEMPLATES = [
   { value: 'freeform', label: 'Custom Email', description: 'Write a custom email with branded template' },
@@ -109,7 +110,7 @@ export function ComposeEmailDialog({
     try {
       const res = await fetch('/api/emails/send', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({
           eventType: template,
           recipientEmail,

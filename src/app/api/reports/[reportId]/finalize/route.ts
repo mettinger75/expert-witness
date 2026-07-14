@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { requireAdminUser } from '@/lib/api-admin-auth'
 import {
   reportFinalizedEmail,
   sendReportNotification,
@@ -11,6 +12,9 @@ export async function POST(
   { params }: { params: Promise<{ reportId: string }> }
 ) {
   try {
+    const auth = await requireAdminUser(request)
+    if (auth.error) return auth.error
+
     const { reportId } = await params
 
     const supabase = getSupabaseAdmin()

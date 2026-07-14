@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { requireAdminUser } from '@/lib/api-admin-auth'
 import crypto from 'crypto'
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAdminUser(request)
+    if (auth.error) return auth.error
+
     const body = await request.json()
     const {
       entityType,

@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { fetchPageContent, extractPageId } from '@/lib/notion'
+import { requireAdminUser } from '@/lib/api-admin-auth'
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAdminUser(request)
+    if (auth.error) return auth.error
     if (!process.env.NOTION_API_KEY) {
       return NextResponse.json(
         { error: 'NOTION_API_KEY is not configured' },

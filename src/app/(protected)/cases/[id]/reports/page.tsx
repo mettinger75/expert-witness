@@ -427,7 +427,9 @@ export default function CaseReportsPage() {
   const fetchRedlineData = useCallback(async (reportId: string) => {
     setRedlineLoading(true)
     try {
-      const res = await fetch(`/api/shared-links/redline?entityId=${reportId}&entityType=report`)
+      const res = await fetch(`/api/shared-links/redline?entityId=${reportId}&entityType=report`, {
+        headers: { ...(await authHeaders()) },
+      })
       if (!res.ok) throw new Error('Failed to fetch redline data')
       const { links } = await res.json()
       setRedlineData(links)
@@ -508,7 +510,9 @@ export default function CaseReportsPage() {
   const fetchAttorneyRevisions = useCallback(async (reportId: string) => {
     setReviewLoading(true)
     try {
-      const res = await fetch(`/api/reports/${reportId}/revisions`)
+      const res = await fetch(`/api/reports/${reportId}/revisions`, {
+        headers: { ...(await authHeaders()) },
+      })
       if (!res.ok) throw new Error('Failed to fetch')
       const data = await res.json()
       setReviewRevisions(data.revisions || [])
@@ -535,7 +539,7 @@ export default function CaseReportsPage() {
     try {
       const res = await fetch(`/api/reports/${reviewReportId}/review-decision`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({
           action,
           revisionId,
@@ -584,7 +588,7 @@ export default function CaseReportsPage() {
     try {
       const res = await fetch(`/api/reports/${reportId}/finalize`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
       })
       if (!res.ok) {
         const err = await res.json()
@@ -720,7 +724,7 @@ export default function CaseReportsPage() {
     try {
       const res = await fetch('/api/reports/export-docx', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({ reportId: activeReportId }),
       })
       if (!res.ok) throw new Error('Export failed')

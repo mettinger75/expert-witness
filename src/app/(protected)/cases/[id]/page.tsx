@@ -22,6 +22,7 @@ import { useToggleMilestone } from '@/hooks/useMilestones'
 import { CreatePortalInviteDialog } from '@/components/portal/CreatePortalInviteDialog'
 import { PortalMessagesPanel } from '@/components/portal/PortalMessagesPanel'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
+import { authHeaders } from '@/lib/api-client'
 
 export default function CaseOverviewPage() {
   const params = useParams()
@@ -87,7 +88,7 @@ export default function CaseOverviewPage() {
   async function handleDeleteClick() {
     setDeleteChecking(true)
     try {
-      const res = await fetch(`/api/cases/${caseId}`, { method: 'DELETE' })
+      const res = await fetch(`/api/cases/${caseId}`, { method: 'DELETE', headers: { ...(await authHeaders()) } })
       if (res.status === 409) {
         const data = await res.json()
         setLinkedCounts(data.linkedCounts)

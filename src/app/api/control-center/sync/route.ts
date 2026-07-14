@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { requireAdminUser } from '@/lib/api-admin-auth'
 import {
   getControlCenterClient,
   transformCaseToProject,
@@ -185,8 +186,11 @@ async function archiveInactiveCaseProjects(
   return archived
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
+    const auth = await requireAdminUser(req)
+    if (auth.error) return auth.error
+
     const body = await req.json().catch(() => ({}))
     const caseId = body.case_id as string | undefined
 

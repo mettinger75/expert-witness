@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { requireAdminUser } from '@/lib/api-admin-auth'
 
 // DELETE: Hard-delete a case and all linked records (FK cascades)
 export async function DELETE(
@@ -7,6 +8,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireAdminUser(request)
+    if (auth.error) return auth.error
     const { id } = await params
     const supabase = getSupabaseAdmin()
 

@@ -1,8 +1,11 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { requireAdminUser } from '@/lib/api-admin-auth'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const auth = await requireAdminUser(request)
+    if (auth.error) return auth.error
     const supabase = getSupabaseAdmin()
     const now = new Date()
     const yearStart = `${now.getFullYear()}-01-01`

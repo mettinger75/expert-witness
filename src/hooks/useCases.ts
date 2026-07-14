@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { casesService, type CaseFilters } from '@/services/cases.service'
 import type { CaseInsert, CaseUpdate } from '@/types/database.types'
+import { authHeaders } from '@/lib/api-client'
 import { toast } from 'sonner'
 
 export function useCases(filters?: CaseFilters) {
@@ -78,6 +79,7 @@ export function useDeleteCase() {
     mutationFn: async (id: string) => {
       const response = await fetch(`/api/cases/${id}?force=true`, {
         method: 'DELETE',
+        headers: { ...(await authHeaders()) },
       })
       if (!response.ok) {
         const err = await response.json()
@@ -97,11 +99,15 @@ export function useDeleteCase() {
 
 // Fire-and-forget notification helper (does not block UI)
 function sendCaseNotification(event: 'created' | 'updated', caseId: string, caseName: string, caseNumber: string, changedFields?: string[]) {
-  fetch('/api/cases/notify', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ event, caseId, caseName, caseNumber, changedFields }),
-  }).catch(() => { /* silent — notification failure should never affect UX */ })
+  authHeaders()
+    .then((h) =>
+      fetch('/api/cases/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...h },
+        body: JSON.stringify({ event, caseId, caseName, caseNumber, changedFields }),
+      })
+    )
+    .catch(() => { /* silent — notification failure should never affect UX */ })
 }
 
 export function useNotionPull() {
@@ -110,7 +116,7 @@ export function useNotionPull() {
     mutationFn: async (caseId: string) => {
       const response = await fetch('/api/notion/pull', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({ caseId }),
       })
       if (!response.ok) {
@@ -136,7 +142,7 @@ export function useNotionPush() {
     mutationFn: async (caseId: string) => {
       const response = await fetch('/api/notion/push', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({ caseId }),
       })
       if (!response.ok) {
@@ -162,7 +168,7 @@ export function useSynthesizeCase() {
     mutationFn: async (caseId: string) => {
       const response = await fetch(`/api/cases/${caseId}/synthesize`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
       })
       if (!response.ok) {
         let errorMsg = `Synthesis failed (${response.status})`

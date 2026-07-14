@@ -19,6 +19,7 @@ import {
   Save,
   Undo2,
 } from 'lucide-react'
+import { authHeaders } from '@/lib/api-client'
 
 // htmldiff-js exports { default: { execute } } — need to unwrap
 const HtmlDiff = (HtmlDiffModule as unknown as { default: { execute: (a: string, b: string) => string } }).default || HtmlDiffModule
@@ -503,7 +504,7 @@ export function InteractiveRedlineReview({
       }
       const res = await fetch(`/api/reports/${reportId}/review-state`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({ revisionId, reviewState }),
       })
       if (!res.ok) throw new Error('Save failed')

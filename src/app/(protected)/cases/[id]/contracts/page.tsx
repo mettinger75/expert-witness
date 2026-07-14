@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
+import { authHeaders } from '@/lib/api-client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -290,7 +291,7 @@ export default function CaseContractsPage() {
       // Generate HTML
       const res = await fetch('/api/contracts/generate-pdf', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({ contractId }),
       })
 
@@ -328,7 +329,7 @@ export default function CaseContractsPage() {
       try {
         const res = await fetch('/api/contracts/export-signed-pdf', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
           body: JSON.stringify({ contractId: contract.id }),
         })
         if (res.ok) {

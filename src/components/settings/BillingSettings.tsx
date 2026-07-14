@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { authHeaders } from '@/lib/api-client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -135,7 +136,7 @@ export function BillingSettings() {
     try {
       const res = await fetch('/api/settings/options', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({
           settingKey: 'options.invoice_settings',
           options: { invoicePrefix, paymentTerms, invoiceNotes, retainerAmount } as unknown as OptionItem[],
@@ -154,7 +155,7 @@ export function BillingSettings() {
     async (settingKey: string, options: OptionItem[]) => {
       const res = await fetch('/api/settings/options', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({ settingKey, options }),
       })
       if (!res.ok) throw new Error('Failed to save')

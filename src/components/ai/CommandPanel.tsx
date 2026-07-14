@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Send, Bot, User, Loader2, Terminal } from 'lucide-react'
+import { authHeaders } from '@/lib/api-client'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -35,7 +36,7 @@ export function CommandPanel() {
     try {
       const res = await fetch('/api/ai/command', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({
           messages: updatedMessages.map((m) => ({
             role: m.role,

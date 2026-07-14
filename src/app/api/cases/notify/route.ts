@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAdminUser } from '@/lib/api-admin-auth'
 
 // POST: Send email notification to Dr. Ettinger on case events
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAdminUser(request)
+    if (auth.error) return auth.error
+
     const resendKey = process.env.RESEND_API_KEY
     if (!resendKey) {
       return NextResponse.json({ skipped: true, reason: 'RESEND_API_KEY not set' })

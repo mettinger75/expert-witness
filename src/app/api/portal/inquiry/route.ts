@@ -5,6 +5,7 @@ import crypto from 'crypto'
 import { caseEmailHeaders, caseEmailSubject } from '@/lib/email-threading'
 import { EMAIL_BCC, EMAIL_REPLY_TO } from '@/lib/email-config'
 import { wrapEmail, htmlToText } from '@/lib/email-templates'
+import { checkRateLimit, clientIp } from '@/lib/rate-limit'
 
 // POST: Create an inquiry portal — contact, case, link, invite, and email in one shot
 export async function POST(request: NextRequest) {
@@ -16,6 +17,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Missing required fields: firstName, lastName, email' },
         { status: 400 }
+      )
+    }
+
+    // Public, unauthenticated endpoint — throttle by IP and by submitted email
+    // so it can't be used to mass-create inquiry cases or spam inboxes (each
+    // request creates a contact + case + invite and sends two emails). Uses the
+    // same DB-backed limiter as the other public portal routes.
+    const ip = clientIp(request)
+    const [ipOk, emailOk] = await Promise.all([
+      checkRateLimit(`inquiry:ip:${ip}`, 5, 3600),
+      checkRateLimit(`inquiry:email:${String(email).toLowerCase()}`, 3, 3600),
+    ])
+    if (!ipOk || !emailOk) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later or contact us directly.' },
+        { status: 429 }
       )
     }
 

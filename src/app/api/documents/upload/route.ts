@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { requireAdminUser } from '@/lib/api-admin-auth'
 
 export const maxDuration = 60
 
@@ -38,6 +39,9 @@ const CATEGORY_MAP: Record<string, string> = {
 // Step 2: { action: 'confirm-upload', storagePath, caseId, fileName, fileSize, mimeType, category, description?, folderId? } → creates DB record
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAdminUser(request)
+    if (auth.error) return auth.error
+
     const body = await request.json()
     const supabase = getSupabaseAdmin()
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { requireAdminUser } from '@/lib/api-admin-auth'
 
 export const maxDuration = 120 // 2 minutes for agentic AI tool-use loops
 
@@ -175,7 +176,8 @@ When querying, the main tables and their key columns are:
 
 async function handleToolCall(
   toolName: string,
-  input: Record<string, unknown>
+  input: Record<string, unknown>,
+  authToken: string
 ): Promise<unknown> {
   const supabase = getSupabaseAdmin()
 
@@ -416,7 +418,7 @@ async function handleToolCall(
 
       const res = await fetch(`${baseUrl}/api/control-center/sync`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
         body: JSON.stringify({ case_id: input.case_id || undefined }),
       })
 
@@ -430,6 +432,10 @@ async function handleToolCall(
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAdminUser(request)
+    if (auth.error) return auth.error
+    const authToken = (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '')
+
     const apiKey = process.env.ANTHROPIC_API_KEY
     if (!apiKey) {
       return NextResponse.json({ error: 'Anthropic API key not configured' }, { status: 500 })
@@ -487,7 +493,7 @@ export async function POST(request: NextRequest) {
         const toolResults = []
         for (const block of result.content) {
           if (block.type === 'tool_use') {
-            const toolResult = await handleToolCall(block.name, block.input)
+            const toolResult = await handleToolCall(block.name, block.input, authToken)
             toolResults.push({
               type: 'tool_result' as const,
               tool_use_id: block.id,

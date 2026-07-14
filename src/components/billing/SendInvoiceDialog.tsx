@@ -16,6 +16,7 @@ import { formatCurrency } from '@/lib/formatters'
 import type { InvoiceRow } from '@/types/database.types'
 import { Mail, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { authHeaders } from '@/lib/api-client'
 
 interface SendInvoiceDialogProps {
   invoice: InvoiceRow
@@ -47,7 +48,7 @@ export function SendInvoiceDialog({
       // Step 1: Create a shared link
       const linkRes = await fetch('/api/shared-links', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({
           entityType: 'invoice',
           entityId: invoice.id,
@@ -68,7 +69,7 @@ export function SendInvoiceDialog({
       // Step 2: Send the email
       const emailRes = await fetch('/api/shared-links/send-email', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({
           recipientEmail: recipientEmail.trim(),
           recipientName: invoice.bill_to_name,

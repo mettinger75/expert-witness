@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { AI_CONFIG, MODEL_BY_TASK, SYSTEM_PROMPTS, ANTHROPIC_API_VERSION_PDF } from '@/lib/ai'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { requireAdminUser } from '@/lib/api-admin-auth'
 
 export const maxDuration = 120 // 2 minutes for AI document processing
 
@@ -8,6 +9,9 @@ const MAX_PDF_SIZE = 32 * 1024 * 1024 // 32MB
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAdminUser(request)
+    if (auth.error) return auth.error
+
     const apiKey = process.env.ANTHROPIC_API_KEY
     if (!apiKey) {
       return NextResponse.json({ error: 'Anthropic API key not configured' }, { status: 500 })
