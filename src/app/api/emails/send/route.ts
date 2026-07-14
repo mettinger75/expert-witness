@@ -7,8 +7,16 @@ import { emailSendDefaults, EMAIL_EVENT_TYPES, type EmailEventType } from '@/lib
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
+// Case-centric notifications whose entire message is "there's an update about
+// <case>". Sent with no case context they render "...regarding undefined" and
+// link to /cases/undefined — the root cause of the bogus "Weekly Review" emails
+// (2026-06-08, 2026-07-10). Require a real case (or an explicit body) for these.
+const CASE_REQUIRED_EVENTS = ['case_update', 'follow_up']
+
 export async function POST(request: NextRequest) {
   try {
+    // Sends mail as Mark and writes communication_logs via the service role —
+    // dashboard-authenticated callers only (no auth = open email relay).
     const auth = await requireAdminUser(request)
     if (auth.error) return auth.error
 
@@ -33,6 +41,20 @@ export async function POST(request: NextRequest) {
         { error: `Invalid eventType. Must be one of: ${EMAIL_EVENT_TYPES.join(', ')}` },
         { status: 400 }
       )
+    }
+
+    // Guard: a case-update / follow-up with no case context (and no custom body)
+    // would render "...regarding undefined" and a dead /cases/undefined link.
+    if (CASE_REQUIRED_EVENTS.includes(eventType)) {
+      const hasCaseContext = Boolean(
+        caseId || metadata?.caseId || metadata?.caseName || customBody || metadata?.message
+      )
+      if (!hasCaseContext) {
+        return NextResponse.json(
+          { error: `eventType "${eventType}" requires a case (caseId or caseName) or a message body` },
+          { status: 400 }
+        )
+      }
     }
 
     // Build email from template
