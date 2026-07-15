@@ -201,9 +201,10 @@ function inquiryInviteEmail(m: EmailMetadata): EmailOutput {
       heading: 'Expert Witness Consultation',
       bodyHtml: `
         <p>${greeting(m.recipientName)}</p>
-        <p>Thank you for your interest in retaining my services as an expert witness in anesthesiology.</p>
-        <p>Please use the secure portal below to submit your case details, including relevant medical records and a brief case summary. I will review the materials and provide an initial assessment.</p>
-        ${m.message ? `<p>${m.message}</p>` : ''}
+        ${m.message
+          ? `<p>${m.message}</p>`
+          : `<p>Thank you for your interest in retaining my services as an expert witness in anesthesiology.</p>
+        <p>Please use the secure portal below to submit your case details, including relevant medical records and a brief case summary. I will review the materials and provide an initial assessment.</p>`}
       `,
       ctaLabel: 'Submit Case Details',
       ctaUrl: m.portalUrl || `${SITE_URL}`,
@@ -365,39 +366,49 @@ function depositionScheduledEmail(m: EmailMetadata): EmailOutput {
 
 function caseUpdateEmail(m: EmailMetadata): EmailOutput {
   const subject = `Case Update — ${m.caseName || 'Case'}`
+  // Only link to a case when we actually have one — otherwise wrap() would emit
+  // a button pointing at /cases/undefined (a dead page). wrap() drops the CTA
+  // entirely when ctaUrl is undefined.
+  const caseUrl = m.portalUrl || (m.caseId ? `${SITE_URL}/cases/${m.caseId}` : undefined)
+  const defaultBody = m.caseName
+    ? `<p>There is an update regarding <strong>${m.caseName}</strong>. Please review at your earliest convenience.</p>`
+    : `<p>There is an update on your case. Please review at your earliest convenience.</p>`
   return {
     subject,
-    previewText: `Update on ${m.caseName}`,
+    previewText: `Update on ${m.caseName || 'your case'}`,
     html: wrap({
       subject,
-      previewText: `Update on ${m.caseName}`,
+      previewText: `Update on ${m.caseName || 'your case'}`,
       badge: 'Case Update',
       badgeColor: EMAIL_COLORS.gold,
       heading: m.caseName || 'Case Update',
       bodyHtml: `
         <p>${greeting(m.recipientName)}</p>
-        ${m.message || `<p>There is an update regarding <strong>${m.caseName}</strong>. Please review at your earliest convenience.</p>`}
+        ${m.message || defaultBody}
       `,
-      ctaLabel: 'View Case',
-      ctaUrl: m.portalUrl || `${SITE_URL}/cases/${m.caseId}`,
+      ctaLabel: caseUrl ? 'View Case' : undefined,
+      ctaUrl: caseUrl,
     }),
   }
 }
 
 function followUpEmail(m: EmailMetadata): EmailOutput {
   const subject = `Follow Up — ${m.caseName || 'Case'}`
+  const defaultBody = m.caseName
+    ? `<p>I wanted to follow up regarding <strong>${m.caseName}</strong>. Please let me know if you have any questions or need any additional information.</p>`
+    : `<p>I wanted to follow up on your case. Please let me know if you have any questions or need any additional information.</p>`
   return {
     subject,
-    previewText: `Follow up on ${m.caseName}`,
+    previewText: `Follow up on ${m.caseName || 'your case'}`,
     html: wrap({
       subject,
-      previewText: `Follow up on ${m.caseName}`,
+      previewText: `Follow up on ${m.caseName || 'your case'}`,
       badge: 'Follow Up',
       badgeColor: EMAIL_COLORS.gold,
       heading: m.caseName || 'Follow Up',
       bodyHtml: `
         <p>${greeting(m.recipientName)}</p>
-        ${m.message || `<p>I wanted to follow up regarding <strong>${m.caseName}</strong>. Please let me know if you have any questions or need any additional information.</p>`}
+        ${m.message || defaultBody}
       `,
     }),
   }
