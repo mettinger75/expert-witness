@@ -1,13 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { notifyMark, escapeHtml } from '@/lib/notify-mark'
+import { verifySvixSignature } from '@/lib/verify-svix'
 
 // Resend inbound webhook handler
 // Receives forwarded emails and stores them as communication logs.
 // Emails without a matching case go into the inbox for manual assignment.
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
+    // Read the raw body first — the svix signature is computed over the exact
+    // bytes, so we cannot use request.json() before verifying.
+    const rawBody = await request.text()
+
+    // Verify the webhook signature when a signing secret is configured. This is
+    // intentionally INERT until RESEND_WEBHOOK_SECRET is set — merging/deploying
+    // this change cannot break inbound capture; once the secret is set it
+    // enforces (fail-closed). See PR notes: confirm the inbound source is
+    // svix-signed (Resend-native) before setting the secret.
+    const webhookSecret = process.env.RESEND_WEBHOOK_SECRET
+    if (webhookSecret) {
+      const verified = verifySvixSignature(
+        rawBody,
+        {
+          id: request.headers.get('svix-id'),
+          timestamp: request.headers.get('svix-timestamp'),
+          signature: request.headers.get('svix-signature'),
+        },
+        webhookSecret
+      )
+      if (!verified) {
+        console.error('email/inbound: webhook signature verification failed')
+        return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
+      }
+    }
+
+    const body = JSON.parse(rawBody)
 
     const { from, to, subject, text, html } = body
 
