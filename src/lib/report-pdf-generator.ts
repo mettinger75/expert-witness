@@ -6,6 +6,8 @@
 import fs from 'fs'
 import path from 'path'
 
+import { scrubPdfMetadata } from './document-metadata'
+
 interface GeneratePdfOptions {
   reportHtml: string
   reportName: string
@@ -93,7 +95,11 @@ function wrapHtmlForPdf(html: string, reportName: string, signatureBlock: string
       border-collapse: collapse;
       margin: 1rem 0;
       font-size: 10pt;
+      page-break-inside: avoid;
     }
+
+    tr { page-break-inside: avoid; }
+    thead { display: table-header-group; }
 
     th {
       background-color: #0E1F35;
@@ -184,7 +190,6 @@ export async function generateReportPdf(options: GeneratePdfOptions): Promise<Bu
         ${signatureDataUri ? `<img src="${signatureDataUri}" alt="Signature" />` : '<p style="margin: 1rem 0; font-style: italic;">[Signature]</p>'}
         <p><strong>Mark Ettinger, M.D.</strong></p>
         <p>Board Certified Anesthesiologist</p>
-        <p>President, Meridian Anesthesia</p>
         <p>Date: ${date}</p>
       </div>
     `
@@ -231,7 +236,8 @@ export async function generateReportPdf(options: GeneratePdfOptions): Promise<Bu
       displayHeaderFooter: false,
     })
 
-    return Buffer.from(pdfBuffer)
+    // Report PDFs go to attorneys — no metadata at all
+    return await scrubPdfMetadata(pdfBuffer)
   } finally {
     await browser.close()
   }

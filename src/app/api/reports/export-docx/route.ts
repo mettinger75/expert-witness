@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { requireAdminUser } from '@/lib/api-admin-auth'
 import { wrapReportHtml } from '@/lib/report-html-template'
 import HTMLtoDOCX from 'html-to-docx'
+import { scrubDocxMetadata } from '@/lib/document-metadata'
 
 const SECTION_ORDER = [
   'introduction',
@@ -81,7 +82,8 @@ export async function POST(request: NextRequest) {
     const filename = `${report.report_name || 'Expert_Report'}.docx`
       .replace(/[^a-zA-Z0-9_\-. ]/g, '_')
 
-    const buffer = Buffer.from(docxBuffer as Buffer)
+    // Editable Word copies go to attorneys — blank all identity properties
+    const buffer = await scrubDocxMetadata(Buffer.from(docxBuffer as Buffer))
     return new NextResponse(new Uint8Array(buffer), {
       headers: {
         'Content-Type':

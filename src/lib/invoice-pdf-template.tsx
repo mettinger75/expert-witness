@@ -404,7 +404,7 @@ export function InvoicePDF({ invoice, contact, caseName, caseNumber, template }:
   const paymentInstructions =
     invoice.payment_instructions ??
     template?.payment_instructions ??
-    'Please make checks payable and mail to:\nMark Ettinger, M.D.\n1115 Oakbrook Hills Ct\nRoanoke, TX 76262\n\nPayment is due upon receipt unless otherwise specified.'
+    'Please make checks payable and mail to:\nMark Ettinger, MD, PA\n125 Country View Dr., Suite 120A\nRoanoke, TX 76262\n\nPayment is due upon receipt unless otherwise specified.'
 
   const footerText = template?.footer_text ?? null
   const headerText = template?.header_text ?? null

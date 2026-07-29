@@ -69,7 +69,7 @@ export function CreatePortalInviteDialog({ caseId, contactId, contactName, conta
   const [canViewDepositions, setCanViewDepositions] = useState(true)
   const [canViewBilling, setCanViewBilling] = useState(true)
   const [canBookScheduling, setCanBookScheduling] = useState(true)
-  const [canInviteContacts, setCanInviteContacts] = useState(false)
+  const [canInviteContacts, setCanInviteContacts] = useState(true)
   const [expiresInDays, setExpiresInDays] = useState('90')
   const [invitationMessage, setInvitationMessage] = useState('')
 

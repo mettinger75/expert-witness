@@ -13,35 +13,37 @@ interface ExpertFile {
   available: boolean
 }
 
-const EXPERT_FILES: ExpertFile[] = [
-  {
-    id: 'cv',
-    label: 'Curriculum Vitae',
-    description: 'Current CV — credentials, publications, and prior testimony.',
-    href: '/ettinger-cv.pdf',
-    icon: <FileText className="h-5 w-5 text-[#DFC06A]" />,
-    available: true,
-  },
-  {
-    id: 'w9',
-    label: 'W-9 Form',
-    description: 'IRS Form W-9 for Mark Ettinger, M.D., P.A.',
-    href: '/ettinger-w9.pdf',
-    icon: <FileCheck2 className="h-5 w-5 text-[#DFC06A]" />,
-    available: true,
-  },
-  {
-    id: 'deposition-history',
-    label: 'Deposition History',
-    description: 'List of prior depositions and trial testimony (last 4 years).',
-    href: '/ettinger-deposition-history.pdf',
-    icon: <Gavel className="h-5 w-5 text-[#DFC06A]" />,
-    available: false,
-  },
-]
+function getExpertFiles(token: string): ExpertFile[] {
+  return [
+    {
+      id: 'cv',
+      label: 'Curriculum Vitae',
+      description: 'Current CV — credentials, publications, and prior testimony.',
+      href: '/ettinger-cv.pdf',
+      icon: <FileText className="h-5 w-5 text-[#DFC06A]" />,
+      available: true,
+    },
+    {
+      id: 'w9',
+      label: 'W-9 Form',
+      description: 'IRS Form W-9 for Mark Ettinger, M.D., P.A.',
+      href: `/api/portal/${token}/w9`,
+      icon: <FileCheck2 className="h-5 w-5 text-[#DFC06A]" />,
+      available: true,
+    },
+    {
+      id: 'deposition-history',
+      label: 'Deposition History',
+      description: 'List of prior depositions and trial testimony (last 4 years).',
+      href: '/ettinger-deposition-history.pdf',
+      icon: <Gavel className="h-5 w-5 text-[#DFC06A]" />,
+      available: false,
+    },
+  ]
+}
 
-export function PortalExpertFiles() {
-  const availableFiles = EXPERT_FILES.filter((f) => f.available)
+export function PortalExpertFiles({ token }: { token: string }) {
+  const availableFiles = getExpertFiles(token).filter((f) => f.available)
 
   return (
     <Card>

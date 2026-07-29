@@ -35,6 +35,16 @@ Expert Witness Practice Manager for Dr. Mark Ettinger (anesthesiology). Built wi
 - `billing_rates` — activity type rates
 - `audit_log` — columns: table_name, record_id, action, new_values (NOT entity_type/entity_id/changes)
 
+### Generated-Document Metadata Policy (MANDATORY)
+Every artifact generated for clients/courts (reports, invoices, CVs, letters — PDF or DOCX) must have generator-identifying metadata scrubbed before it can leave the machine: **no AI references (Claude / Codex / Anthropic / "evaluation copy"), no tool fingerprints (ReportLab, LibreOffice, Chromium/Skia, react-pdf, html-to-docx)**. Reports reach attorneys via the portal or as editable Word documents.
+- **Report PDFs (portal download + admin export): NO metadata at all.** `generateReportPdf()` ends with `scrubPdfMetadata(pdf)` — no arguments → the info dictionary is removed outright and any XMP stream dropped.
+- **Report DOCX**: `/api/reports/export-docx` routes output through `scrubDocxMetadata()` — blank identity properties. (html-to-docx stamps itself as creator even when given empty strings, hence the post-process.)
+- **Invoice PDFs**: Title + Author only.
+- All scrubbers live in `src/lib/document-metadata.ts`. **Never add a new export/generation path without routing its output through them.**
+- Ad-hoc/local renders (scratchpad scripts, ReportLab, LibreOffice): run `python3 scripts/scrub-pdf-metadata.py <file>` (no flags = fully blank, required for reports; `--title/--author` only for non-report artifacts like CVs), verify with `pdfinfo -meta`.
+- **NEVER scrub source records, opposing productions, or any evidence file** (e.g. `tmp/pdfs/*/production/`, `tmp/report-corpus/`) — provenance metadata on evidence must be preserved.
+- Avoid AI-identifying filenames on anything that could be transmitted; treat draft reports as discoverable.
+
 ### Deployment
 - **Vercel**: https://expert-witness.vercel.app
 - **Important**: `vercel deploy` can overwrite `.env.local` — always check/restore after deploying

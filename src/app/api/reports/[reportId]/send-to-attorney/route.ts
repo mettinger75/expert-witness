@@ -102,7 +102,7 @@ export async function POST(
         portal_invite_id: portalInviteId,
         revision_number: nextRevisionNumber,
         submitted_by: 'provider',
-        submitted_by_name: 'Dr. Mark Ettinger',
+        submitted_by_name: 'Mark Ettinger, M.D.',
         submitted_html: collaborationHtml,
         base_html: report.rendered_html || '',
         notes: notes || null,
@@ -122,7 +122,7 @@ export async function POST(
         portal_invite_id: invite.id,
         case_id: invite.case_id,
         sender_type: 'provider',
-        sender_name: 'Dr. Mark Ettinger',
+        sender_name: 'Mark Ettinger, M.D.',
         content: `I have shared ${report.report_name} for your review and editing.${notesText}`,
         message_type: 'report_notification',
         metadata: {

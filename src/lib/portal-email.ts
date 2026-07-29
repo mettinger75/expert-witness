@@ -1,6 +1,6 @@
 import { Resend } from 'resend'
 import { EMAIL_BCC, EMAIL_REPLY_TO } from '@/lib/email-config'
-import { wrapEmail, htmlToText } from '@/lib/email-templates'
+import { wrapEmail, htmlToText, firstName } from '@/lib/email-templates'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 
 /**
@@ -44,6 +44,8 @@ export interface PortalInviteEmailOptions {
   invitationMessage?: string
   features?: string[]
   contractTitle?: string
+  /** When set, the email is framed as "X has added you to this case" (used by the portal add-colleague flow). */
+  addedByName?: string
   isInquiry?: boolean
 }
 
@@ -63,6 +65,7 @@ export async function sendPortalInviteEmail(
     invitationMessage,
     features,
     contractTitle,
+    addedByName,
     isInquiry = false,
   } = opts
 
@@ -76,7 +79,7 @@ export async function sendPortalInviteEmail(
 
   const resend = new Resend(process.env.RESEND_API_KEY)
   const FROM_EMAIL = normalizeFromEmail(
-    process.env.RESEND_FROM_EMAIL || 'Dr. Mark Ettinger <onboarding@resend.dev>'
+    process.env.RESEND_FROM_EMAIL || 'Mark Ettinger, M.D. <onboarding@resend.dev>'
   )
   // Resolve case name from caseId when not provided.
   let resolvedCaseName = opts.caseName
@@ -100,6 +103,7 @@ export async function sendPortalInviteEmail(
 
   const safeCaseName = escapeHtml(resolvedCaseName || 'your case')
   const safeContractTitle = contractTitle ? escapeHtml(contractTitle) : ''
+  const safeAddedBy = addedByName ? escapeHtml(addedByName) : ''
 
   const resolvedFeatures: string[] =
     features && Array.isArray(features) && features.length > 0
@@ -119,7 +123,10 @@ export async function sendPortalInviteEmail(
             'View fee schedule',
           ]
 
-  const greeting = recipientName ? `Dear ${escapeHtml(recipientName)},` : 'Dear Counsel,'
+  const recipientFirstName = firstName(recipientName)
+  const greeting = recipientFirstName
+    ? `Dear ${escapeHtml(recipientFirstName)},`
+    : 'Dear Counsel,'
 
   const featureListHtml = resolvedFeatures
     .map((feature: string) => `<li style="margin: 3px 0;">${escapeHtml(feature)}</li>`)
@@ -129,22 +136,29 @@ export async function sendPortalInviteEmail(
     ? `<p style="margin: 16px 0;"><strong style="color: #0E1F35;">Action required:</strong> please review and sign the <strong>${safeContractTitle}</strong> at your earliest convenience.</p>`
     : ''
 
+  // The invitation message is Mark writing in his own voice, so it reads as a
+  // plain paragraph of the letter — never as a pull-quote attributed back to
+  // him. He does not quote himself inside his own email.
   const personalMessageHtml = invitationMessage
-    ? `<p style="margin: 16px 0; padding: 10px 14px; background: #f7f8fa; border-left: 3px solid #DFC06A; font-style: italic; color: #44403c;">&ldquo;${escapeHtml(invitationMessage)}&rdquo;<br><span style="font-style: normal; font-size: 13px; color: #6B7280;">&mdash; Mark Ettinger, M.D.</span></p>`
+    ? `<p style="margin: 16px 0;">${escapeHtml(invitationMessage)}</p>`
     : ''
 
   const subject = contractTitle
     ? `Action Required: Sign Agreement — ${resolvedCaseName}`
     : isInquiry
-      ? `Expert Witness Consultation — Dr. Mark Ettinger`
-      : `Case Portal Invitation — ${resolvedCaseName}`
+      ? `Expert Witness Consultation — Mark Ettinger, M.D.`
+      : addedByName
+        ? `You've been added to a case — ${resolvedCaseName}`
+        : `Case Portal Invitation — ${resolvedCaseName}`
 
   const bodyHtml = `
     <p>${greeting}</p>
     <p>${
       isInquiry
         ? 'Thank you for your interest. I would like to invite you to review my qualifications and fee schedule for a potential expert witness engagement in anesthesiology.'
-        : `You have been granted secure access to the case portal for <strong>${safeCaseName}</strong>.`
+        : addedByName
+          ? `${safeAddedBy} has added you to the case <strong>${safeCaseName}</strong>. You now have your own secure access to the case portal.`
+          : `You have been granted secure access to the case portal for <strong>${safeCaseName}</strong>.`
     }</p>
     ${contractCalloutHtml}
     ${personalMessageHtml}
@@ -156,12 +170,16 @@ export async function sendPortalInviteEmail(
     subject,
     previewText: isInquiry
       ? 'Review qualifications and fee schedule for an anesthesiology expert engagement'
-      : `Secure portal access for ${safeCaseName}`,
+      : addedByName
+        ? `You've been added to ${safeCaseName}`
+        : `Secure portal access for ${safeCaseName}`,
     heading: contractTitle
       ? 'Review & Sign Agreement'
       : isInquiry
         ? 'Expert Witness Consultation'
-        : 'Case Portal Access',
+        : addedByName
+          ? "You've Been Added to a Case"
+          : 'Case Portal Access',
     bodyHtml,
     ctaLabel: contractTitle ? 'Review & Sign Agreement' : isInquiry ? 'Get Started' : 'Access Case Portal',
     ctaUrl: portalUrl,

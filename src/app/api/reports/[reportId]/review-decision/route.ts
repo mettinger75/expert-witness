@@ -120,7 +120,7 @@ export async function POST(
           portal_invite_id: revision.portal_invite_id,
           case_id: report.case_id,
           sender_type: 'provider',
-          sender_name: 'Dr. Mark Ettinger',
+          sender_name: 'Mark Ettinger, M.D.',
           content: `${report.report_name} has been approved and finalized.${notes ? ' Note: ' + notes : ''}`,
           message_type: 'report_notification',
           metadata: {
@@ -193,7 +193,7 @@ export async function POST(
           portal_invite_id: revision.portal_invite_id,
           revision_number: nextRevisionNumber,
           submitted_by: 'provider',
-          submitted_by_name: 'Dr. Mark Ettinger',
+          submitted_by_name: 'Mark Ettinger, M.D.',
           submitted_html: htmlToSend,
           base_html: revision.submitted_html,
           notes: notes || null,
@@ -207,7 +207,7 @@ export async function POST(
           portal_invite_id: revision.portal_invite_id,
           case_id: report.case_id,
           sender_type: 'provider',
-          sender_name: 'Dr. Mark Ettinger',
+          sender_name: 'Mark Ettinger, M.D.',
           content: `I have reviewed your edits to ${report.report_name} and sent it back with modifications.${notes ? ' Note: ' + notes : ''}`,
           message_type: 'report_notification',
           metadata: {
@@ -281,7 +281,7 @@ export async function POST(
           portal_invite_id: revision.portal_invite_id,
           case_id: report.case_id,
           sender_type: 'provider',
-          sender_name: 'Dr. Mark Ettinger',
+          sender_name: 'Mark Ettinger, M.D.',
           content: `${report.report_name} has been approved with modifications and finalized.${notes ? ' Note: ' + notes : ''}`,
           message_type: 'report_notification',
           metadata: {

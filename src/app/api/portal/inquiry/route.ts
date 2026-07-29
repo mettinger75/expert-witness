@@ -195,7 +195,7 @@ export async function POST(request: NextRequest) {
 
     try {
       const resend = new Resend(process.env.RESEND_API_KEY)
-      const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'Dr. Mark Ettinger <onboarding@resend.dev>'
+      const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'Mark Ettinger, M.D. <onboarding@resend.dev>'
       const recipientName = `${firstName} ${lastName}`
       const greeting = `Dear ${recipientName},`
 
@@ -215,7 +215,7 @@ export async function POST(request: NextRequest) {
         : ''
 
       const htmlBody = wrapEmail({
-        subject: 'Expert Witness Consultation — Dr. Mark Ettinger',
+        subject: 'Expert Witness Consultation — Mark Ettinger, M.D.',
         previewText: 'Review qualifications and fee schedule for an anesthesiology expert engagement',
         heading: 'Expert Witness Consultation',
         bodyHtml: `

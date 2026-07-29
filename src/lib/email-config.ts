@@ -11,6 +11,14 @@ export const SITE_URL =
   process.env.NEXT_PUBLIC_APP_URL || 'https://markettingermd.com'
 
 /**
+ * Public practice site shown in the email signature. Deliberately the marketing
+ * domain and NOT `SITE_URL` — in production SITE_URL resolves to the app host
+ * (platform.markettingermd.com), which is not what counsel should be sent to
+ * from a signature line reading "markettingermd.com".
+ */
+export const PRACTICE_SITE_URL = 'https://markettingermd.com'
+
+/**
  * Domain used inside Message-ID / In-Reply-To / References headers so that
  * Gmail and other clients group every email about a given case into a single
  * thread. Must be a domain we control (matches the live `from` addresses used
@@ -56,10 +64,14 @@ export const EMAIL_COLORS = {
   textMuted: '#8892A2',
 } as const
 
-// ── Logo ─────────────────────────────────────────────────────────
-// Always use the production domain so images load in any email client
+// ── Logo & signature ─────────────────────────────────────────────
+// Always use the production domain so images load in any email client.
+// PNG (not SVG) — Gmail and Outlook do not render SVG in email. The logo
+// is the light-background wordmark (navy text) generated from the brand SVG.
 export const EMAIL_LOGO_URL =
-  'https://markettingermd.com/logo-expert-witness.svg'
+  'https://markettingermd.com/logo-expert-witness-email.png'
+export const EMAIL_SIGNATURE_URL =
+  'https://markettingermd.com/ettinger-signature-email.png'
 
 // ── Convenience: Resend send options ─────────────────────────────
 /**

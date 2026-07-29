@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { InvoicePDF } from '@/lib/invoice-pdf-template'
+import { DOCUMENT_AUTHOR, scrubPdfMetadata } from '@/lib/document-metadata'
 import type {
   InvoiceRow,
   InvoiceLineItemRow,
@@ -107,8 +108,12 @@ export async function GET(
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const pdfBuffer = await renderToBuffer(pdfElement as any)
+    const scrubbedPdf = await scrubPdfMetadata(pdfBuffer, {
+      title: `Invoice ${typedInvoice.invoice_number}`,
+      author: DOCUMENT_AUTHOR,
+    })
 
-    return new NextResponse(Buffer.from(pdfBuffer), {
+    return new NextResponse(new Uint8Array(scrubbedPdf), {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',

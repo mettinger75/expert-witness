@@ -7,6 +7,9 @@
 
 import {
   EMAIL_COLORS,
+  EMAIL_LOGO_URL,
+  EMAIL_SIGNATURE_URL,
+  PRACTICE_SITE_URL,
   SITE_URL,
   type EmailEventType,
 } from './email-config'
@@ -40,8 +43,22 @@ export interface EmailMetadata {
 
 // ── Helpers ─────────────────────────────────────────────────────────
 
+/**
+ * Counsel and their staff are addressed by FIRST NAME ONLY ("Dear Kathy,").
+ * Contact names are stored as full names and sometimes carry an honorific or
+ * post-nominals, so strip both: "Kathy Aulson" / "Dr. Kathy Aulson" /
+ * "Kathy Aulson, RN, JD" all reduce to "Kathy".
+ */
+export function firstName(name: string | null | undefined): string {
+  if (!name) return ''
+  const HONORIFIC = /^(dr|doctor|mr|mrs|ms|miss|mx|prof|professor|hon|atty)\.?$/i
+  const parts = name.trim().split(/[\s,]+/).filter(Boolean)
+  return parts.find((part) => !HONORIFIC.test(part)) || ''
+}
+
 function greeting(name: string): string {
-  return name ? `Dear ${name},` : 'Hello,'
+  const first = firstName(name)
+  return first ? `Dear ${first},` : 'Hello,'
 }
 
 function detailRow(label: string, value: string | null | undefined): string {
@@ -87,10 +104,11 @@ function wrap(opts: {
 }): string {
   const c = EMAIL_COLORS
 
-  // Light-brand, inbox-first layout: a plain text wordmark instead of a logo
-  // banner, an inline link instead of a marketing button, and a personal
-  // signature — so Gmail files it under Primary, not Promotions. No images
-  // (Gmail cannot render SVG and a hero banner reads as marketing).
+  // Light-brand, inbox-first layout: no hero logo banner (a banner reads as
+  // marketing and pushes Gmail toward Promotions), an inline link instead of a
+  // marketing button, and a canonical signature block that carries the brand —
+  // wordmark and handwritten signature — at the foot of the message instead.
+  // Images are PNG, never SVG, which Gmail cannot render.
   const headingBlock =
     opts.skipBadge || (!opts.heading && !opts.badge)
       ? ''
@@ -109,13 +127,45 @@ function wrap(opts: {
       ? `<p style="margin: 18px 0;"><a href="${opts.ctaUrl}" style="color: ${c.navy}; font-weight: 600; text-decoration: underline;">${opts.ctaLabel} &rarr;</a></p>`
       : ''
 
+  // Canonical signature block — mirrors the Meridian executive signature:
+  // wordmark on the left, gold rule, handwritten signature + identity on the
+  // right. This block carries the branding for the whole email, which is why
+  // there is no logo banner at the top.
+  const sans = `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`
   const signature = opts.skipSignature
     ? ''
     : `
-      <p style="margin: 20px 0 4px;">Sincerely,</p>
-      <p style="margin: 0; font-weight: 600; color: ${c.navy};">Mark Ettinger, M.D.</p>
-      <p style="margin: 2px 0 0; font-size: 13px; color: ${c.textSecondary};">Board-Certified Anesthesiologist</p>
-      <p style="margin: 2px 0 0; font-size: 13px; color: ${c.textSecondary};">markettingermd@gmail.com &bull; (214) 930-4698</p>`
+      <p style="margin: 20px 0 2px;">Sincerely,</p>
+      <table cellpadding="0" cellspacing="0" style="border-collapse: collapse; margin-top: 16px; width: 100%; max-width: 520px;">
+        <tr>
+          <td colspan="3" style="padding-bottom: 18px;">
+            <div style="height: 2px; background: linear-gradient(90deg, ${c.gold} 0%, ${c.gold} 40%, transparent 100%);"></div>
+          </td>
+        </tr>
+        <tr>
+          <td style="vertical-align: middle; width: 170px; padding-right: 18px;">
+            <img src="${EMAIL_LOGO_URL}" width="160" alt="Mark Ettinger, M.D. — Expert Witness, Anesthesiology" style="display: block; width: 160px; max-width: 100%; height: auto; border: 0;" />
+          </td>
+          <td style="width: 2px; background-color: ${c.gold}; font-size: 0; line-height: 0;">&nbsp;</td>
+          <td style="vertical-align: top; padding-left: 18px;">
+            <img src="${EMAIL_SIGNATURE_URL}" height="54" alt="Mark Ettinger" style="display: block; height: 54px; width: auto; max-width: 100%; margin-bottom: 6px; border: 0;" />
+            <p style="margin: 0; font-family: Georgia, 'Times New Roman', serif; font-size: 16px; font-weight: 700; color: ${c.navy}; letter-spacing: -0.3px;">Mark Ettinger, M.D.</p>
+            <p style="margin: 3px 0 0; font-family: ${sans}; font-size: 12px; font-weight: 600; color: ${c.textSecondary}; text-transform: uppercase; letter-spacing: 0.5px;">Board-Certified Anesthesiologist</p>
+            <table cellpadding="0" cellspacing="0" style="border-collapse: collapse; margin-top: 10px;">
+              <tr>
+                <td style="font-family: ${sans}; font-size: 11px; color: ${c.textSecondary};"><a href="tel:2149304698" style="color: ${c.textSecondary}; text-decoration: none;">(214) 930-4698</a></td>
+                <td style="padding: 0 8px; color: ${c.borderMedium}; font-size: 11px;">|</td>
+                <td style="font-family: ${sans}; font-size: 11px;"><a href="mailto:markettingermd@gmail.com" style="color: ${c.navy}; text-decoration: none;">markettingermd@gmail.com</a></td>
+              </tr>
+            </table>
+            <table cellpadding="0" cellspacing="0" style="border-collapse: collapse; margin-top: 4px;">
+              <tr>
+                <td style="font-family: ${sans}; font-size: 11px;"><a href="${PRACTICE_SITE_URL}" style="color: ${c.gold}; text-decoration: none; font-weight: 600;">markettingermd.com</a></td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>`
 
   return `<!DOCTYPE html>
 <html>
@@ -127,12 +177,6 @@ function wrap(opts: {
 <body style="margin: 0; padding: 0; background: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; color: #1f2933;">
   <span style="display:none;font-size:0;line-height:0;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">${opts.previewText}</span>
   <div style="max-width: 600px; margin: 0 auto; padding: 24px 20px;">
-
-    <!-- Wordmark -->
-    <div style="padding-bottom: 10px; border-bottom: 2px solid ${c.gold};">
-      <p style="margin: 0; font-size: 18px; font-weight: 600; color: ${c.navy};">Mark Ettinger, M.D.</p>
-      <p style="margin: 3px 0 0; font-size: 12px; color: ${c.textSecondary};">Board-Certified Anesthesiologist &bull; Expert Witness</p>
-    </div>
 
     ${headingBlock}
 
@@ -187,7 +231,7 @@ function portalInviteEmail(m: EmailMetadata): EmailOutput {
 }
 
 function inquiryInviteEmail(m: EmailMetadata): EmailOutput {
-  const subject = 'Expert Witness Inquiry — Dr. Mark Ettinger'
+  const subject = 'Expert Witness Inquiry — Mark Ettinger, M.D.'
   return {
     subject,
     previewText: 'Submit case details for expert witness evaluation',
@@ -199,9 +243,10 @@ function inquiryInviteEmail(m: EmailMetadata): EmailOutput {
       heading: 'Expert Witness Consultation',
       bodyHtml: `
         <p>${greeting(m.recipientName)}</p>
-        <p>Thank you for your interest in retaining my services as an expert witness in anesthesiology.</p>
-        <p>Please use the secure portal below to submit your case details, including relevant medical records and a brief case summary. I will review the materials and provide an initial assessment.</p>
-        ${m.message ? `<p>${m.message}</p>` : ''}
+        ${m.message
+          ? `<p>${m.message}</p>`
+          : `<p>Thank you for your interest in retaining my services as an expert witness in anesthesiology.</p>
+        <p>Please use the secure portal below to submit your case details, including relevant medical records and a brief case summary. I will review the materials and provide an initial assessment.</p>`}
       `,
       ctaLabel: 'Submit Case Details',
       ctaUrl: m.portalUrl || `${SITE_URL}`,
@@ -363,39 +408,49 @@ function depositionScheduledEmail(m: EmailMetadata): EmailOutput {
 
 function caseUpdateEmail(m: EmailMetadata): EmailOutput {
   const subject = `Case Update — ${m.caseName || 'Case'}`
+  // Only link to a case when we actually have one — otherwise wrap() would emit
+  // a button pointing at /cases/undefined (a dead page). wrap() drops the CTA
+  // entirely when ctaUrl is undefined.
+  const caseUrl = m.portalUrl || (m.caseId ? `${SITE_URL}/cases/${m.caseId}` : undefined)
+  const defaultBody = m.caseName
+    ? `<p>There is an update regarding <strong>${m.caseName}</strong>. Please review at your earliest convenience.</p>`
+    : `<p>There is an update on your case. Please review at your earliest convenience.</p>`
   return {
     subject,
-    previewText: `Update on ${m.caseName}`,
+    previewText: `Update on ${m.caseName || 'your case'}`,
     html: wrap({
       subject,
-      previewText: `Update on ${m.caseName}`,
+      previewText: `Update on ${m.caseName || 'your case'}`,
       badge: 'Case Update',
       badgeColor: EMAIL_COLORS.gold,
       heading: m.caseName || 'Case Update',
       bodyHtml: `
         <p>${greeting(m.recipientName)}</p>
-        ${m.message || `<p>There is an update regarding <strong>${m.caseName}</strong>. Please review at your earliest convenience.</p>`}
+        ${m.message || defaultBody}
       `,
-      ctaLabel: 'View Case',
-      ctaUrl: m.portalUrl || `${SITE_URL}/cases/${m.caseId}`,
+      ctaLabel: caseUrl ? 'View Case' : undefined,
+      ctaUrl: caseUrl,
     }),
   }
 }
 
 function followUpEmail(m: EmailMetadata): EmailOutput {
   const subject = `Follow Up — ${m.caseName || 'Case'}`
+  const defaultBody = m.caseName
+    ? `<p>I wanted to follow up regarding <strong>${m.caseName}</strong>. Please let me know if you have any questions or need any additional information.</p>`
+    : `<p>I wanted to follow up on your case. Please let me know if you have any questions or need any additional information.</p>`
   return {
     subject,
-    previewText: `Follow up on ${m.caseName}`,
+    previewText: `Follow up on ${m.caseName || 'your case'}`,
     html: wrap({
       subject,
-      previewText: `Follow up on ${m.caseName}`,
+      previewText: `Follow up on ${m.caseName || 'your case'}`,
       badge: 'Follow Up',
       badgeColor: EMAIL_COLORS.gold,
       heading: m.caseName || 'Follow Up',
       bodyHtml: `
         <p>${greeting(m.recipientName)}</p>
-        ${m.message || `<p>I wanted to follow up regarding <strong>${m.caseName}</strong>. Please let me know if you have any questions or need any additional information.</p>`}
+        ${m.message || defaultBody}
       `,
     }),
   }
@@ -489,6 +544,8 @@ export function htmlToText(html: string): string {
     .replace(/&amp;/gi, '&')
     .replace(/&mdash;/gi, '—')
     .replace(/&bull;/gi, '•')
+    .replace(/&ldquo;/gi, '“')
+    .replace(/&rdquo;/gi, '”')
     .replace(/&rarr;/gi, '→')
     .replace(/&#10003;/g, '✓')
     .replace(/&lt;/gi, '<')
