@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     if (auth.error) return auth.error
 
     const body = await request.json()
-    const { reportId, includeSignature = true } = body
+    const { reportId, includeSignature = true, signatureDate } = body
 
     if (!reportId) {
       return NextResponse.json(
@@ -59,6 +59,7 @@ export async function POST(request: NextRequest) {
       reportHtml: html,
       reportName: report.report_name,
       includeSignature,
+      signatureDate,
     })
 
     // Return PDF as download

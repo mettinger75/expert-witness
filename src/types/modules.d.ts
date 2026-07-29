@@ -8,6 +8,12 @@ declare module 'html-to-docx' {
     table?: { row?: { cantSplit?: boolean } }
     footer?: boolean
     pageNumber?: boolean
+    title?: string
+    subject?: string
+    creator?: string
+    keywords?: string[]
+    description?: string
+    lastModifiedBy?: string
     [key: string]: unknown
   }
   export default function HTMLtoDOCX(
