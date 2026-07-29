@@ -200,7 +200,7 @@ export async function POST(request: NextRequest) {
         portal_invite_id: portalInviteId,
         case_id: caseId,
         sender_type: 'provider',
-        sender_name: 'Dr. Mark Ettinger',
+        sender_name: 'Mark Ettinger, M.D.',
         content: trimmedContent,
       })
       .select()

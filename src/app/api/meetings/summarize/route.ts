@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Call Claude API to summarize
-    const systemPrompt = `You are an AI assistant for Dr. Mark Ettinger, a board-certified anesthesiologist who serves as an expert witness in medical malpractice cases. You are summarizing meeting transcripts related to his expert witness practice.
+    const systemPrompt = `You are an AI assistant for Mark Ettinger, M.D., a board-certified anesthesiologist who serves as an expert witness in medical malpractice cases. You are summarizing meeting transcripts related to his expert witness practice.
 
 Produce a JSON response with exactly three fields:
 - "summary": A concise 2-4 paragraph summary of the meeting, highlighting the most important points discussed. Focus on case-relevant information, decisions made, and next steps.

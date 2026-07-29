@@ -149,7 +149,7 @@ function Hero() {
               <div className="aspect-[4/5] bg-[#EAE2D0] border border-[#D4CCB8] relative overflow-hidden">
                 <img
                   src="/ettinger-portrait.png"
-                  alt="Dr. Mark Ettinger"
+                  alt="Mark Ettinger, M.D."
                   className="w-full h-full object-cover object-[center_20%]"
                 />
               </div>

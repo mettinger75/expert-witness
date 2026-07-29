@@ -11,6 +11,14 @@ export const SITE_URL =
   process.env.NEXT_PUBLIC_APP_URL || 'https://markettingermd.com'
 
 /**
+ * Public practice site shown in the email signature. Deliberately the marketing
+ * domain and NOT `SITE_URL` — in production SITE_URL resolves to the app host
+ * (platform.markettingermd.com), which is not what counsel should be sent to
+ * from a signature line reading "markettingermd.com".
+ */
+export const PRACTICE_SITE_URL = 'https://markettingermd.com'
+
+/**
  * Domain used inside Message-ID / In-Reply-To / References headers so that
  * Gmail and other clients group every email about a given case into a single
  * thread. Must be a domain we control (matches the live `from` addresses used

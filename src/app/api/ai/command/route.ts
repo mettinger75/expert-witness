@@ -149,7 +149,7 @@ const TOOLS = [
   },
 ]
 
-const SYSTEM_PROMPT = `You are an AI assistant embedded in the Expert Witness Practice Manager for Dr. Mark Ettinger. You have tools to read and write to the practice database.
+const SYSTEM_PROMPT = `You are an AI assistant embedded in the Expert Witness Practice Manager for Mark Ettinger, M.D.. You have tools to read and write to the practice database.
 
 When the user asks you to do something, use your tools to accomplish it. Always:
 1. Confirm before any DELETE operation (refuse to delete without explicit confirmation)

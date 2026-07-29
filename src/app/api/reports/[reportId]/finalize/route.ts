@@ -114,7 +114,7 @@ export async function POST(
           portal_invite_id: invite.id,
           case_id: report.case_id,
           sender_type: 'provider',
-          sender_name: 'Dr. Mark Ettinger',
+          sender_name: 'Mark Ettinger, M.D.',
           content: `${report.report_name} has been finalized. You can download the signed PDF from the Reports tab.`,
           message_type: 'report_notification',
           metadata: {
@@ -174,7 +174,7 @@ export async function POST(
             portal_invite_id: invite.id,
             case_id: report.case_id,
             sender_type: 'provider',
-            sender_name: 'Dr. Mark Ettinger',
+            sender_name: 'Mark Ettinger, M.D.',
             content: `${report.report_name} has been finalized. You can download the signed PDF from the Reports tab.`,
             message_type: 'report_notification',
             metadata: {

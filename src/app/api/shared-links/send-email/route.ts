@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     // Build subject
     let subject: string
     if (isInvoice) {
-      subject = `Invoice ${entityName || ''} — Dr. Mark Ettinger`
+      subject = `Invoice ${entityName || ''} — Mark Ettinger, M.D.`
     } else if (permission === 'sign') {
       subject = `Signature Requested: ${entityName || entityLabel}`
     } else {
@@ -83,8 +83,8 @@ export async function POST(request: NextRequest) {
           <p style="font-size: 13px; font-weight: 700; color: ${c.navy}; margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.5px;">Payment Options</p>
           <p style="font-size: 13px; color: #333; margin: 0 0 4px; line-height: 1.6;">
             <strong>Check:</strong> Make payable and mail to:<br>
-            Mark Ettinger, M.D.<br>
-            1115 Oakbrook Hills Ct<br>
+            Mark Ettinger, MD, PA<br>
+            125 Country View Dr., Suite 120A<br>
             Roanoke, TX 76262
           </p>
           <p style="font-size: 13px; color: #333; margin: 8px 0 0; line-height: 1.6;">
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
     const html = wrapEmail({
       subject,
       previewText: isInvoice
-        ? `Invoice ${entityName} from Dr. Mark Ettinger${invoiceAmount ? ` — ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(invoiceAmount)}` : ''}`
+        ? `Invoice ${entityName} from Mark Ettinger, M.D.${invoiceAmount ? ` — ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(invoiceAmount)}` : ''}`
         : `${entityLabel} shared: ${entityName}`,
       badge,
       badgeColor: EMAIL_COLORS.gold,
