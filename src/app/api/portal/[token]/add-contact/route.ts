@@ -18,6 +18,55 @@ const ROLE_MAP: Record<string, { contactType: string; caseRole: string }> = {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
+const CONTACT_FIELDS = 'id, first_name, last_name, email, contact_type, organization_name'
+
+type ContactRow = {
+  id: string
+  first_name: string | null
+  last_name: string | null
+  email: string | null
+  contact_type: string | null
+  organization_name: string | null
+}
+
+/**
+ * Escapes LIKE metacharacters so an address is matched literally. Without this
+ * an underscore — legal and common in email addresses — is a single-character
+ * wildcard, so `a_b@x.com` would match `a.b@x.com` and silently adopt the wrong
+ * person's contact record.
+ */
+function likeLiteral(value: string): string {
+  return value.replace(/[\\%_]/g, (ch) => `\\${ch}`)
+}
+
+const norm = (value: string | null | undefined) => (value || '').trim().toLowerCase()
+
+/** Treats both NULL and '' as "no email on file" — the database holds both. */
+const hasNoEmail = (c: ContactRow) => !c.email || !c.email.trim()
+
+/**
+ * Consumer mailbox providers. Two people on gmail.com share a domain but not an
+ * employer, so a shared domain only implies a shared firm off this list.
+ */
+const PUBLIC_EMAIL_DOMAINS = new Set([
+  'gmail.com', 'googlemail.com', 'outlook.com', 'hotmail.com', 'live.com', 'msn.com',
+  'yahoo.com', 'ymail.com', 'aol.com', 'icloud.com', 'me.com', 'mac.com',
+  'protonmail.com', 'proton.me', 'gmx.com', 'mail.com', 'zoho.com', 'fastmail.com',
+  'comcast.net', 'verizon.net', 'att.net', 'sbcglobal.net', 'bellsouth.net',
+  'cox.net', 'charter.net', 'earthlink.net', 'juno.com',
+])
+
+const emailDomain = (value: string | null | undefined) => {
+  const at = (value || '').lastIndexOf('@')
+  return at === -1 ? '' : norm(value).slice(at + 1)
+}
+
+/** True only when both addresses sit on the same private (non-consumer) domain. */
+function sameFirmDomain(a: string | null | undefined, b: string | null | undefined): boolean {
+  const da = emailDomain(a)
+  return !!da && da === emailDomain(b) && !PUBLIC_EMAIL_DOMAINS.has(da)
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ token: string }> }
@@ -67,12 +116,22 @@ export async function POST(
       return NextResponse.json({ error: 'Please enter a valid email address' }, { status: 400 })
     }
 
-    // Inherit the inviting firm's organization for any newly created contact.
     const { data: invitingContact } = await supabase
       .from('contacts')
-      .select('organization_name, first_name, last_name')
+      .select('organization_name, first_name, last_name, email')
       .eq('id', invite.contact_id)
       .single()
+
+    // Organization to stamp on a NEWLY created contact — only when the two
+    // addresses share a private email domain, which is real evidence they work
+    // at the same firm. Inheriting unconditionally is what put a nurse-attorney
+    // consultancy on opposing-firm counsel's record: the field then flows
+    // straight into firm_name on a generated engagement contract, where a wrong
+    // firm is both invisible and consequential. Blank is recoverable; wrong is
+    // not, so when the domains disagree we leave it for Dr. Ettinger to fill in.
+    const inheritedOrg = sameFirmDomain(invitingContact?.email, email)
+      ? invitingContact?.organization_name || null
+      : null
 
     // Name of the person doing the adding, so the invite email can read
     // "X has added you to this case" instead of a generic invitation.
@@ -80,20 +139,85 @@ export async function POST(
       ? `${invitingContact.first_name || ''} ${invitingContact.last_name || ''}`.trim()
       : ''
 
-    // Find an existing contact by email, or create one. Re-using the existing
-    // record (instead of erroring on a duplicate) means a colleague who is
-    // already in the system simply gets linked to this case.
-    let contact: { id: string; first_name: string; last_name: string; email: string } | null = null
+    // Find an existing contact, or create one. Re-using the existing record
+    // (instead of erroring on a duplicate) means a colleague who is already in
+    // the system simply gets linked to this case.
+    //
+    // Matching runs in two passes. An email-only lookup is not enough: most
+    // contacts here start life as name-only stubs created by the inquiry flow
+    // (attorney of record known, email not yet provided), and those can never
+    // match on email. That is how one attorney ends up with two records — a
+    // stub holding the case role and a portal-created row holding the email.
+    let contact: ContactRow | null = null
+    let matchedStub = false
 
-    const { data: existing } = await supabase
+    // Pass 1 — email, case-insensitively, anywhere in the practice.
+    // `contacts.email` has no unique index and already holds duplicate
+    // addresses, so order and take one rather than using .maybeSingle(), which
+    // errors outright when more than one row matches.
+    const { data: byEmail } = await supabase
       .from('contacts')
-      .select('id, first_name, last_name, email')
-      .eq('email', email)
-      .maybeSingle()
+      .select(CONTACT_FIELDS)
+      .ilike('email', likeLiteral(email))
+      .order('created_at', { ascending: true })
+      .limit(1)
 
-    if (existing) {
-      contact = existing
-    } else {
+    if (byEmail?.length) {
+      contact = byEmail[0] as ContactRow
+    } else if (lastName) {
+      // Pass 2 — a name-only stub ALREADY ON THIS CASE. Scoping to the case is
+      // what makes name matching safe: two unrelated "John Smith"s elsewhere in
+      // the practice never merge, but the stub counsel created for this matter
+      // gets adopted instead of duplicated. Requires a surname — the portal
+      // form allows a blank one, and a first name alone is far too weak to
+      // merge two records on.
+      const { data: caseLinks } = await supabase
+        .from('case_contacts')
+        .select(`contact_id, contacts!inner(${CONTACT_FIELDS})`)
+        .eq('case_id', invite.case_id)
+
+      const stub = (caseLinks || [])
+        .map((l) => (l as unknown as { contacts: ContactRow }).contacts)
+        .find(
+          (c) =>
+            c &&
+            hasNoEmail(c) &&
+            norm(c.first_name) === norm(firstName) &&
+            norm(c.last_name) === norm(lastName)
+        )
+
+      if (stub) {
+        // Adopt the stub and backfill ONLY what it is missing. Never overwrite
+        // a value already on the record — the organization and contact type
+        // were set deliberately when the case was opened and are more reliable
+        // than anything inferred from who happens to be sending this invite.
+        const patch: Record<string, string> = { email }
+        if (!stub.contact_type) patch.contact_type = contactType
+        if (!stub.organization_name && inheritedOrg) patch.organization_name = inheritedOrg
+
+        const { data: updated, error: updateErr } = await supabase
+          .from('contacts')
+          .update(patch)
+          .eq('id', stub.id)
+          .select(CONTACT_FIELDS)
+          .single()
+
+        if (!updateErr && updated) {
+          contact = updated as ContactRow
+          matchedStub = true
+        } else {
+          // Falling through to the insert below still serves the inviter, but it
+          // recreates the duplicate this pass exists to prevent — so say so.
+          console.error(
+            `add-contact: could not adopt stub ${stub.id} on case ${invite.case_id}; ` +
+              'creating a separate contact instead',
+            updateErr
+          )
+        }
+      }
+    }
+
+    if (!contact) {
       const { data: created, error: contactErr } = await supabase
         .from('contacts')
         .insert({
@@ -101,9 +225,9 @@ export async function POST(
           last_name: lastName,
           email,
           contact_type: contactType,
-          organization_name: invitingContact?.organization_name || null,
+          organization_name: inheritedOrg,
         })
-        .select('id, first_name, last_name, email')
+        .select(CONTACT_FIELDS)
         .single()
 
       if (contactErr) {
@@ -111,15 +235,16 @@ export async function POST(
         if (contactErr.code === '23505') {
           const { data: retry } = await supabase
             .from('contacts')
-            .select('id, first_name, last_name, email')
-            .eq('email', email)
-            .single()
-          contact = retry
+            .select(CONTACT_FIELDS)
+            .ilike('email', likeLiteral(email))
+            .order('created_at', { ascending: true })
+            .limit(1)
+          contact = (retry?.[0] as ContactRow) || null
         } else {
           throw contactErr
         }
       } else {
-        contact = created
+        contact = created as ContactRow
       }
     }
 
@@ -127,22 +252,37 @@ export async function POST(
       return NextResponse.json({ error: 'Could not create the contact' }, { status: 500 })
     }
 
-    // Link the contact to the case if not already linked in this role.
-    const { data: existingLink } = await supabase
+    // Link the contact to the case if they are not already on it in ANY role.
+    // Checking every role rather than just this one matters: an adopted stub is
+    // typically already linked as retaining_attorney, and adding a second row
+    // for the dropdown value would put the same person on the case twice — the
+    // case page groups retaining_attorney and co_counsel under one heading, so
+    // they would visibly render twice. An existing role also outranks whatever
+    // the inviter picked, since it was assigned deliberately when the case was
+    // opened.
+    const { data: existingLinks } = await supabase
       .from('case_contacts')
-      .select('id')
+      .select('id, role')
       .eq('case_id', invite.case_id)
       .eq('contact_id', contact.id)
-      .eq('role', caseRole)
-      .maybeSingle()
+      .limit(1)
 
-    if (!existingLink) {
+    if (!existingLinks?.length) {
       await supabase.from('case_contacts').insert({
         case_id: invite.case_id,
         contact_id: contact.id,
         role: caseRole,
         is_primary: false,
       })
+    }
+
+    if (matchedStub) {
+      // Worth a line in the log: this path backfilled an existing case record
+      // rather than creating a new one, and kept the role already on file.
+      console.log(
+        `add-contact: adopted existing stub ${contact.id} for ${email} on case ${invite.case_id}` +
+          ` (kept role ${existingLinks?.[0]?.role ?? caseRole})`
+      )
     }
 
     // Create a portal invite for the collaborator, inheriting the inviter's
@@ -184,8 +324,11 @@ export async function POST(
     let emailSent = false
     try {
       const emailResult = await sendPortalInviteEmail({
-        recipientEmail: contact.email,
-        recipientName: `${contact.first_name} ${contact.last_name}`.trim(),
+        // Use the validated address the inviter typed rather than whatever
+        // casing the matched row happens to store, and skip null name parts so
+        // a stub with no surname cannot render as "Tim null" in the greeting.
+        recipientEmail: email,
+        recipientName: [contact.first_name, contact.last_name].filter(Boolean).join(' ').trim(),
         portalUrl,
         caseId: invite.case_id,
         addedByName: addedByName || undefined,
