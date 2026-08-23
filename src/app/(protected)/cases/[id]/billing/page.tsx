@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useMemo, useCallback } from 'react'
+import { useBillingRates } from '@/hooks/useBillingRates'
+import { deriveContractRates } from '@/lib/contract-terms'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -126,12 +128,15 @@ export default function CaseBillingPage() {
   const [sendInvoice, setSendInvoice] = useState<InvoiceRow | null>(null)
   const [exportingId, setExportingId] = useState<string | null>(null)
 
+  const { data: billingRates } = useBillingRates()
+  const defaultHourlyRate = deriveContractRates(billingRates).hourlyRate
+
   // ---- Log time form state ----
   const [entryDate, setEntryDate] = useState(new Date().toISOString().split('T')[0])
   const [entryActivity, setEntryActivity] = useState('')
   const [entryDescription, setEntryDescription] = useState('')
   const [entryHours, setEntryHours] = useState('')
-  const [entryRate, setEntryRate] = useState('500')
+  const [entryRate, setEntryRate] = useState('')
   const [entryBillable, setEntryBillable] = useState(true)
 
   // ---- Create invoice form state ----
@@ -208,11 +213,30 @@ export default function CaseBillingPage() {
   // =======================================================================
   // Handlers: Log Time
   // =======================================================================
+  // Time is logged at the rate billing_rates records for that activity, so the
+  // form can never quietly bill at a rate the practice no longer charges. The
+  // field stays editable for the occasional negotiated exception.
+  function rateForActivity(activityType: string): number {
+    const row = (billingRates ?? []).find(
+      (r) => r.activity_type === activityType && r.is_active !== false && r.end_date === null
+    )
+    const hourly = Number(row?.rate_per_hour)
+    if (Number.isFinite(hourly) && hourly > 0) return hourly
+    const daily = Number(row?.daily_rate)
+    if (Number.isFinite(daily) && daily > 0) return daily
+    return defaultHourlyRate
+  }
+
+  function handleActivityChange(activityType: string) {
+    setEntryActivity(activityType)
+    setEntryRate(String(rateForActivity(activityType)))
+  }
+
   function resetLogTimeForm() {
     setEntryActivity('')
     setEntryDescription('')
     setEntryHours('')
-    setEntryRate('500')
+    setEntryRate(String(defaultHourlyRate))
     setEntryBillable(true)
     setEntryDate(new Date().toISOString().split('T')[0])
   }
@@ -847,7 +871,7 @@ export default function CaseBillingPage() {
               </div>
               <div>
                 <Label htmlFor="entry-activity">Activity Type</Label>
-                <Select value={entryActivity} onValueChange={setEntryActivity}>
+                <Select value={entryActivity} onValueChange={handleActivityChange}>
                   <SelectTrigger id="entry-activity">
                     <SelectValue placeholder="Select activity" />
                   </SelectTrigger>

@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useBillingRates } from '@/hooks/useBillingRates'
+import { deriveContractRates } from '@/lib/contract-terms'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -77,11 +79,14 @@ export function SettingsForm({
     },
   })
 
-  // Billing form
+  // Billing form — falls back to the billing_rates quote rather than a stale
+  // literal, so an unset practice default never displays a rate we do not charge.
+  const { data: billingRates } = useBillingRates()
+  const standardHourlyRate = deriveContractRates(billingRates).hourlyRate
   const billingForm = useForm<BillingFormValues>({
     resolver: zodResolver(billingSchema) as any,
     defaultValues: {
-      default_hourly_rate: initialBilling?.default_hourly_rate ?? 500,
+      default_hourly_rate: initialBilling?.default_hourly_rate ?? standardHourlyRate,
       default_payment_terms: initialBilling?.default_payment_terms ?? 'Net 30',
       invoice_prefix: initialBilling?.invoice_prefix ?? 'INV',
     },

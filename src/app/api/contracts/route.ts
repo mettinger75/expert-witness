@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { requireAdminUser } from '@/lib/api-admin-auth'
+import { deriveContractRates, STANDARD_SCOPE } from '@/lib/contract-terms'
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,12 +17,12 @@ export async function POST(request: NextRequest) {
       firmEmail,
       firmAddress,
       firmPhone,
-      hourlyRate = 500,
-      depositionRate = 750,
-      trialRate = 750,
-      retainerAmount = 5000,
-      cancellationFeeHours = 48,
-      paymentTermsDays = 30,
+      hourlyRate,
+      depositionRate,
+      trialRate,
+      retainerAmount,
+      cancellationFeeHours,
+      paymentTermsDays,
       scopeDescription,
       additionalTerms,
     } = body
@@ -31,6 +32,14 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = getSupabaseAdmin()
+
+    // Quote from billing_rates rather than a hard-coded default, so an agreement
+    // can never go out at a rate the practice no longer charges. An explicit
+    // value in the request still wins — this only supplies what was omitted.
+    const { data: rateRows } = await supabase
+      .from('billing_rates')
+      .select('activity_type, rate_per_hour, daily_rate, is_active, end_date')
+    const standard = deriveContractRates(rateRows)
 
     const { data: contract, error } = await supabase
       .from('contracts')
@@ -45,13 +54,13 @@ export async function POST(request: NextRequest) {
         firm_address: firmAddress || null,
         firm_email: firmEmail || null,
         firm_phone: firmPhone || null,
-        hourly_rate: hourlyRate,
-        deposition_rate: depositionRate,
-        trial_rate: trialRate,
-        retainer_amount: retainerAmount,
-        cancellation_fee_hours: cancellationFeeHours,
-        payment_terms_days: paymentTermsDays,
-        scope_description: scopeDescription || null,
+        hourly_rate: hourlyRate ?? standard.hourlyRate,
+        deposition_rate: depositionRate ?? standard.depositionRate,
+        trial_rate: trialRate ?? standard.trialRate,
+        retainer_amount: retainerAmount ?? standard.retainerAmount,
+        cancellation_fee_hours: cancellationFeeHours ?? standard.cancellationFeeHours,
+        payment_terms_days: paymentTermsDays ?? standard.paymentTermsDays,
+        scope_description: scopeDescription || STANDARD_SCOPE,
         additional_terms: additionalTerms || null,
       })
       .select()

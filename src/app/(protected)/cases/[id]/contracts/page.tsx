@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { deriveContractRates, STANDARD_SCOPE } from '@/lib/contract-terms'
+import { useBillingRates } from '@/hooks/useBillingRates'
 import { useParams } from 'next/navigation'
 import { authHeaders } from '@/lib/api-client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -53,15 +55,10 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 
-// Default financial terms
-const DEFAULTS = {
-  hourly_rate: 700,
-  deposition_rate: 4000,
-  trial_rate: 5000,
-  retainer_amount: 5000,
-  cancellation_fee_hours: 48,
-  payment_terms_days: 30,
-}
+// Placeholder terms for the very first render. The real quote comes from
+// billing_rates and is applied in handleOpenCreate, so a stale constant can
+// never reach an agreement.
+const DEFAULTS = deriveContractRates(null)
 
 interface ContractFormState {
   contract_type: string
@@ -89,13 +86,13 @@ const initialFormState: ContractFormState = {
   firm_address: '',
   firm_email: '',
   firm_phone: '',
-  hourly_rate: DEFAULTS.hourly_rate,
-  deposition_rate: DEFAULTS.deposition_rate,
-  trial_rate: DEFAULTS.trial_rate,
-  retainer_amount: DEFAULTS.retainer_amount,
-  cancellation_fee_hours: DEFAULTS.cancellation_fee_hours,
-  payment_terms_days: DEFAULTS.payment_terms_days,
-  scope_description: '',
+  hourly_rate: DEFAULTS.hourlyRate,
+  deposition_rate: DEFAULTS.depositionRate,
+  trial_rate: DEFAULTS.trialRate,
+  retainer_amount: DEFAULTS.retainerAmount,
+  cancellation_fee_hours: DEFAULTS.cancellationFeeHours,
+  payment_terms_days: DEFAULTS.paymentTermsDays,
+  scope_description: STANDARD_SCOPE,
   additional_terms: '',
 }
 
@@ -174,6 +171,7 @@ export default function CaseContractsPage() {
   const [previewSigned, setPreviewSigned] = useState(false)
   const [previewSignedBy, setPreviewSignedBy] = useState<string | null>(null)
   const [previewSignedAt, setPreviewSignedAt] = useState<string | null>(null)
+  const { data: billingRates } = useBillingRates()
   const [form, setForm] = useState<ContractFormState>(initialFormState)
   const [generating, setGenerating] = useState(false)
   const [editingContractId, setEditingContractId] = useState<string | null>(null)
@@ -202,7 +200,16 @@ export default function CaseContractsPage() {
   }
 
   function handleOpenCreate() {
-    setForm(initialFormState)
+    const standard = deriveContractRates(billingRates)
+    setForm({
+      ...initialFormState,
+      hourly_rate: standard.hourlyRate,
+      deposition_rate: standard.depositionRate,
+      trial_rate: standard.trialRate,
+      retainer_amount: standard.retainerAmount,
+      cancellation_fee_hours: standard.cancellationFeeHours,
+      payment_terms_days: standard.paymentTermsDays,
+    })
     setEditingContractId(null)
     setCreateOpen(true)
     // Defer auto-populate
@@ -224,7 +231,7 @@ export default function CaseContractsPage() {
       retainer_amount: contract.retainer_amount,
       cancellation_fee_hours: contract.cancellation_fee_hours,
       payment_terms_days: contract.payment_terms_days,
-      scope_description: contract.scope_description || '',
+      scope_description: contract.scope_description || STANDARD_SCOPE,
       additional_terms: contract.additional_terms || '',
     })
     setEditingContractId(contract.id)
@@ -259,7 +266,7 @@ export default function CaseContractsPage() {
             retainer_amount: form.retainer_amount,
             cancellation_fee_hours: form.cancellation_fee_hours,
             payment_terms_days: form.payment_terms_days,
-            scope_description: form.scope_description || null,
+            scope_description: form.scope_description || STANDARD_SCOPE,
             additional_terms: form.additional_terms || null,
           },
         })
@@ -281,7 +288,7 @@ export default function CaseContractsPage() {
           retainer_amount: form.retainer_amount,
           cancellation_fee_hours: form.cancellation_fee_hours,
           payment_terms_days: form.payment_terms_days,
-          scope_description: form.scope_description || null,
+          scope_description: form.scope_description || STANDARD_SCOPE,
           additional_terms: form.additional_terms || null,
         }
         const created = await createContract.mutateAsync(input)
