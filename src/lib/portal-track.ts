@@ -10,7 +10,7 @@
 
 const SID_KEY = 'pi_sid'
 
-function isPreviewContext(): boolean {
+export function isPreviewContext(): boolean {
   if (typeof window === 'undefined') return false
   try {
     const sp = new URLSearchParams(window.location.search)
@@ -18,6 +18,21 @@ function isPreviewContext(): boolean {
   } catch {
     return false
   }
+}
+
+/**
+ * Carry preview mode through to a portal API call.
+ *
+ * The server only skips the view_count bump, portal_access_log write, and
+ * first-view case-status advance when it actually sees ?preview=1. The portal
+ * page previously fetched the bare path, so opening a link with ?preview=1 in a
+ * browser still recorded the visit as the recipient's — silently corrupting the
+ * engagement stats of whoever the invite belongs to. Route portal fetches
+ * through this so the flag survives.
+ */
+export function portalApiUrl(path: string): string {
+  if (!isPreviewContext()) return path
+  return path + (path.includes('?') ? '&' : '?') + 'preview=1'
 }
 
 function getSessionId(): string {

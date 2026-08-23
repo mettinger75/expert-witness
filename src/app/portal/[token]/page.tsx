@@ -2,6 +2,7 @@
 
 import { useParams } from 'next/navigation'
 import { useState, useEffect } from 'react'
+import { portalApiUrl } from '@/lib/portal-track'
 import { PortalView } from './PortalView'
 import { PortalLinkRecovery } from './PortalLinkRecovery'
 import { Loader2, AlertTriangle } from 'lucide-react'
@@ -148,7 +149,7 @@ export default function PortalPage() {
   useEffect(() => {
     async function load() {
       try {
-        const res = await fetch(`/api/portal/${token}`)
+        const res = await fetch(portalApiUrl(`/api/portal/${token}`))
         if (!res.ok) {
           const err = await res.json()
           setError(err.error || 'Portal not found')

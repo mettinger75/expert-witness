@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { requireAdminUser } from '@/lib/api-admin-auth'
-import { STANDARD_TERMS, STANDARD_SCOPE, REMITTANCE_PAYEE } from '@/lib/contract-terms'
+import { STANDARD_TERMS, STANDARD_SCOPE, REMITTANCE_PAYEE, REMITTANCE_ADDRESS } from '@/lib/contract-terms'
 
 export function generateRetentionAgreementHTML(contract: {
   firm_name: string | null
@@ -323,7 +323,7 @@ export function generateRetentionAgreementHTML(contract: {
     <div class="section-number">Section 3</div>
     <h3>Billing and Payment Terms</h3>
     <p>Invoices will be issued on a monthly basis, with payment due within <strong>${paymentDays} days</strong> of receipt. Invoices will include detailed descriptions of services rendered, time spent, and applicable charges.</p>
-    <p>Payment may be made by check, wire transfer, or electronic payment. Checks should be made payable to ${REMITTANCE_PAYEE}; remittance details are provided on each invoice. The Firm is solely responsible for all fees incurred, regardless of case outcome or client reimbursement.</p>
+    <p>Payment may be made by check, wire transfer, or electronic payment. Checks should be made payable to ${REMITTANCE_PAYEE} and remitted to ${REMITTANCE_ADDRESS}. The Firm is solely responsible for all fees incurred, regardless of case outcome or client reimbursement.</p>
   </div>
 
   <!-- Section 4 -->

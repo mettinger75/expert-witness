@@ -120,8 +120,8 @@ export const STANDARD_SCOPE =
   'preparation of written reports or affidavits, participation in telephone or video conferences, ' +
   'depositions, and testimony at trial or other proceedings. Expert serves as independent contractor.'
 
-/**
- * Remittance payee. The street address is deliberately omitted — it would
- * otherwise appear in every discoverable agreement; invoices carry it instead.
- */
+/** Remittance payee, as it appears on the agreement. */
 export const REMITTANCE_PAYEE = 'Mark Ettinger, M.D.'
+
+/** Remittance address printed alongside the payee. */
+export const REMITTANCE_ADDRESS = '1115 Oakbrook Hills Ct, Roanoke, TX 76262'
