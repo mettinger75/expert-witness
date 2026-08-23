@@ -27,11 +27,17 @@ export function generateRetentionAgreementHTML(contract: {
   })
   const firmName = contract.firm_name || '[Firm Name]'
   const firmContact = contract.firm_contact_name || '[Attorney Name]'
-  const firmAddress = contract.firm_address || '[Firm Address]'
-  const hourlyRate = contract.hourly_rate.toFixed(2)
-  const depositionRate = contract.deposition_rate.toFixed(2)
-  const trialRate = contract.trial_rate.toFixed(2)
-  const retainer = contract.retainer_amount.toFixed(2)
+  const firmAddress = (contract.firm_address || '[Firm Address]')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join('<br>')
+  const money = (n: number) =>
+    n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const hourlyRate = money(contract.hourly_rate)
+  const depositionRate = money(contract.deposition_rate)
+  const trialRate = money(contract.trial_rate)
+  const retainer = money(contract.retainer_amount)
   // A $0 retainer is a real engagement shape (bill-as-incurred), not a missing
   // value — asserting "a retainer of $0.00 is required" reads as an error to
   // opposing counsel, so state the actual arrangement instead.
@@ -39,6 +45,12 @@ export function generateRetentionAgreementHTML(contract: {
     contract.retainer_amount > 0
       ? `<p><strong>Prepayment:</strong> A retainer of <strong>$${retainer}</strong> is required prior to commencement of work. This retainer will be applied against future billings. The Expert reserves the right to request additional retainer replenishment.</p>`
       : `<p><strong>Prepayment:</strong> No advance retainer is required. Fees will be invoiced as incurred in accordance with the billing and payment terms set forth below.</p>`
+  // Section 1 already enumerates the services and states the independent-
+  // contractor clause. The standard scope says the same thing, so render the
+  // paragraph only when this engagement carries genuinely different wording.
+  const scope = contract.scope_description?.trim()
+  const scopeParagraph =
+    scope && scope !== STANDARD_SCOPE.trim() ? `<p>${scope}</p>` : ''
   const cancelHours = contract.cancellation_fee_hours
   const paymentDays = contract.payment_terms_days
 
@@ -262,7 +274,7 @@ export function generateRetentionAgreementHTML(contract: {
       <li>Trial testimony</li>
       <li>Consultation and case strategy support</li>
     </ul>
-    <p>${contract.scope_description || STANDARD_SCOPE}</p>
+    ${scopeParagraph}
     <p>The Expert serves as an independent contractor and not as an employee, agent, or partner of the Firm. The Expert will provide honest, objective opinions based on the applicable standard of care, regardless of the retaining party's position.</p>
   </div>
 
