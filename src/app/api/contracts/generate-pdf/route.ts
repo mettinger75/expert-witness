@@ -31,6 +31,13 @@ function generateRetentionAgreementHTML(contract: {
   const depositionRate = contract.deposition_rate.toFixed(2)
   const trialRate = contract.trial_rate.toFixed(2)
   const retainer = contract.retainer_amount.toFixed(2)
+  // A $0 retainer is a real engagement shape (bill-as-incurred), not a missing
+  // value — asserting "a retainer of $0.00 is required" reads as an error to
+  // opposing counsel, so state the actual arrangement instead.
+  const retainerClause =
+    contract.retainer_amount > 0
+      ? `<p><strong>Prepayment:</strong> A retainer of <strong>$${retainer}</strong> is required prior to commencement of work. This retainer will be applied against future billings. The Expert reserves the right to request additional retainer replenishment.</p>`
+      : `<p><strong>Prepayment:</strong> No advance retainer is required. Fees will be invoiced as incurred in accordance with the billing and payment terms set forth below.</p>`
   const cancelHours = contract.cancellation_fee_hours
   const paymentDays = contract.payment_terms_days
 
@@ -284,7 +291,7 @@ function generateRetentionAgreementHTML(contract: {
         <tr>
           <td>Deposition Testimony</td>
           <td class="amount">$${depositionRate}/day</td>
-          <td>Full day rate, minimum 4 hours</td>
+          <td>Full day rate, minimum 6 hours</td>
         </tr>
         <tr>
           <td>Trial Testimony</td>
@@ -293,7 +300,7 @@ function generateRetentionAgreementHTML(contract: {
         </tr>
       </tbody>
     </table>
-    <p><strong>Prepayment:</strong> A retainer of <strong>$${retainer}</strong> is required prior to commencement of work. This retainer will be applied against future billings. The Expert reserves the right to request additional retainer replenishment.</p>
+    ${retainerClause}
     <p><strong>Cancellation:</strong> Depositions or trial appearances cancelled with less than ${cancelHours} hours' notice will be billed at the full daily rate. Travel time, if applicable, is billed at the hourly rate.</p>
   </div>
 
