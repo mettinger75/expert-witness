@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { requireAdminUser } from '@/lib/api-admin-auth'
+import { STANDARD_TERMS, STANDARD_SCOPE, REMITTANCE_PAYEE } from '@/lib/contract-terms'
 
-function generateRetentionAgreementHTML(contract: {
+export function generateRetentionAgreementHTML(contract: {
   firm_name: string | null
   firm_contact_name: string | null
   firm_address: string | null
@@ -261,7 +262,7 @@ function generateRetentionAgreementHTML(contract: {
       <li>Trial testimony</li>
       <li>Consultation and case strategy support</li>
     </ul>
-    ${contract.scope_description ? `<p>${contract.scope_description}</p>` : ''}
+    <p>${contract.scope_description || STANDARD_SCOPE}</p>
     <p>The Expert serves as an independent contractor and not as an employee, agent, or partner of the Firm. The Expert will provide honest, objective opinions based on the applicable standard of care, regardless of the retaining party's position.</p>
   </div>
 
@@ -281,17 +282,17 @@ function generateRetentionAgreementHTML(contract: {
         <tr>
           <td>Record Review &amp; Consultation</td>
           <td class="amount">$${hourlyRate}/hr</td>
-          <td>Billed in 0.5-hour increments</td>
+          <td>Billed in ${STANDARD_TERMS.billingIncrementHours}-hour increments</td>
         </tr>
         <tr>
           <td>Report Preparation</td>
           <td class="amount">$${hourlyRate}/hr</td>
-          <td>Billed in 0.5-hour increments</td>
+          <td>Billed in ${STANDARD_TERMS.billingIncrementHours}-hour increments</td>
         </tr>
         <tr>
           <td>Deposition Testimony</td>
           <td class="amount">$${depositionRate}/day</td>
-          <td>Full day rate, minimum 6 hours</td>
+          <td>Full day rate, minimum ${STANDARD_TERMS.depositionMinimumHours} hours</td>
         </tr>
         <tr>
           <td>Trial Testimony</td>
@@ -301,7 +302,8 @@ function generateRetentionAgreementHTML(contract: {
       </tbody>
     </table>
     ${retainerClause}
-    <p><strong>Cancellation:</strong> Depositions or trial appearances cancelled with less than ${cancelHours} hours' notice will be billed at the full daily rate. Travel time, if applicable, is billed at the hourly rate.</p>
+    <p><strong>Report Release and Testimony:</strong> All outstanding fees for hourly work must be paid in full before the Expert's final signed report is released. Fees for deposition or trial testimony are due no later than ${STANDARD_TERMS.appearancePrepaymentDays} days before the scheduled appearance.</p>
+    <p><strong>Cancellation:</strong> Depositions or trial appearances cancelled with less than ${cancelHours} hours' notice will be billed at the full daily rate. Appearances cancelled within ${STANDARD_TERMS.partialCancellationDays} days of the scheduled date forfeit fifty percent (50%) of any advance paid. Travel time, if applicable, is billed at the hourly rate.</p>
   </div>
 
   <!-- Section 3 -->
@@ -309,7 +311,7 @@ function generateRetentionAgreementHTML(contract: {
     <div class="section-number">Section 3</div>
     <h3>Billing and Payment Terms</h3>
     <p>Invoices will be issued on a monthly basis, with payment due within <strong>${paymentDays} days</strong> of receipt. Invoices will include detailed descriptions of services rendered, time spent, and applicable charges.</p>
-    <p>Payment may be made by check, wire transfer, or electronic payment. The Firm is solely responsible for all fees incurred, regardless of case outcome or client reimbursement.</p>
+    <p>Payment may be made by check, wire transfer, or electronic payment. Checks should be made payable to ${REMITTANCE_PAYEE}; remittance details are provided on each invoice. The Firm is solely responsible for all fees incurred, regardless of case outcome or client reimbursement.</p>
   </div>
 
   <!-- Section 4 -->

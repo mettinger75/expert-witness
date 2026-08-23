@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { STANDARD_TERMS } from '@/lib/contract-terms'
 import { authHeaders } from '@/lib/api-client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -55,7 +56,9 @@ export function BillingSettings() {
   const [invoicePrefix, setInvoicePrefix] = useState('INV')
   const [paymentTerms, setPaymentTerms] = useState('net30')
   const [invoiceNotes, setInvoiceNotes] = useState('Payment due within 30 days of receipt. Thank you for your business.')
-  const [retainerAmount, setRetainerAmount] = useState('5000')
+  // Placeholder until /api/settings/options resolves. Matches the standard
+  // no-advance-retainer posture rather than an unrelated literal.
+  const [retainerAmount, setRetainerAmount] = useState(String(STANDARD_TERMS.retainerAmount))
   const [savingInvoice, setSavingInvoice] = useState(false)
 
   useEffect(() => {

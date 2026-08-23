@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useBillingRates } from '@/hooks/useBillingRates'
+import { deriveContractRates } from '@/lib/contract-terms'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -75,10 +77,25 @@ export function CreatePortalInviteDialog({ caseId, contactId, contactName, conta
 
   // Contract / Onboarding
   const [attachContract, setAttachContract] = useState(false)
-  const [hourlyRate, setHourlyRate] = useState('500')
-  const [depositionRate, setDepositionRate] = useState('750')
-  const [trialRate, setTrialRate] = useState('750')
-  const [retainerAmount, setRetainerAmount] = useState('5000')
+  // Quoted from billing_rates so an invite can never attach an agreement at a
+  // rate the practice no longer charges. Each field stays editable per deal.
+  const { data: billingRates } = useBillingRates()
+  const standardRates = deriveContractRates(billingRates)
+  const [hourlyRate, setHourlyRate] = useState('')
+  const [depositionRate, setDepositionRate] = useState('')
+  const [trialRate, setTrialRate] = useState('')
+  const [retainerAmount, setRetainerAmount] = useState('')
+
+  // Seed the rate fields once billing_rates resolves, without clobbering an
+  // edit already in progress.
+  useEffect(() => {
+    if (!billingRates) return
+    setHourlyRate((v) => v || String(standardRates.hourlyRate))
+    setDepositionRate((v) => v || String(standardRates.depositionRate))
+    setTrialRate((v) => v || String(standardRates.trialRate))
+    setRetainerAmount((v) => v || String(standardRates.retainerAmount))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [billingRates])
 
   // Onboarding stage control (granular send options)
   const ONBOARDING_STEPS: Array<{ key: string; label: string }> = [
@@ -159,10 +176,10 @@ export function CreatePortalInviteDialog({ caseId, contactId, contactName, conta
             firmName: contactOrganization || null,
             firmContactName: contactName || null,
             firmEmail: contactEmail || null,
-            hourlyRate: parseFloat(hourlyRate) || 500,
-            depositionRate: parseFloat(depositionRate) || 750,
-            trialRate: parseFloat(trialRate) || 750,
-            retainerAmount: parseFloat(retainerAmount) || 5000,
+            hourlyRate: parseFloat(hourlyRate) || standardRates.hourlyRate,
+            depositionRate: parseFloat(depositionRate) || standardRates.depositionRate,
+            trialRate: parseFloat(trialRate) || standardRates.trialRate,
+            retainerAmount: parseFloat(retainerAmount) || standardRates.retainerAmount,
           }),
         })
         if (!contractRes.ok) throw new Error('Failed to create contract')
