@@ -47,6 +47,20 @@ export interface PortalInviteEmailOptions {
   /** When set, the email is framed as "X has added you to this case" (used by the portal add-colleague flow). */
   addedByName?: string
   isInquiry?: boolean
+  /**
+   * Overrides the computed subject line. Callers that thread every email about
+   * a case into one conversation pass `caseEmailSubject(...)` so the invite
+   * carries the same `[EW-YYYY-NNNN] Case Name` subject as the rest of the
+   * thread. Only reaches the sent envelope and the (client-stripped) HTML
+   * `<title>`, so it never changes the visible body.
+   */
+  subject?: string
+  /**
+   * `Message-ID` / `In-Reply-To` / `References` headers from
+   * `caseEmailHeaders(...)`. Without them the invite starts its own thread
+   * instead of joining the case conversation seeded by the notification email.
+   */
+  headers?: Record<string, string>
 }
 
 export interface PortalInviteEmailResult {
@@ -67,6 +81,8 @@ export async function sendPortalInviteEmail(
     contractTitle,
     addedByName,
     isInquiry = false,
+    subject: subjectOverride,
+    headers,
   } = opts
 
   if (!process.env.RESEND_API_KEY) {
@@ -143,13 +159,15 @@ export async function sendPortalInviteEmail(
     ? `<p style="margin: 16px 0;">${escapeHtml(invitationMessage)}</p>`
     : ''
 
-  const subject = contractTitle
-    ? `Action Required: Sign Agreement — ${resolvedCaseName}`
-    : isInquiry
-      ? `Expert Witness Consultation — Mark Ettinger, M.D.`
-      : addedByName
-        ? `You've been added to a case — ${resolvedCaseName}`
-        : `Case Portal Invitation — ${resolvedCaseName}`
+  const subject =
+    subjectOverride ||
+    (contractTitle
+      ? `Action Required: Sign Agreement — ${resolvedCaseName}`
+      : isInquiry
+        ? `Expert Witness Consultation — Mark Ettinger, M.D.`
+        : addedByName
+          ? `You've been added to a case — ${resolvedCaseName}`
+          : `Case Portal Invitation — ${resolvedCaseName}`)
 
   const bodyHtml = `
     <p>${greeting}</p>
@@ -193,6 +211,7 @@ export async function sendPortalInviteEmail(
       bcc: EMAIL_BCC,
       replyTo: EMAIL_REPLY_TO,
       subject,
+      headers,
       html: htmlBody,
       text: htmlToText(htmlBody),
     })
