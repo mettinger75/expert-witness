@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { INQUIRY_CONTACT_ROLES } from '@/lib/constants'
 
 const CASE_TYPES = [
   { value: 'medical_malpractice', label: 'Medical Malpractice' },
@@ -52,6 +53,7 @@ export default function ConsultPage() {
     email: '',
     phone: '',
     organizationName: '',
+    role: '',
     caseType: '',
     specialtyArea: '',
     side: '',
@@ -210,12 +212,25 @@ export default function ConsultPage() {
             </div>
           </div>
 
-          {/* Firm */}
-          <div>
-            <label className={labelCls}>Firm / Organization</label>
-            <input type="text" value={form.organizationName}
-              onChange={(e) => setForm({ ...form, organizationName: e.target.value })}
-              className={inputCls} />
+          {/* Firm + Role */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={labelCls}>Firm / Organization</label>
+              <input type="text" value={form.organizationName}
+                onChange={(e) => setForm({ ...form, organizationName: e.target.value })}
+                className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Your Role</label>
+              <select value={form.role}
+                onChange={(e) => setForm({ ...form, role: e.target.value })}
+                className={inputCls}>
+                <option value="">Select...</option>
+                {INQUIRY_CONTACT_ROLES.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* Case type + Side */}

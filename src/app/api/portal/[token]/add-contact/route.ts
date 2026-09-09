@@ -3,6 +3,7 @@ import { randomBytes } from 'crypto'
 import { validatePortalInvite } from '@/lib/portal-auth'
 import { sendPortalInviteEmail } from '@/lib/portal-email'
 import { checkRateLimit, clientIp } from '@/lib/rate-limit'
+import { escapeLikeLiteral } from '@/lib/contacts'
 
 /**
  * Maps the role chosen in the portal "Invite a colleague" UI to a contact_type
@@ -27,16 +28,6 @@ type ContactRow = {
   email: string | null
   contact_type: string | null
   organization_name: string | null
-}
-
-/**
- * Escapes LIKE metacharacters so an address is matched literally. Without this
- * an underscore — legal and common in email addresses — is a single-character
- * wildcard, so `a_b@x.com` would match `a.b@x.com` and silently adopt the wrong
- * person's contact record.
- */
-function likeLiteral(value: string): string {
-  return value.replace(/[\\%_]/g, (ch) => `\\${ch}`)
 }
 
 const norm = (value: string | null | undefined) => (value || '').trim().toLowerCase()
@@ -158,7 +149,7 @@ export async function POST(
     const { data: byEmail } = await supabase
       .from('contacts')
       .select(CONTACT_FIELDS)
-      .ilike('email', likeLiteral(email))
+      .ilike('email', escapeLikeLiteral(email))
       .order('created_at', { ascending: true })
       .limit(1)
 
@@ -236,7 +227,7 @@ export async function POST(
           const { data: retry } = await supabase
             .from('contacts')
             .select(CONTACT_FIELDS)
-            .ilike('email', likeLiteral(email))
+            .ilike('email', escapeLikeLiteral(email))
             .order('created_at', { ascending: true })
             .limit(1)
           contact = (retry?.[0] as ContactRow) || null

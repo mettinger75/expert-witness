@@ -89,6 +89,40 @@ export const CASE_CONTACT_ROLES = [
   { value: 'other', label: 'Other' },
 ] as const
 
+// Roles an inquiring contact can hold at intake.
+//
+// Deliberately a short list rather than the full CASE_CONTACT_ROLES: this asks
+// who is contacting Dr. Ettinger about a matter, and the answer is always one
+// of these four. Referrals routinely arrive from an agency contact, a nurse
+// consultant, or a paralegal who is NOT retaining counsel, and the role picked
+// here decides who the contract and report flows later resolve as retaining
+// counsel — so it has to be asked rather than assumed.
+//
+// Every value is checked against the live `case_contacts_role_check`
+// constraint. Do not add one without confirming it there first; the constraint
+// is stricter than the CaseContactRole TypeScript union, which still carries
+// values the database rejects.
+export const INQUIRY_CONTACT_ROLES = [
+  { value: 'retaining_attorney', label: 'Retaining attorney' },
+  { value: 'co_counsel', label: 'Co-counsel' },
+  { value: 'paralegal', label: 'Paralegal / legal assistant' },
+  { value: 'other', label: 'Referring party / other' },
+] as const
+
+/**
+ * Neutral fallback when the role was not supplied. `other` is the only value
+ * the constraint offers that asserts nothing about the engagement, and
+ * `case_contacts.role` is NOT NULL with no default, so something must be sent.
+ */
+export const DEFAULT_INQUIRY_CONTACT_ROLE = 'other'
+
+/** Coerces untrusted input to a role the database will accept. */
+export function resolveInquiryContactRole(value: unknown): string {
+  return INQUIRY_CONTACT_ROLES.some((r) => r.value === value)
+    ? (value as string)
+    : DEFAULT_INQUIRY_CONTACT_ROLE
+}
+
 // Document Categories
 export const DOCUMENT_CATEGORIES = [
   { value: 'medical_record', label: 'Medical Record' },
