@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { EMAIL_COLORS } from '@/lib/email-config'
 import { findOrCreateAttorneyContact, createInquiryCase } from '@/lib/inquiry-helpers'
+import { INQUIRY_CONTACT_ROLES, resolveInquiryContactRole } from '@/lib/constants'
 import { caseEmailHeaders, caseEmailSubject } from '@/lib/email-threading'
 import { checkRateLimit, clientIp } from '@/lib/rate-limit'
 
@@ -11,8 +12,8 @@ import { checkRateLimit, clientIp } from '@/lib/rate-limit'
  *
  * Behavior (post-collapse):
  *   1. Find or create attorney contact.
- *   2. Insert a `cases` row with status='inquiry' and link the contact as
- *      retaining_attorney.
+ *   2. Insert a `cases` row with status='inquiry' and link the contact in the
+ *      role they selected on the form (falling back to 'other').
  *   3. Send Mark a notification email tagged with the case's thread root
  *      Message-ID so every subsequent message about this case threads under
  *      the same Gmail conversation.
@@ -60,6 +61,7 @@ export async function POST(request: NextRequest) {
       side,
       requestedTurnaround,
       source,
+      role,
     } = body
 
     if (!firstName || !lastName || !email) {
@@ -114,6 +116,9 @@ export async function POST(request: NextRequest) {
       side: sideClean,
       requestedTurnaround: turnaroundClean,
       source: sourceClean,
+      // Validated inside createInquiryCase; an unrecognised or absent answer
+      // becomes 'other' rather than asserting the submitter is retaining counsel.
+      role,
     })
 
     // 3. Notify Dr. Ettinger — this is the THREAD ROOT for the case.
@@ -126,11 +131,19 @@ export async function POST(request: NextRequest) {
 
       const turnaroundLabel = turnaroundClean ? (TURNAROUND_LABELS[turnaroundClean] ?? turnaroundClean) : ''
 
+      // Always shown, including the 'other' fallback: the role decides who the
+      // contract and report flows treat as retaining counsel, so Dr. Ettinger
+      // should see what was recorded without opening the case.
+      const resolvedRole = resolveInquiryContactRole(role)
+      const roleLabel =
+        INQUIRY_CONTACT_ROLES.find((r) => r.value === resolvedRole)?.label ?? resolvedRole
+
       const detailRows = [
         { label: 'Name', value: fullName },
         { label: 'Email', value: email },
         phone ? { label: 'Phone', value: phone } : null,
         organizationName ? { label: 'Firm', value: organizationName } : null,
+        { label: 'Role', value: roleLabel },
         caseTypeClean ? { label: 'Case Type', value: humanize(caseTypeClean) } : null,
         sideClean ? { label: 'Side', value: humanize(sideClean) } : null,
         specialtyClean ? { label: 'Clinical Area', value: humanize(specialtyClean) } : null,

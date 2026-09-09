@@ -263,7 +263,17 @@ export async function POST(request: NextRequest) {
     const attorneyName = retainingAttorney
       ? `${retainingAttorney.contact?.first_name} ${retainingAttorney.contact?.last_name}`
       : 'Counsel'
-    header = header.replace(/\{\{attorney_name\}\}/g, `Counsel for ${caseData.side === 'plaintiff' ? 'Plaintiff' : 'Defense'} ${attorneyName}`)
+    // `side` is nullable and, since inquiries stopped defaulting to 'plaintiff',
+    // is genuinely unset on a case counsel has not finished onboarding. The old
+    // plaintiff-or-else-Defense ternary turned every such case into "Counsel for
+    // Defense" on the header of a report that goes to attorneys. An unknown side
+    // now drops the phrase entirely rather than asserting the wrong one.
+    const sideLabel =
+      caseData.side === 'plaintiff' ? 'Plaintiff' : caseData.side === 'defense' ? 'Defense' : null
+    header = header.replace(
+      /\{\{attorney_name\}\}/g,
+      sideLabel ? `Counsel for ${sideLabel} ${attorneyName}` : attorneyName
+    )
     header = header.replace(/\{\{report_date\}\}/g, new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }))
     header = header.replace(/\{\{case_name\}\}/g, caseData.case_name)
 

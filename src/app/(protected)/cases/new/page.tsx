@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { DOCUMENT_CATEGORIES } from '@/lib/constants'
+import { DOCUMENT_CATEGORIES, INQUIRY_CONTACT_ROLES } from '@/lib/constants'
 import type { CaseInsert } from '@/types/database.types'
 import type { DocumentCategory } from '@/types/enums'
 import { Input } from '@/components/ui/input'
@@ -42,6 +42,12 @@ export default function NewCasePage() {
     lastName: '',
     email: '',
     organizationName: '',
+    // Pre-selected because this form is used to invite counsel Dr. Ettinger has
+    // already spoken with, and retaining counsel is the usual case. Unlike the
+    // hardcoded value this replaces, it is visible and can be changed before
+    // sending — which is the whole point, since referrals often come in through
+    // an agency contact or paralegal who is not retaining counsel.
+    role: 'retaining_attorney' as string,
     invitationMessage: '',
   })
   const [inquirySending, setInquirySending] = useState(false)
@@ -270,7 +276,7 @@ export default function NewCasePage() {
                     variant="outline"
                     onClick={() => {
                       setInquiryResult(null)
-                      setInquiryForm({ firstName: '', lastName: '', email: '', organizationName: '', invitationMessage: '' })
+                      setInquiryForm({ firstName: '', lastName: '', email: '', organizationName: '', role: 'retaining_attorney', invitationMessage: '' })
                     }}
                   >
                     Send Another
@@ -313,13 +319,31 @@ export default function NewCasePage() {
                     required
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <Label>Firm / Organization</Label>
-                  <Input
-                    value={inquiryForm.organizationName}
-                    onChange={(e) => setInquiryForm(prev => ({ ...prev, organizationName: e.target.value }))}
-                    placeholder="Smith & Associates"
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>Firm / Organization</Label>
+                    <Input
+                      value={inquiryForm.organizationName}
+                      onChange={(e) => setInquiryForm(prev => ({ ...prev, organizationName: e.target.value }))}
+                      placeholder="Smith & Associates"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Role on the Case</Label>
+                    <Select
+                      value={inquiryForm.role}
+                      onValueChange={(value) => setInquiryForm(prev => ({ ...prev, role: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {INQUIRY_CONTACT_ROLES.map((r) => (
+                          <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
                 <div className="space-y-1.5">
                   <Label>Personal Message (optional)</Label>

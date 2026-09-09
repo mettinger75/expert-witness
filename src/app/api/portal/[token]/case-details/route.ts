@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { validatePortalInvite } from '@/lib/portal-auth'
 import { checkRateLimit, clientIp } from '@/lib/rate-limit'
+import { findContactIdByEmail, normalizeEmail } from '@/lib/contacts'
 
 // Allow-lists mirror the CHECK constraints on the cases table. Because this is
 // a public (token-gated) write endpoint, an out-of-range value would otherwise
@@ -209,14 +210,16 @@ export async function POST(
       const { firstName, lastName, organizationName, email, contactType, caseRole } = opts
       let contactId: string | null = null
 
-      if (email) {
-        const { data: existing } = await supabase
-          .from('contacts')
-          .select('id')
-          .eq('email', email)
-          .maybeSingle()
-        if (existing) contactId = existing.id
-      }
+      // `contacts.email` is not unique and already holds duplicate addresses.
+      // The previous `.eq(...).maybeSingle()` here answered PGRST116 whenever
+      // two rows matched, and because only `data` was destructured that error
+      // was discarded — so the lookup read as "no such contact" and this
+      // function created yet another duplicate of a party already on file.
+      // Matching is also case-insensitive now: opposing counsel entered as
+      // `J.Smith@firm.com` on one case and `j.smith@firm.com` on the next is
+      // one person, not two.
+      const normalizedEmail = normalizeEmail(email)
+      contactId = await findContactIdByEmail(supabase, normalizedEmail)
 
       if (!contactId) {
         const { data: created, error: contactErr } = await supabase
@@ -225,20 +228,23 @@ export async function POST(
             first_name: firstName || null,
             last_name: lastName || null,
             organization_name: organizationName || null,
-            email: email || null,
+            email: normalizedEmail,
             contact_type: contactType,
           })
           .select('id')
           .single()
         if (contactErr) {
-          // Lost a race on the unique email — fetch the winner.
-          if (contactErr.code === '23505' && email) {
-            const { data: retry } = await supabase
-              .from('contacts')
-              .select('id')
-              .eq('email', email)
-              .single()
-            contactId = retry?.id ?? null
+          // Defensive only. There is no unique index on `contacts.email` — just
+          // the non-unique `idx_contacts_email` — so an address cannot actually
+          // raise 23505 today. Kept in case a uniqueness constraint is added
+          // later, in which case a concurrent insert would land here and the
+          // row already written by the winner is the one to adopt.
+          if (contactErr.code === '23505' && normalizedEmail) {
+            contactId = await findContactIdByEmail(supabase, normalizedEmail)
+            if (!contactId) {
+              console.error('linkParty: contact insert conflicted but no row found', contactErr)
+              return
+            }
           } else {
             console.error('linkParty: contact insert failed', contactErr)
             return
