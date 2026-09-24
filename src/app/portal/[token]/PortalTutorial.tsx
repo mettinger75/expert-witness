@@ -182,7 +182,7 @@ const ALL_TUTORIAL_STEPS: PortalTutorialStep[] = [
     targetSelector: '[data-tour="tab-timeline"]',
     title: 'Communication Timeline',
     description:
-      'The Timeline tab shows a chronological log of all communications and events related to your case.',
+      'The Timeline tab shows the key communications and updates Dr. Ettinger has shared about your case, in date order.',
     icon: Clock,
     tooltipPosition: 'bottom',
     switchToTab: 'timeline',

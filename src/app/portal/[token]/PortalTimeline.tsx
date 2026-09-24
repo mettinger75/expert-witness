@@ -14,32 +14,37 @@ import {
   MessageSquare,
 } from 'lucide-react'
 
+// Only entries Dr. Ettinger has explicitly shared reach the portal, and only
+// with their counsel-facing text (portal_summary) — see /api/portal/[token].
 interface Communication {
   id: string
   communication_type: string
-  subject: string | null
-  summary: string | null
-  communication_date: string
   direction: string
-  participants: string | null
-  notes: string | null
+  communication_date: string
+  portal_summary: string | null
 }
 
 interface PortalTimelineProps {
   communications: Communication[]
 }
 
+// communication_type values match the communication_logs CHECK constraint.
 function getTypeIcon(type: string) {
   switch (type) {
-    case 'email':
+    case 'email_sent':
+    case 'email_received':
       return <Mail className="h-4 w-4" />
-    case 'phone':
     case 'phone_call':
+    case 'voicemail':
       return <Phone className="h-4 w-4" />
     case 'meeting':
-    case 'conference':
+    case 'video_conference':
+    case 'in_person':
       return <Calendar className="h-4 w-4" />
-    case 'letter':
+    case 'letter_sent':
+    case 'letter_received':
+    case 'fax_sent':
+    case 'fax_received':
       return <FileText className="h-4 w-4" />
     default:
       return <MessageSquare className="h-4 w-4" />
@@ -48,17 +53,29 @@ function getTypeIcon(type: string) {
 
 function getTypeLabel(type: string): string {
   const labels: Record<string, string> = {
-    email: 'Email',
-    phone: 'Phone Call',
+    email_sent: 'Email',
+    email_received: 'Email',
     phone_call: 'Phone Call',
+    voicemail: 'Voicemail',
     meeting: 'Meeting',
-    conference: 'Conference',
-    letter: 'Letter',
-    fax: 'Fax',
-    video_call: 'Video Call',
+    video_conference: 'Video Conference',
     in_person: 'In Person',
+    letter_sent: 'Letter',
+    letter_received: 'Letter',
+    fax_sent: 'Fax',
+    fax_received: 'Fax',
+    text_message: 'Text Message',
+    portal_message: 'Portal Message',
+    other: 'Update',
   }
   return labels[type] || type.replace(/_/g, ' ')
+}
+
+// direction is recorded from Dr. Ettinger's side; word it for counsel.
+function getDirectionLabel(direction: string): string | null {
+  if (direction === 'outbound') return 'From Dr. Ettinger'
+  if (direction === 'inbound') return 'To Dr. Ettinger'
+  return null
 }
 
 function groupByDate(
@@ -90,7 +107,7 @@ export function PortalTimeline({ communications }: PortalTimelineProps) {
           No Communications Yet
         </h3>
         <p className="text-sm text-gray-500">
-          Communication history will appear here as the case progresses.
+          Updates Dr. Ettinger shares with you will appear here as the case progresses.
         </p>
       </div>
     )
@@ -127,15 +144,9 @@ export function PortalTimeline({ communications }: PortalTimelineProps) {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-sm font-medium text-[#0E1F35]">
-                          {comm.subject || getTypeLabel(comm.communication_type)}
-                        </span>
-                        <Badge
-                          variant="outline"
-                          className="text-[10px] capitalize"
-                        >
                           {getTypeLabel(comm.communication_type)}
-                        </Badge>
-                        {comm.direction && (
+                        </span>
+                        {getDirectionLabel(comm.direction) && (
                           <Badge
                             variant="outline"
                             className={`text-[10px] flex items-center gap-1 ${
@@ -149,26 +160,14 @@ export function PortalTimeline({ communications }: PortalTimelineProps) {
                             ) : (
                               <ArrowUpRight className="h-3 w-3" />
                             )}
-                            {comm.direction}
+                            {getDirectionLabel(comm.direction)}
                           </Badge>
                         )}
                       </div>
 
-                      {comm.summary && (
-                        <p className="text-sm text-gray-600 mt-1 leading-relaxed">
-                          {comm.summary}
-                        </p>
-                      )}
-
-                      {comm.participants && (
-                        <p className="text-xs text-gray-400 mt-2">
-                          Participants: {comm.participants}
-                        </p>
-                      )}
-
-                      {comm.notes && (
-                        <p className="text-xs text-gray-400 mt-1 italic">
-                          {comm.notes}
+                      {comm.portal_summary && (
+                        <p className="text-sm text-gray-600 mt-1 leading-relaxed whitespace-pre-line">
+                          {comm.portal_summary}
                         </p>
                       )}
                     </div>

@@ -137,12 +137,9 @@ interface CaseReport {
 interface Communication {
   id: string
   communication_type: string
-  subject: string | null
-  summary: string | null
-  communication_date: string
   direction: string
-  participants: string | null
-  notes: string | null
+  communication_date: string
+  portal_summary: string | null
 }
 
 interface TabConfig {
