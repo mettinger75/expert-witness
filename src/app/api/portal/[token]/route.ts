@@ -15,10 +15,12 @@ export async function GET(
     // Skips view_count increments, session logging, and case-status side effects.
     const isPreview = request.nextUrl.searchParams.get('preview') === '1'
 
-    // Look up the portal invite
+    // Look up the portal invite. The viewer's own contact is returned to the
+    // browser as `invite.contact`, so embed portal-safe fields only — never
+    // contacts(*), which would ship internal columns (notes, bar number, etc.).
     const { data: invite, error } = await supabase
       .from('portal_invites')
-      .select('*, contacts(*)')
+      .select('*, contacts(id, first_name, last_name, email, organization_name, contact_type)')
       .eq('token', token)
       .eq('is_active', true)
       .single()
