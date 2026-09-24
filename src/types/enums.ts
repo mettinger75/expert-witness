@@ -392,18 +392,36 @@ export type PaymentType =
 // Communication / log enums
 // ---------------------------------------------------------------------------
 
+// These three mirror the communication_logs CHECK constraints exactly.
 export type CommunicationType =
-  | 'phone_inbound'
-  | 'phone_outbound'
-  | 'email_inbound'
-  | 'email_outbound'
-  | 'video_call'
-  | 'in_person'
-  | 'letter'
-  | 'fax'
-  | 'text'
+  | 'phone_call'
+  | 'email_sent'
+  | 'email_received'
+  | 'letter_sent'
+  | 'letter_received'
+  | 'fax_sent'
+  | 'fax_received'
+  | 'meeting'
+  | 'video_conference'
+  | 'text_message'
+  | 'portal_message'
   | 'voicemail'
+  | 'in_person'
   | 'other';
+
+export type CommunicationDirection =
+  | 'inbound'
+  | 'outbound'
+  | 'internal';
+
+export type CommunicationStatus =
+  | 'draft'
+  | 'scheduled'
+  | 'in_progress'
+  | 'completed'
+  | 'cancelled'
+  | 'failed'
+  | 'no_answer';
 
 // ---------------------------------------------------------------------------
 // Case milestone / note enums

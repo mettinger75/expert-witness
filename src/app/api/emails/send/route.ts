@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { requireAdminUser } from '@/lib/api-admin-auth'
 import { buildEmail } from '@/lib/email-templates'
 import { emailSendDefaults, EMAIL_EVENT_TYPES, type EmailEventType } from '@/lib/email-config'
+import type { CommunicationLogInsert } from '@/types/database.types'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -94,7 +95,7 @@ export async function POST(request: NextRequest) {
       to_emails: [recipientEmail],
       communication_date: new Date().toISOString(),
       follow_up_required: false,
-    })
+    } satisfies CommunicationLogInsert)
 
     if (logError) {
       console.error('Communication log error:', logError)
