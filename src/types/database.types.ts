@@ -1312,6 +1312,8 @@ export interface CommunicationLogRow {
   is_billable: boolean;
   time_entry_id: string | null;
   tags: string[] | null;
+  visible_to_portal: boolean;
+  portal_summary: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -1344,6 +1346,8 @@ export interface CommunicationLogInsert {
   is_billable?: boolean;
   time_entry_id?: string | null;
   tags?: string[] | null;
+  visible_to_portal?: boolean;
+  portal_summary?: string | null;
   created_at?: string;
   updated_at?: string;
 }

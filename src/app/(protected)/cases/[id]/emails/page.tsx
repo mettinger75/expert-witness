@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog'
 import { EmptyState } from '@/components/shared/EmptyState'
@@ -19,9 +20,11 @@ import { useCreateCaseNote } from '@/hooks/useCaseNotes'
 import { ComposeEmailDialog } from '@/components/emails/ComposeEmailDialog'
 import { formatDateTime } from '@/lib/formatters'
 import type { CommunicationType } from '@/types/enums'
+import type { CommunicationLogRow } from '@/types/database.types'
 import {
   Mail, Phone, Video, MessageSquare, Plus, ArrowUpRight,
   ArrowDownLeft, Minus, Loader2, Clock, Inbox, Check, StickyNote, Trash2,
+  Eye, Share2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -88,6 +91,14 @@ export default function CaseEmailsPage() {
   const [formSummary, setFormSummary] = useState('')
   const [formDetails, setFormDetails] = useState('')
   const [formDate, setFormDate] = useState(new Date().toISOString().slice(0, 16))
+  const [formShare, setFormShare] = useState(false)
+  const [formPortalSummary, setFormPortalSummary] = useState('')
+
+  // Sharing with counsel: the portal Timeline shows an entry only when
+  // visible_to_portal is set, and then only its portal_summary. Subject,
+  // summary and details are internal and never reach the portal.
+  const [shareTarget, setShareTarget] = useState<CommunicationLogRow | null>(null)
+  const [shareText, setShareText] = useState('')
 
   // Split into inbox (unreviewed) and filed (reviewed)
   const inboxItems = logs.filter((l) => l.follow_up_required)
@@ -99,11 +110,17 @@ export default function CaseEmailsPage() {
     setFormSummary('')
     setFormDetails('')
     setFormDate(new Date().toISOString().slice(0, 16))
+    setFormShare(false)
+    setFormPortalSummary('')
   }
 
   async function handleAdd() {
     if (!formSummary) {
       toast.error('Summary is required')
+      return
+    }
+    if (formShare && !formPortalSummary.trim()) {
+      toast.error('Add the text counsel will see, or uncheck sharing')
       return
     }
 
@@ -115,10 +132,33 @@ export default function CaseEmailsPage() {
       summary: formSummary,
       detailed_notes: formDetails || null,
       communication_date: new Date(formDate).toISOString(),
+      ...(formShare ? { visible_to_portal: true, portal_summary: formPortalSummary.trim() } : {}),
     })
 
     resetForm()
     setAddOpen(false)
+  }
+
+  function openShare(log: CommunicationLogRow) {
+    setShareTarget(log)
+    setShareText(log.portal_summary || '')
+  }
+
+  async function handleShare() {
+    if (!shareTarget || !shareText.trim()) return
+    await updateLog.mutateAsync({
+      id: shareTarget.id,
+      data: { visible_to_portal: true, portal_summary: shareText.trim() },
+    })
+    setShareTarget(null)
+    toast.success('Shared on the attorney portal')
+  }
+
+  async function handleStopSharing() {
+    if (!shareTarget) return
+    await updateLog.mutateAsync({ id: shareTarget.id, data: { visible_to_portal: false } })
+    setShareTarget(null)
+    toast.success('Removed from the attorney portal')
   }
 
   async function handleMarkReviewed(id: string) {
@@ -220,6 +260,29 @@ export default function CaseEmailsPage() {
                   rows={4}
                 />
               </div>
+              <div className="space-y-2 rounded-md border p-3">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="log-share-with-counsel"
+                    checked={formShare}
+                    onCheckedChange={(checked) => setFormShare(checked === true)}
+                  />
+                  <Label htmlFor="log-share-with-counsel">Share on the attorney portal Timeline</Label>
+                </div>
+                {formShare && (
+                  <>
+                    <Textarea
+                      placeholder="What counsel will see..."
+                      value={formPortalSummary}
+                      onChange={(e) => setFormPortalSummary(e.target.value)}
+                      rows={2}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Counsel sees the type, date and this text only. Subject, summary and details stay private.
+                    </p>
+                  </>
+                )}
+              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => { resetForm(); setAddOpen(false) }}>
@@ -248,6 +311,42 @@ export default function CaseEmailsPage() {
         caseNumber={caseData?.case_number}
         contacts={composeContacts}
       />
+
+      {/* Share-with-counsel Dialog */}
+      <Dialog open={!!shareTarget} onOpenChange={(open) => { if (!open) setShareTarget(null) }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Share with counsel</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label>Text counsel will see *</Label>
+            <Textarea
+              placeholder="e.g. Retention agreement and fee schedule sent."
+              value={shareText}
+              onChange={(e) => setShareText(e.target.value)}
+              rows={3}
+            />
+            <p className="text-xs text-muted-foreground">
+              The portal Timeline shows the type, date and this text only. Subject, summary and details stay private.
+            </p>
+          </div>
+          <DialogFooter>
+            {shareTarget?.visible_to_portal && (
+              <Button variant="outline" onClick={handleStopSharing} disabled={updateLog.isPending}>
+                Stop sharing
+              </Button>
+            )}
+            <Button onClick={handleShare} disabled={updateLog.isPending || !shareText.trim()}>
+              {updateLog.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Share2 className="h-4 w-4 mr-2" />
+              )}
+              {shareTarget?.visible_to_portal ? 'Save' : 'Share'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {isLoading ? (
         <div className="flex justify-center py-12">
@@ -301,6 +400,12 @@ export default function CaseEmailsPage() {
                               {log.from_name && (
                                 <span className="text-xs text-muted-foreground">from {log.from_name}</span>
                               )}
+                              {log.visible_to_portal && (
+                                <Badge variant="outline" className="text-xs flex items-center gap-1 border-emerald-200 text-emerald-700">
+                                  <Eye className="h-3 w-3" />
+                                  Shared with counsel
+                                </Badge>
+                              )}
                             </div>
                             {log.subject && (
                               <h4 className="font-medium text-sm mt-1">{log.subject}</h4>
@@ -330,6 +435,14 @@ export default function CaseEmailsPage() {
                               >
                                 <StickyNote className="h-3 w-3 mr-1" />
                                 File to Notes
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openShare(log)}
+                              >
+                                <Share2 className="h-3 w-3 mr-1" />
+                                {log.visible_to_portal ? 'Edit shared text' : 'Share with counsel'}
                               </Button>
                               <Button
                                 variant="ghost"
@@ -387,6 +500,21 @@ export default function CaseEmailsPage() {
                                     <DirIcon className="h-3 w-3" />
                                     {COMM_TYPES.find((t) => t.value === log.communication_type)?.label || log.communication_type}
                                   </Badge>
+                                  {log.visible_to_portal && (
+                                    <Badge variant="outline" className="text-xs flex items-center gap-1 border-emerald-200 text-emerald-700">
+                                      <Eye className="h-3 w-3" />
+                                      Shared with counsel
+                                    </Badge>
+                                  )}
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="ml-auto h-7 text-xs"
+                                    onClick={() => openShare(log)}
+                                  >
+                                    <Share2 className="h-3 w-3 mr-1" />
+                                    {log.visible_to_portal ? 'Edit shared text' : 'Share with counsel'}
+                                  </Button>
                                 </div>
                                 {log.subject && (
                                   <h4 className="font-medium text-sm mt-1">{log.subject}</h4>

@@ -123,15 +123,23 @@ export async function GET(
       caseReports = reports || []
     }
 
-    // Fetch communication timeline (if enabled)
+    // Fetch communication timeline (if enabled).
+    // communication_logs.subject, summary and detailed_notes are internal
+    // notes. Only entries explicitly shared with counsel are returned, and
+    // only with their counsel-facing text (portal_summary). Never add
+    // internal columns here.
     let communications: unknown[] = []
     if (invite.can_view_timeline) {
-      const { data: comms } = await supabase
+      const { data: comms, error: commsError } = await supabase
         .from('communication_logs')
-        .select('id, communication_type, subject, summary, communication_date, direction, participants, notes')
+        .select('id, communication_type, direction, communication_date, portal_summary')
         .eq('case_id', invite.case_id)
+        .eq('visible_to_portal', true)
         .order('communication_date', { ascending: false })
         .limit(50)
+      // Fail closed (empty timeline), but log it — a silently ignored error
+      // here once hid a select that named nonexistent columns.
+      if (commsError) console.error('Portal timeline query error:', commsError)
       communications = comms || []
     }
 
