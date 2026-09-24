@@ -16,28 +16,40 @@ import {
 } from '@/components/ui/table'
 import { formatDate, formatDateTime } from '@/lib/formatters'
 import { supabase } from '@/lib/supabase'
+import type { CommunicationType } from '@/types/enums'
 import {
   Mail, Phone, MessageSquare, Video,
   ArrowDownLeft, ArrowUpRight, AlertCircle,
 } from 'lucide-react'
 
 const communicationTypeIcons: Record<string, React.ElementType> = {
-  email: Mail,
-  phone: Phone,
-  video: Video,
+  email_sent: Mail,
+  email_received: Mail,
+  phone_call: Phone,
+  voicemail: Phone,
+  video_conference: Video,
+  meeting: Video,
   in_person: MessageSquare,
-  letter: Mail,
-}
+  letter_sent: Mail,
+  letter_received: Mail,
+} satisfies Partial<Record<CommunicationType, React.ElementType>>
 
 const communicationTypeLabels: Record<string, string> = {
-  email: 'Email',
-  phone: 'Phone',
-  video: 'Video Call',
+  email_sent: 'Email Sent',
+  email_received: 'Email Received',
+  phone_call: 'Phone Call',
+  voicemail: 'Voicemail',
+  video_conference: 'Video Conference',
+  meeting: 'Meeting',
   in_person: 'In Person',
-  letter: 'Letter',
-  fax: 'Fax',
-  text: 'Text Message',
-}
+  letter_sent: 'Letter Sent',
+  letter_received: 'Letter Received',
+  fax_sent: 'Fax Sent',
+  fax_received: 'Fax Received',
+  text_message: 'Text Message',
+  portal_message: 'Portal Message',
+  other: 'Other',
+} satisfies Record<CommunicationType, string>
 
 export default function ContactCommunicationsPage() {
   const params = useParams()

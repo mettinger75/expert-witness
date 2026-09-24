@@ -1,6 +1,7 @@
 import { createMcpHandler } from 'mcp-handler'
 import { z } from 'zod'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import type { CommunicationLogInsert } from '@/types/database.types'
 
 const handler = createMcpHandler(
   (server) => {
@@ -162,7 +163,7 @@ const handler = createMcpHandler(
             communication_date: date || new Date().toISOString(),
             follow_up_required: true,
             is_billable: false,
-          })
+          } satisfies CommunicationLogInsert)
           .select()
           .single()
 

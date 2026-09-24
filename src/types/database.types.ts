@@ -35,6 +35,8 @@ import type {
   PaymentMethod,
   PaymentStatus,
   CommunicationType,
+  CommunicationDirection,
+  CommunicationStatus,
   MilestoneType,
   NoteType,
   ConflictResolution,
@@ -1289,8 +1291,8 @@ export interface CommunicationLogRow {
   case_id: string | null;
   contact_id: string | null;
   communication_type: CommunicationType;
-  direction: string;
-  status: string;
+  direction: CommunicationDirection;
+  status: CommunicationStatus;
   subject: string | null;
   summary: string;
   detailed_notes: string | null;
@@ -1321,8 +1323,8 @@ export interface CommunicationLogInsert {
   case_id?: string | null;
   contact_id?: string | null;
   communication_type: CommunicationType;
-  direction?: string;
-  status?: string;
+  direction?: CommunicationDirection;
+  status?: CommunicationStatus;
   subject?: string | null;
   summary: string;
   detailed_notes?: string | null;

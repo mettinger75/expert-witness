@@ -25,7 +25,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 
-const COMM_TYPES = [
+const COMM_TYPES: { value: CommunicationType; label: string }[] = [
   { value: 'email_received', label: 'Email (Received)' },
   { value: 'email_sent', label: 'Email (Sent)' },
   { value: 'phone_call', label: 'Phone Call' },
@@ -56,7 +56,7 @@ function getDirectionIcon(direction: string) {
   return Minus
 }
 
-function getDirectionFromType(type: string): string {
+function getDirectionFromType(type: string) {
   if (type.includes('received')) return 'inbound'
   if (type.includes('sent')) return 'outbound'
   return 'outbound'
@@ -83,7 +83,7 @@ export default function CaseEmailsPage() {
   }))
 
   // Form state
-  const [formType, setFormType] = useState<string>('email_sent')
+  const [formType, setFormType] = useState<CommunicationType>('email_sent')
   const [formSubject, setFormSubject] = useState('')
   const [formSummary, setFormSummary] = useState('')
   const [formDetails, setFormDetails] = useState('')
@@ -109,7 +109,7 @@ export default function CaseEmailsPage() {
 
     await createLog.mutateAsync({
       case_id: caseId,
-      communication_type: formType as CommunicationType,
+      communication_type: formType,
       direction: getDirectionFromType(formType),
       subject: formSubject || null,
       summary: formSummary,
@@ -174,7 +174,7 @@ export default function CaseEmailsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Type</Label>
-                  <Select value={formType} onValueChange={setFormType}>
+                  <Select value={formType} onValueChange={(v) => setFormType(v as CommunicationType)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
